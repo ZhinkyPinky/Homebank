@@ -31,20 +31,6 @@ import java.time.LocalDateTime;
 public class TransactionHead {
     public TransactionHead(){}
 
-    public TransactionHead(Long id, Long lenderId, Long borrowerId, String transactionName, String description, LocalDate startDate, LocalDate prelEndDate, LocalDate endDate, String borrower, String lender, LocalDateTime rowVersion) {
-        this.id = id;
-        this.lenderId = lenderId;
-        this.borrowerId = borrowerId;
-        this.transactionName = transactionName;
-        this.description = description;
-        this.startDate = startDate;
-        this.prelEndDate = prelEndDate;
-        this.endDate = endDate;
-        this.borrower = borrower;
-        this.lender = lender;
-        this.rowVersion = rowVersion;
-    }
-
     @Id
     @Column(name = "Id")
     private Long id;

@@ -21,39 +21,6 @@ public class HomebankApplication {
 
     public static void main(String[] args) {
         configurableApplicationContext = SpringApplication.run(HomebankApplication.class, args);
-
-        /*
-        configurableApplicationContext.getBean(TransactionHeadRepository.class).saveTransactionHead(
-                null,
-                1L,
-                2L,
-                "abc",
-                "sdf",
-                LocalDate.now(),
-                LocalDate.now(),
-                LocalDate.now(),
-                LocalDateTime.now()
-        );
-
-*/
-
-        try {
-            TransactionHead transactionHead = new TransactionHead();
-            transactionHead.setBorrowerId(64L);
-            transactionHead.setLenderId(2L);
-            transactionHead.setStartDate(LocalDate.now());
-
-            Map<String, Object> map =
-                    configurableApplicationContext.getBean(TransactionHeadService.class).saveTransactionHead(
-                            transactionHead
-                    );
-
-            System.out.println(map.get("p_OUT_Id"));
-            System.out.println(map.get("p_OUT_RowVersion"));
-        } catch (Exception e){
-            System.out.println(e.getMessage());
-        }
-
     }
 
 }
