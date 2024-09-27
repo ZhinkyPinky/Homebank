@@ -29,14 +29,18 @@ public class CustomerController {
 
     @GetMapping("/{customerId}")
     public ResponseEntity<Customer> getCustomer(@PathVariable final long customerId) {
-        Customer body = customerService.getCustomer(customerId);
+        Customer body = getCustomerServiceCustomer(customerId);
         return ResponseEntity.ok(body);
+    }
+
+    private Customer getCustomerServiceCustomer(long customerId) {
+        return customerService.getCustomer(customerId);
     }
 
     @GetMapping("/{customerId}/transactionHead")
     public ResponseEntity<CustomerAndTransactionHeads> getCustomerAndTransactionHeads(@PathVariable final long customerId) {
         CustomerAndTransactionHeads body = customerService.getCustomerAndTransactionHeads(customerId);
-
+        
         return ResponseEntity.ok(body);
     }
 
