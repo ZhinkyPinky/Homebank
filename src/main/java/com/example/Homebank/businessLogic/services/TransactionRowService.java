@@ -20,4 +20,8 @@ public class TransactionRowService {
     public TransactionRow getTransactionRow(long transactionRowId) {
         return transactionRowRepository.findById(transactionRowId).orElseThrow(() -> new EntityNotFoundException("The transaction row could not be found."));
     }
+
+    public void saveTransactionRow(TransactionRow transactionRow) {
+
+    }
 }
