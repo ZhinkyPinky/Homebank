@@ -29,7 +29,6 @@ public class TransactionHeadService {
 
     @Transactional
     public Map<String, Object> saveTransactionHead(TransactionHead transactionHead) {
-
         return transactionHeadRepository.saveTransactionHead(
                 transactionHead.getId(),
                 transactionHead.getLenderId(),
@@ -41,6 +40,5 @@ public class TransactionHeadService {
                 transactionHead.getEndDate(),
                 transactionHead.getRowVersion()
         );
-
     }
 }

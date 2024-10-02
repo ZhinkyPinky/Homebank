@@ -19,22 +19,6 @@ public interface TransactionHeadRepository extends JpaRepository<TransactionHead
     @Query(nativeQuery = true, value = "SELECT * FROM bank.vTransactionHead WHERE Lender_Id = :customerId OR Borrower_Id = :customerId")
     List<TransactionHead> findAllByLenderIdOrBorrowerId(long customerId);
 
-    /*
-    @Procedure(procedureName = "bank.TransactionHead_Save")
-    Map<String, Object> saveTransactionRow(
-            @Param("p_Id") Long id,
-            @Param("p_Lender_Id") Long lenderId,
-            @Param("p_Borrower_Id") Long borrowerId,
-            @Param("p_TransactionName") String transactionName,
-            @Param("p_Description") String description,
-            @Param("p_StartDate") LocalDate startDate,
-            @Param("p_PrelEndDate") LocalDate prelEndDate,
-            @Param("p_EndDate") LocalDate endDate,
-            @Param("p_RowVersion")LocalDateTime rowVersion
-            );
-     */
-
-
     @Procedure(name = "SaveTransactionHead")
     Map<String, Object> saveTransactionHead(
             @Param("p_Id") Long id,

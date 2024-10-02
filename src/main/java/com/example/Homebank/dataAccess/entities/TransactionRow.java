@@ -1,16 +1,30 @@
 package com.example.Homebank.dataAccess.entities;
 
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.Immutable;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@NamedStoredProcedureQuery(
+        name = "SaveTransactionRow",
+        procedureName = "bank.TransactionRow_Save",
+        parameters = {
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_TransactionHead_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_TransactionRowNo", type = Integer.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_TypeOfTransaction_Code", type = String.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Name", type = String.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Description", type = String.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_PaymentDate", type = LocalDate.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Amount", type = Integer.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_RowVersion", type = LocalDateTime.class),
+                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_RowVersion", type = LocalDateTime.class)
+        }
+)
 @Entity
 @Immutable
 @Data

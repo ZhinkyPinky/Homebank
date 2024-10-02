@@ -4,10 +4,7 @@ import com.example.Homebank.dataAccess.entities.Customer;
 import com.example.Homebank.dataAccess.entities.TransactionHead;
 import com.example.Homebank.dataAccess.entities.TransactionRow;
 import com.example.Homebank.dataAccess.repositories.CustomerRepository;
-import com.example.Homebank.presentation.bodies.CustomerAndTransactionHead;
-import com.example.Homebank.presentation.bodies.CustomerAndTransactionHeadAndTransactionRow;
-import com.example.Homebank.presentation.bodies.CustomerAndTransactionHeadAndTransactionRows;
-import com.example.Homebank.presentation.bodies.CustomerAndTransactionHeads;
+import com.example.Homebank.presentation.bodies.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +23,15 @@ public class CustomerService {
     @Autowired
     private TransactionRowService transactionRowService;
 
-    public ResponseEntity<List<Customer>> getAll() {
-        return ResponseEntity.ok().body(customerRepository.findAll());
+    public List<Customer> getCustomers() {
+        return customerRepository.findAll();
+    }
+
+    public CustomersAndTransactionHead getCustomersAndTransactionHead(long transactionHeadId) {
+        List<Customer> customers = getCustomers();
+        TransactionHead transactionRow = transactionHeadService.getTransactionHead(transactionHeadId);
+
+        return new CustomersAndTransactionHead(customers, transactionRow);
     }
 
     public Customer getCustomer(long customerId) {

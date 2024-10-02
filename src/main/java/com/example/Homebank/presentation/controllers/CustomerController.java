@@ -1,12 +1,8 @@
 package com.example.Homebank.presentation.controllers;
 
-import com.example.Homebank.businessLogic.services.TransactionHeadService;
 import com.example.Homebank.dataAccess.entities.Customer;
 import com.example.Homebank.businessLogic.services.CustomerService;
-import com.example.Homebank.presentation.bodies.CustomerAndTransactionHead;
-import com.example.Homebank.presentation.bodies.CustomerAndTransactionHeadAndTransactionRow;
-import com.example.Homebank.presentation.bodies.CustomerAndTransactionHeadAndTransactionRows;
-import com.example.Homebank.presentation.bodies.CustomerAndTransactionHeads;
+import com.example.Homebank.presentation.bodies.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,24 +19,29 @@ public class CustomerController {
     private CustomerService customerService;
 
     @GetMapping
-    public ResponseEntity<List<Customer>> getAllCustomers() {
-        return customerService.getAll();
+    public ResponseEntity<List<Customer>> getCustomers() {
+        List<Customer> body = customerService.getCustomers();
+
+        return ResponseEntity.ok(body);
+    }
+
+    @GetMapping("/transactionHead/{transactionHeadId}")
+    public ResponseEntity<CustomersAndTransactionHead> getCustomersAndTransactionHead(@PathVariable final long transactionHeadId) {
+        CustomersAndTransactionHead body = customerService.getCustomersAndTransactionHead(transactionHeadId);
+
+        return ResponseEntity.ok(body);
     }
 
     @GetMapping("/{customerId}")
     public ResponseEntity<Customer> getCustomer(@PathVariable final long customerId) {
-        Customer body = getCustomerServiceCustomer(customerId);
+        Customer body = customerService.getCustomer(customerId);
         return ResponseEntity.ok(body);
-    }
-
-    private Customer getCustomerServiceCustomer(long customerId) {
-        return customerService.getCustomer(customerId);
     }
 
     @GetMapping("/{customerId}/transactionHead")
     public ResponseEntity<CustomerAndTransactionHeads> getCustomerAndTransactionHeads(@PathVariable final long customerId) {
         CustomerAndTransactionHeads body = customerService.getCustomerAndTransactionHeads(customerId);
-        
+
         return ResponseEntity.ok(body);
     }
 
