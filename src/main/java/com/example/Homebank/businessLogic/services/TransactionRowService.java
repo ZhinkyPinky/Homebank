@@ -25,8 +25,6 @@ public class TransactionRowService {
 
     @Transactional
     public Map<String, Object> saveTransactionRow(TransactionRow transactionRow) {
-        System.out.println(transactionRow.toString());
-
         return transactionRowRepository.saveTransactionRow(
                 transactionRow.getId(),
                 transactionRow.getTransactionHeadId(),
@@ -38,5 +36,9 @@ public class TransactionRowService {
                 transactionRow.getAmount(),
                 transactionRow.getRowVersion()
         );
+    }
+
+    public void deleteTransactionRow(long transactionRowId) {
+
     }
 }

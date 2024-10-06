@@ -13,15 +13,22 @@ public class TransactionRowController {
     private TransactionRowService transactionRowService;
 
     @GetMapping("/{transactionRowId}")
-    public ResponseEntity<?> getTransactionRow(@PathVariable long transactionRowId) {
+    public ResponseEntity<?> getTransactionRow(@PathVariable final long transactionRowId) {
         TransactionRow transactionRow = transactionRowService.getTransactionRow(transactionRowId);
 
         return ResponseEntity.ok(transactionRow);
     }
 
     @PostMapping
-    public ResponseEntity<String> saveTransactionRow(@RequestBody TransactionRow transactionRow) {
+    public ResponseEntity<String> saveTransactionRow(@RequestBody final TransactionRow transactionRow) {
         transactionRowService.saveTransactionRow(transactionRow);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{transactionRowId}")
+    public ResponseEntity<String> deleteTransactionRow(@PathVariable final long transactionRowId) {
+        transactionRowService.deleteTransactionRow(transactionRowId);
 
         return ResponseEntity.ok().build();
     }

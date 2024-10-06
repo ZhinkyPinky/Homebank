@@ -7,6 +7,7 @@ import com.example.Homebank.dataAccess.repositories.CustomerRepository;
 import com.example.Homebank.presentation.bodies.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,8 @@ public class CustomerService {
     private TransactionRowService transactionRowService;
 
     public List<Customer> getCustomers() {
+        customerRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
+
         return customerRepository.findAll();
     }
 

@@ -15,7 +15,7 @@ import java.util.Map;
 @Repository
 public interface TransactionRowRepository extends JpaRepository<TransactionRow, Long> {
 
-    @Query(nativeQuery = true, value = "SELECT * FROM bank.vTransactionRow where TransactionHead_Id = :transactionHeadId")
+    @Query(nativeQuery = true, value = "SELECT * FROM bank.vTransactionRow where TransactionHead_Id = :transactionHeadId ORDER BY TransactionRowNo")
     List<TransactionRow> findAllByTransactionHeadId(long transactionHeadId);
 
     @Procedure(name = "SaveTransactionRow")
