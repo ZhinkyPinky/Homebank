@@ -29,4 +29,11 @@ public interface TransactionRowRepository extends JpaRepository<TransactionRow, 
             @Param("p_PaymentDate") LocalDate paymentDate,
             @Param("p_Amount") int amount,
             @Param("p_RowVersion") LocalDateTime rowVersion);
+
+    @Procedure(name = "DeleteTransactionRow")
+    Map<String, Object> deleteTransactionRow(
+            @Param("p_Id") Long id,
+            @Param("p_TransactionHead_Id") long transactionHeadId,
+            @Param("p_TransactionRowNo") int transactionRowNo,
+            @Param("p_RowVersion") LocalDateTime rowVersion);
 }

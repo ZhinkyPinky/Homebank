@@ -29,6 +29,13 @@ public interface TransactionHeadRepository extends JpaRepository<TransactionHead
             @Param("p_StartDate") LocalDate startDate,
             @Param("p_PrelEndDate") LocalDate prelEndDate,
             @Param("p_EndDate") LocalDate endDate,
-            @Param("p_RowVersion")LocalDateTime rowVersion
+            @Param("p_RowVersion") LocalDateTime rowVersion
+    );
+
+
+    @Procedure(name = "DeleteTransactionHead")
+    Map<String, Object> deleteTransactionHead(
+            @Param("p_Id") Long id,
+            @Param("p_RowVersion") LocalDateTime rowVersion
     );
 }

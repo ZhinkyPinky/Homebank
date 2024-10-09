@@ -41,4 +41,11 @@ public class TransactionHeadService {
                 transactionHead.getRowVersion()
         );
     }
+
+    public void deleteTransactionHead(TransactionHead transactionHead) {
+        transactionHeadRepository.deleteTransactionHead(
+                transactionHead.getId(),
+                transactionHead.getRowVersion()
+        );
+    }
 }

@@ -7,14 +7,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("api/transactionHead")
+@RequestMapping("api/transactionHeads")
 public class TransactionHeadController {
     @Autowired
     private TransactionHeadService transactionHeadService;
 
     @PostMapping
-    public ResponseEntity<String> saveTransactionHead(@RequestBody TransactionHead transactionHead){
-        transactionHeadService.saveTransactionHead(transactionHead);
+    public ResponseEntity<String> saveTransactionHead(@RequestParam String action, @RequestBody TransactionHead transactionHead) {
+        switch (action) {
+            case "save" -> transactionHeadService.saveTransactionHead(transactionHead);
+            case "delete" -> transactionHeadService.deleteTransactionHead(transactionHead);
+            default -> {
+                return ResponseEntity.badRequest().build();
+            }
+        }
 
         return ResponseEntity.ok().build();
     }

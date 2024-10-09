@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/customer")
+@RequestMapping("/api/customers")
 public class CustomerController {
     @Autowired
     private CustomerService customerService;
@@ -25,7 +25,7 @@ public class CustomerController {
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping("/transactionHead/{transactionHeadId}")
+    @GetMapping("/transactionHeads/{transactionHeadId}")
     public ResponseEntity<CustomersAndTransactionHead> getCustomersAndTransactionHead(@PathVariable final long transactionHeadId) {
         CustomersAndTransactionHead body = customerService.getCustomersAndTransactionHead(transactionHeadId);
 
@@ -38,28 +38,28 @@ public class CustomerController {
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping("/{customerId}/transactionHead")
+    @GetMapping("/{customerId}/transactionHeads")
     public ResponseEntity<CustomerAndTransactionHeads> getCustomerAndTransactionHeads(@PathVariable final long customerId) {
         CustomerAndTransactionHeads body = customerService.getCustomerAndTransactionHeads(customerId);
 
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping("/{customerId}/transactionHead/{transactionHeadId}")
+    @GetMapping("/{customerId}/transactionHeads/{transactionHeadId}")
     public ResponseEntity<CustomerAndTransactionHead> getCustomerAndTransactionHead(@PathVariable final long customerId, @PathVariable final long transactionHeadId) {
         CustomerAndTransactionHead body = customerService.getCustomerAndTransactionHead(customerId, transactionHeadId);
 
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping("/{customerId}/transactionHead/{transactionHeadId}/transactionRow")
+    @GetMapping("/{customerId}/transactionHeads/{transactionHeadId}/transactionRows")
     public ResponseEntity<CustomerAndTransactionHeadAndTransactionRows> getCustomerAndTransactionHeadAndRows(@PathVariable final long customerId, @PathVariable final long transactionHeadId) {
         CustomerAndTransactionHeadAndTransactionRows body = customerService.getCustomerTransactionHeadAndRows(customerId, transactionHeadId);
 
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping("/{customerId}/transactionHead/{transactionHeadId}/transactionRow/{transactionRowId}")
+    @GetMapping("/{customerId}/transactionHeads/{transactionHeadId}/transactionRows/{transactionRowId}")
     public ResponseEntity<?> getCustomerAndTransactionHeadAndTransactionRow(@PathVariable final long customerId, @PathVariable final long transactionHeadId, @PathVariable final long transactionRowId) {
         CustomerAndTransactionHeadAndTransactionRow body = customerService.getCustomerAndTransactionHeadAndTransactionRow(customerId, transactionHeadId, transactionRowId);
 

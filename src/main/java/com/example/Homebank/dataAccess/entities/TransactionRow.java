@@ -25,6 +25,18 @@ import java.time.LocalDateTime;
                 @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_RowVersion", type = LocalDateTime.class)
         }
 )
+@NamedStoredProcedureQuery(
+        name = "DeleteTransactionRow",
+        procedureName = "bank.TransactionRow_Delete",
+        parameters = {
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_TransactionHead_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_TransactionRowNo", type = Integer.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_RowVersion", type = LocalDateTime.class),
+                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_RowVersion", type = LocalDateTime.class)
+        }
+)
 @Entity
 @Immutable
 @Data

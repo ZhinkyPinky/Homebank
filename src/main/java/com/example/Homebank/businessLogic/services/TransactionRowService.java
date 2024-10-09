@@ -38,7 +38,12 @@ public class TransactionRowService {
         );
     }
 
-    public void deleteTransactionRow(long transactionRowId) {
-
+    public Map<String, Object> deleteTransactionRow(TransactionRow transactionRow) {
+        return transactionRowRepository.deleteTransactionRow(
+                transactionRow.getId(),
+                transactionRow.getTransactionHeadId(),
+                transactionRow.getTransactionRowNo(),
+                transactionRow.getRowVersion()
+        );
     }
 }
