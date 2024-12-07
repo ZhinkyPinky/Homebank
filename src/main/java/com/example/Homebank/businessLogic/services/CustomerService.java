@@ -6,6 +6,7 @@ import com.example.Homebank.dataAccess.entities.TransactionRow;
 import com.example.Homebank.dataAccess.repositories.CustomerRepository;
 import com.example.Homebank.presentation.bodies.*;
 import jakarta.persistence.EntityNotFoundException;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -32,9 +33,9 @@ public class CustomerService {
 
     public CustomersAndTransactionHead getCustomersAndTransactionHead(long transactionHeadId) {
         List<Customer> customers = getCustomers();
-        TransactionHead transactionRow = transactionHeadService.getTransactionHead(transactionHeadId);
+        TransactionHead transactionHead = transactionHeadService.getTransactionHead(transactionHeadId);
 
-        return new CustomersAndTransactionHead(customers, transactionRow);
+        return new CustomersAndTransactionHead(customers, transactionHead);
     }
 
     public Customer getCustomer(long customerId) {
