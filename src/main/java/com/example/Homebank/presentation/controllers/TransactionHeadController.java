@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("api/transactionHeads")
+@RequestMapping("/transactionHeads")
 public class TransactionHeadController {
     @Autowired
     private TransactionHeadService transactionHeadService;

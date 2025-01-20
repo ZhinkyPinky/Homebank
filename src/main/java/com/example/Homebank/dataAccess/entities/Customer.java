@@ -1,21 +1,20 @@
 package com.example.Homebank.dataAccess.entities;
 
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "Customer", schema = "bank")
+@Table(name = "vCustomer", schema = "bank")
 public class Customer {
     @Id
     @Column(name = "Id")
@@ -30,19 +29,9 @@ public class Customer {
     @Column(name = "TypeOfCustomer_Code")
     private String typeOfCustomerCode;
 
-    @Column(name = "RowCreatedBy")
-    private String rowCreatedBy;
-
-    @Column(name = "RowCreatedDate")
-    private LocalDateTime rowCreatedDate;
-
-    @Column(name = "RowLastEditBy")
-    private String rowLastEditBy;
-
-    @Column(name = "RowLastEditDate")
-    private LocalDateTime rowLastEditDate;
+    @Column(name = "CustomerAmount")
+    private int customerAmount;
 
     @Column(name = "RowVersion")
     private LocalDateTime rowVersion;
-
 }
