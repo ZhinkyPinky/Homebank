@@ -8,9 +8,10 @@ import com.example.Homebank.presentation.bodies.*;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,8 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
+
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
     private final RefreshJwtUtil refreshJwtUtil;
@@ -27,30 +30,38 @@ public class AuthService {
     private final UserRepository userRepository;
 
     public AuthenticationResponse authenticate(AuthenticationRequest authenticationRequest) {
+        logger.info("Attempting to authenticate user: {}", authenticationRequest.username());
+
         Authentication authentication = authenticationManager.authenticate(
                 UsernamePasswordAuthenticationToken.unauthenticated(authenticationRequest.username(), authenticationRequest.password())
         );
 
-        String username = ((User) authentication.getPrincipal()).getUsername();
-        String accessToken = accessJwtUtil.generateToken(username);
-        String refreshToken = refreshJwtUtil.generateToken(username);
+        User user = ((User) authentication.getPrincipal());
+        String accessToken = accessJwtUtil.generateToken(user.getUsername());
+        String refreshToken = refreshJwtUtil.generateToken(user.getUsername());
+
+        user.setUserToken(refreshToken);
+        userRepository.save(user);
+
+        logger.info("User {} authenticated successfully. Tokens generated.", user.getUsername());
 
         return new AuthenticationResponse(accessToken, refreshToken, "Login successful");
     }
 
-
     public RegistrationResponse register(RegistrationRequest registrationRequest) {
+        logger.info("Attempting to register new user: {}", registrationRequest.username());
+
         validateRegistrationDetails(registrationRequest);
 
-        String username = registrationRequest.getUsername();
+        String username = registrationRequest.username();
         String accessToken = accessJwtUtil.generateToken(username);
         String refreshToken = refreshJwtUtil.generateToken(username);
 
         //TODO: Needs a procedure?
         User user = new User();
-        user.setUsername(registrationRequest.getUsername());
-        user.setPassword(passwordEncoder.encode(registrationRequest.getPassword()));
-        user.setEmail(registrationRequest.getEmail());
+        user.setUsername(registrationRequest.username());
+        user.setPassword(passwordEncoder.encode(registrationRequest.password()));
+        user.setEmail(registrationRequest.email());
         user.setUserToken(refreshToken);
         user.setNextUserTokenChangeDate(LocalDateTime.now()); //TODO: Remove column.
         user.setTypeOfUserCode("ENDUSER");
@@ -60,48 +71,57 @@ public class AuthService {
 
         userRepository.save(user);
 
+        logger.info("User {} registered successfully. Tokens generated.", username);
+
         return new RegistrationResponse(accessToken, refreshToken, "Registration successful");
     }
 
     private void validateRegistrationDetails(RegistrationRequest registrationRequest) {
-        if (registrationRequest.getUsername().isBlank()) {
-            //TODO
+        logger.debug("Validation registration details for user: {}", registrationRequest.username());
+
+        if (userRepository.findByUsername(registrationRequest.username()).isPresent()) {
+            logger.error("Username {} already exists", registrationRequest.username());
+            throw new EntityExistsException("Username already exists");
         }
 
-        if (registrationRequest.getPassword().isBlank()) {
-            //TODO
+        if (userRepository.findByPassword(registrationRequest.password()).isPresent()) {
+            logger.error("Password already exists");
+            throw new EntityExistsException("Password already exists");
         }
 
-        if (registrationRequest.getEmail().isBlank()) {
-            //TODO
+        if (userRepository.findByEmail(registrationRequest.email()).isPresent()) {
+            logger.error("Email {} already exists", registrationRequest.email());
+            throw new EntityExistsException("Email already exists");
         }
 
-        if (userRepository.findByUsername(registrationRequest.getUsername()).isPresent()) {
-            throw new EntityExistsException("Username");
-        }
-
-        if (userRepository.findByPassword(registrationRequest.getPassword()).isPresent()) {
-            throw new EntityExistsException("Password");
-        }
-
-        if (userRepository.findByEmail(registrationRequest.getEmail()).isPresent()) {
-            throw new EntityExistsException("Email");
-        }
+        logger.debug("Registration details validated successfully for user: {}", registrationRequest.username());
     }
 
-    public RefreshResponse refreshToken(RefreshRequest refreshRequest) {
+    public AuthenticationResponse refreshToken(RefreshRequest refreshRequest) {
         String refreshToken = refreshRequest.refreshToken();
-
         String username = refreshJwtUtil.extractUsername(refreshToken);
 
-        User user = userRepository.findByUserToken(refreshRequest.refreshToken()).orElseThrow(() ->
-                new EntityNotFoundException("User not found")
-        );
+        logger.info("Attempting to refresh tokens for user: {}", username);
+
+        User user = userRepository.findByUserToken(refreshRequest.refreshToken()).orElseThrow(() -> {
+            logger.error("User not found for refresh token: {}", refreshRequest.refreshToken());
+            return new EntityNotFoundException("User not found");
+        });
+
 
         if (!refreshJwtUtil.isTokenValid(refreshToken, user)) {
+            logger.error("Invalid refresh token: {}", refreshToken);
             throw new IllegalArgumentException("Invalid refresh token");
         }
 
-        return new RefreshResponse(accessJwtUtil.generateToken(username));
+        String newAccessToken = accessJwtUtil.generateToken(username);
+        String newRefreshToken = refreshJwtUtil.generateToken(username);
+
+        user.setUserToken(newRefreshToken);
+        userRepository.save(user);
+
+        logger.info("Tokens refreshed successfully for user: {}", username);
+
+        return new AuthenticationResponse(newAccessToken, newRefreshToken, "Tokens refreshed");
     }
 }

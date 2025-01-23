@@ -1,3 +1,8 @@
 package com.example.Homebank.presentation.bodies;
 
-public record AuthenticationRequest(String username, String password) { }
+import jakarta.validation.constraints.NotBlank;
+
+public record AuthenticationRequest(
+        @NotBlank String username,
+        @NotBlank String password) {
+}

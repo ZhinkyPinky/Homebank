@@ -1,14 +1,10 @@
 package com.example.Homebank.presentation.bodies;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class RegistrationRequest {
-    private String username;
-    private String password;
-    private String email;
+public record RegistrationRequest(
+        @NotBlank String username,
+        @NotBlank String password,
+        @NotBlank @Email String email) {
 }

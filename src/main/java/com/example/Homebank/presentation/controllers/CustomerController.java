@@ -2,6 +2,7 @@ package com.example.Homebank.presentation.controllers;
 
 import com.example.Homebank.dataAccess.entities.Customer;
 import com.example.Homebank.businessLogic.services.CustomerService;
+import com.example.Homebank.presentation.ApiPaths;
 import com.example.Homebank.presentation.bodies.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.proxy.Dispatcher;
@@ -15,7 +16,7 @@ import org.springframework.web.servlet.DispatcherServlet;
 import java.util.List;
 
 @RestController
-@RequestMapping("/customers")
+@RequestMapping(ApiPaths.CUSTOMERS_BASE_PATH)
 public class CustomerController {
     @Autowired
     private CustomerService customerService;
@@ -23,7 +24,7 @@ public class CustomerController {
     @GetMapping
     public ResponseEntity<List<Customer>> getCustomers() {
         List<Customer> body = customerService.getCustomers();
-        
+
         return ResponseEntity.ok(body);
     }
 
@@ -34,7 +35,7 @@ public class CustomerController {
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping("/{customerId}")
+    @GetMapping(ApiPaths.GET_CUSTOMER_PATH)
     public ResponseEntity<Customer> getCustomer(@PathVariable final long customerId) {
         Customer body = customerService.getCustomer(customerId);
         return ResponseEntity.ok(body);
