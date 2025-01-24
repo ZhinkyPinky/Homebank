@@ -20,6 +20,6 @@ public class AccessJwtUtil extends AbstractJwtUtil {
 
     @Override
     protected long getTokenDuration() {
-        return TimeUnit.SECONDS.toMillis(Long.parseLong(ACCESS_DURATION));
+        return TimeUnit.MINUTES.toMillis(Long.parseLong(ACCESS_DURATION));
     }
 }

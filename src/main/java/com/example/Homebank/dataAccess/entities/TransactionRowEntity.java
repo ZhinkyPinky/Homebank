@@ -45,7 +45,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "vTransactionRow", schema = "bank")
-public class TransactionRow {
+public class TransactionRowEntity {
     @Id
     @Column(name = "Id")
     private Long id;

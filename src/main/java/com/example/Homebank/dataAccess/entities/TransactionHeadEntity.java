@@ -42,7 +42,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "vTransactionHead", schema = "bank")
-public class TransactionHead {
+public class TransactionHeadEntity {
     @Id
     @Column(name = "Id")
     private Long id;

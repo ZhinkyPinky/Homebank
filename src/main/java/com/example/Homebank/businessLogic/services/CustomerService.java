@@ -1,74 +1,103 @@
 package com.example.Homebank.businessLogic.services;
 
-import com.example.Homebank.dataAccess.entities.Customer;
-import com.example.Homebank.dataAccess.entities.TransactionHead;
-import com.example.Homebank.dataAccess.entities.TransactionRow;
+import com.example.Homebank.dataAccess.entities.CustomerEntity;
 import com.example.Homebank.dataAccess.repositories.CustomerRepository;
-import com.example.Homebank.presentation.bodies.*;
+import com.example.Homebank.presentation.dto.*;
 import jakarta.persistence.EntityNotFoundException;
-import org.hibernate.Hibernate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.ResponseEntity;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class CustomerService {
-    @Autowired
-    private CustomerRepository customerRepository;
+    private static final Logger logger = LoggerFactory.getLogger(CustomerService.class);
 
-    @Autowired
-    private TransactionHeadService transactionHeadService;
+    private final CustomerRepository customerRepository;
+    private final TransactionHeadService transactionHeadService;
+    private final TransactionRowService transactionRowService;
 
-    @Autowired
-    private TransactionRowService transactionRowService;
+    @Transactional(readOnly = true)
+    public List<CustomerDTO> getCustomers() {
+        logger.info("Fetching all customers.");
 
-    public List<Customer> getCustomers() {
-        customerRepository.findAll(Sort.by(Sort.Direction.ASC, "id"));
+        List<CustomerDTO> customers = customerRepository.findAll().stream().map(CustomerDTO::fromEntity).toList();
 
-        return customerRepository.findAll();
+        logger.debug("Retrieved {} customers.", customers.size());
+        return customers;
     }
 
-    public CustomersAndTransactionHead getCustomersAndTransactionHead(long transactionHeadId) {
-        List<Customer> customers = getCustomers();
-        TransactionHead transactionHead = transactionHeadService.getTransactionHead(transactionHeadId);
+    @Transactional(readOnly = true)
+    public CustomersAndTransactionHeadDTO getCustomersAndTransactionHead(long transactionHeadId) {
+        logger.info("Fetching customers and transactionHead for transactionHeadId: {}", transactionHeadId);
 
-        return new CustomersAndTransactionHead(customers, transactionHead);
+        List<CustomerDTO> customers = getCustomers();
+        TransactionHeadDTO transactionHead = transactionHeadService.getTransactionHead(transactionHeadId);
+
+        logger.debug("Retrieved {} customers and transaction head with ID: {}", customers.size(), transactionHeadId);
+        return new CustomersAndTransactionHeadDTO(customers, transactionHead);
     }
 
-    public Customer getCustomer(long customerId) {
-        return customerRepository.findById(customerId).orElseThrow(() -> new EntityNotFoundException("The customer could not be found."));
+    @Transactional(readOnly = true)
+    public CustomerDTO getCustomer(long customerId) {
+        logger.info("Fetching customer with ID: {}", customerId);
+
+        CustomerEntity customerEntity = customerRepository.findById(customerId).orElseThrow(() -> {
+            logger.error("Customer with ID: {} not found.", customerId);
+            return new EntityNotFoundException("The customer could not be found.");
+        });
+
+        logger.debug("Retrieved customer: {}", customerEntity);
+        return CustomerDTO.fromEntity(customerEntity);
     }
 
-    public CustomerAndTransactionHeads getCustomerAndTransactionHeads(long customerId) {
-        Customer customer = getCustomer(customerId);
-        List<TransactionHead> transactionHeads = transactionHeadService.getTransactionHeadsByCustomerId(customerId);
+    @Transactional(readOnly = true)
+    public CustomerAndTransactionHeadsDTO getCustomerAndTransactionHeads(long customerId) {
+        logger.info("Fetching customer and transaction heads for customerId: {}", customerId);
 
-        return new CustomerAndTransactionHeads(customer, transactionHeads);
+        CustomerDTO customer = getCustomer(customerId);
+        List<TransactionHeadDTO> transactionHeads = transactionHeadService.getTransactionHeadsByCustomerId(customerId);
+
+        logger.debug("Retrieved customer with ID: {} and {} transaction heads.", customerId, transactionHeads.size());
+        return new CustomerAndTransactionHeadsDTO(customer, transactionHeads);
     }
 
-    public CustomerAndTransactionHead getCustomerAndTransactionHead(long customerId, long transactionHeadId) {
-        Customer customer = getCustomer(customerId);
-        TransactionHead transactionHead = transactionHeadService.getTransactionHead(transactionHeadId); //TODO: Make sure that customer id match lender/borrower id?
+    @Transactional(readOnly = true)
+    public CustomerAndTransactionHeadDTO getCustomerAndTransactionHead(long customerId, long transactionHeadId) {
+        logger.info("Fetching customer and transaction head for customerId: {} and transactionHeadId: {}", customerId, transactionHeadId);
 
-        return new CustomerAndTransactionHead(customer, transactionHead);
+        CustomerDTO customer = getCustomer(customerId);
+        TransactionHeadDTO transactionHead = transactionHeadService.getTransactionHead(transactionHeadId); //TODO: Make sure that customer id match lender/borrower id?
+
+        logger.debug("Retrieved customer with ID: {} and transaction head with ID: {}", customerId, transactionHead);
+        return new CustomerAndTransactionHeadDTO(customer, transactionHead);
     }
 
-    public CustomerAndTransactionHeadAndTransactionRows getCustomerTransactionHeadAndRows(long customerId, long transactionHeadId) {
-        Customer customer = getCustomer(customerId);
-        TransactionHead transactionHead = transactionHeadService.getTransactionHead(transactionHeadId); //TODO: Make sure that customer id match lender/borrower id?
-        List<TransactionRow> transactionRows = transactionRowService.getAllByTransactionHeadId(transactionHeadId);
+    @Transactional(readOnly = true)
+    public CustomerWithTransactionHeadAndRowsDTO getCustomerTransactionHeadAndRows(long customerId, long transactionHeadId) {
+        logger.info("Fetching customer, transaction head, and rows for customerId: {} and transactionHeadId: {}", customerId, transactionHeadId);
 
-        return new CustomerAndTransactionHeadAndTransactionRows(customer, transactionHead, transactionRows);
+        CustomerDTO customer = getCustomer(customerId);
+        TransactionHeadDTO transactionHead = transactionHeadService.getTransactionHead(transactionHeadId); //TODO: Make sure that customer id match lender/borrower id?
+        List<TransactionRowDTO> transactionRows = transactionRowService.getAllByTransactionHeadId(transactionHeadId);
+
+        logger.debug("Retrieved customer with ID: {}, transaction head with ID: {}, and {} transaction rows", customerId, transactionHeadId, transactionRows.size());
+        return new CustomerWithTransactionHeadAndRowsDTO(customer, transactionHead, transactionRows);
     }
 
-    public CustomerAndTransactionHeadAndTransactionRow getCustomerAndTransactionHeadAndTransactionRow(long customerId, long transactionHeadId, long transactionRowId) {
-        Customer customer = getCustomer(customerId);
-        TransactionHead transactionHead = transactionHeadService.getTransactionHead(transactionHeadId); //TODO: Make sure that customer id match lender/borrower id?
-        TransactionRow transactionRow = transactionRowService.getTransactionRow(transactionRowId);
+    @Transactional(readOnly = true)
+    public CustomerWithTransactionHeadAndRowDTO getCustomerAndTransactionHeadAndTransactionRow(long customerId, long transactionHeadId, long transactionRowId) {
+        logger.info("Fetching customer, transaction head, and row for customerId: {}, transactionHeadId: {}, and transactionRowId: {}", customerId, transactionHeadId, transactionRowId);
 
-        return new CustomerAndTransactionHeadAndTransactionRow(customer, transactionHead, transactionRow);
+        CustomerDTO customer = getCustomer(customerId);
+        TransactionHeadDTO transactionHead = transactionHeadService.getTransactionHead(transactionHeadId); //TODO: Make sure that customer id match lender/borrower id?
+        TransactionRowDTO transactionRow = transactionRowService.getTransactionRow(transactionRowId);
+
+        logger.debug("Retrieved customer with ID: {}, transaction head with ID: {}, and transaction row with ID: {}", customerId, transactionHeadId, transactionRowId);
+        return new CustomerWithTransactionHeadAndRowDTO(customer, transactionHead, transactionRow);
     }
 }

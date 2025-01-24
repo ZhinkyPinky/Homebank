@@ -1,3 +1,3 @@
-package com.example.Homebank.presentation.bodies;
+package com.example.Homebank.presentation.dto;
 
 public record RegistrationResponse(String accessToken, String refreshToken, String message) { }

@@ -20,6 +20,6 @@ public class RefreshJwtUtil extends AbstractJwtUtil {
 
     @Override
     protected long getTokenDuration() {
-        return TimeUnit.HOURS.toMillis(Long.parseLong(REFRESH_DURATION));
+        return TimeUnit.DAYS.toMillis(Long.parseLong(REFRESH_DURATION));
     }
 }

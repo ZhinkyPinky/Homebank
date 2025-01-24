@@ -1,13 +1,13 @@
 package com.example.Homebank.dataAccess.repositories;
 
-import com.example.Homebank.dataAccess.entities.User;
+import com.example.Homebank.dataAccess.entities.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByUsername(String username);
-    Optional<User> findByPassword(String username);
-    Optional<User> findByEmail(String email);
-    Optional<User> findByUserToken(String refreshToken);
+public interface UserRepository extends JpaRepository<UserEntity, Long> {
+    Optional<UserEntity> findByUsername(String username);
+    Optional<UserEntity> findByPassword(String username);
+    Optional<UserEntity> findByEmail(String email);
+    Optional<UserEntity> findByUserToken(String refreshToken);
 }

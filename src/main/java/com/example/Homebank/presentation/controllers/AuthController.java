@@ -2,7 +2,7 @@ package com.example.Homebank.presentation.controllers;
 
 import com.example.Homebank.businessLogic.services.AuthService;
 import com.example.Homebank.presentation.ApiPaths;
-import com.example.Homebank.presentation.bodies.*;
+import com.example.Homebank.presentation.dto.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -19,9 +19,9 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping(ApiPaths.LOGIN_PATH)
-    public ResponseEntity<AuthenticationResponse> login(@Valid @RequestBody AuthenticationRequest authenticationRequest) {
-        logger.info("Login request received for user: {}", authenticationRequest.username());
-        return ResponseEntity.ok(authService.authenticate(authenticationRequest));
+    public ResponseEntity<AuthenticationResponseDTO> login(@Valid @RequestBody AuthenticationRequestDTO authenticationRequestDTO) {
+        logger.info("Login request received for user: {}", authenticationRequestDTO.username());
+        return ResponseEntity.ok(authService.authenticate(authenticationRequestDTO));
     }
 
     @PostMapping(ApiPaths.REGISTER_PATH)
@@ -31,7 +31,7 @@ public class AuthController {
     }
 
     @PostMapping(ApiPaths.REFRESH_PATH)
-    public ResponseEntity<AuthenticationResponse> refresh(@Valid @RequestBody RefreshRequest refreshRequest) {
+    public ResponseEntity<AuthenticationResponseDTO> refresh(@Valid @RequestBody RefreshRequest refreshRequest) {
         logger.info("Refresh request received.");
         return ResponseEntity.ok(authService.refreshToken(refreshRequest));
     }

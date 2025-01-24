@@ -1,6 +1,6 @@
 package com.example.Homebank.dataAccess.repositories;
 
-import com.example.Homebank.dataAccess.entities.TransactionRow;
+import com.example.Homebank.dataAccess.entities.TransactionRowEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
@@ -13,10 +13,10 @@ import java.util.List;
 import java.util.Map;
 
 @Repository
-public interface TransactionRowRepository extends JpaRepository<TransactionRow, Long> {
+public interface TransactionRowRepository extends JpaRepository<TransactionRowEntity, Long> {
 
     @Query(nativeQuery = true, value = "SELECT * FROM bank.vTransactionRow where TransactionHead_Id = :transactionHeadId ORDER BY TransactionRowNo")
-    List<TransactionRow> findAllByTransactionHeadId(long transactionHeadId);
+    List<TransactionRowEntity> findAllByTransactionHeadId(long transactionHeadId);
 
     @Procedure(name = "SaveTransactionRow")
     Map<String, Object> saveTransactionRow(

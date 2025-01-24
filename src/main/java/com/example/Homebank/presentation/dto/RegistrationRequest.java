@@ -1,4 +1,4 @@
-package com.example.Homebank.presentation.bodies;
+package com.example.Homebank.presentation.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

@@ -1,7 +1,6 @@
 package com.example.Homebank.presentation.controllers;
 
-import com.example.Homebank.presentation.bodies.ErrorResponse;
-import io.jsonwebtoken.ExpiredJwtException;
+import com.example.Homebank.presentation.dto.ErrorResponse;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;

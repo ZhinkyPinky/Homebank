@@ -7,15 +7,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "vCustomer", schema = "bank")
-public class Customer {
+public class CustomerEntity {
     @Id
     @Column(name = "Id")
     private Long id;

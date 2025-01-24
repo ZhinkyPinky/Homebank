@@ -1,71 +1,81 @@
 package com.example.Homebank.presentation.controllers;
 
-import com.example.Homebank.dataAccess.entities.Customer;
 import com.example.Homebank.businessLogic.services.CustomerService;
 import com.example.Homebank.presentation.ApiPaths;
-import com.example.Homebank.presentation.bodies.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cglib.proxy.Dispatcher;
+import com.example.Homebank.presentation.dto.*;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.DispatcherServlet;
 
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping(ApiPaths.CUSTOMERS_BASE_PATH)
 public class CustomerController {
-    @Autowired
-    private CustomerService customerService;
+    private static final Logger logger = LoggerFactory.getLogger(CustomerController.class);
+
+    private final CustomerService customerService;
 
     @GetMapping
-    public ResponseEntity<List<Customer>> getCustomers() {
-        List<Customer> body = customerService.getCustomers();
+    public ResponseEntity<List<CustomerDTO>> getCustomers() {
+        logger.info("Request to get customers received.");
 
+        List<CustomerDTO> body = customerService.getCustomers();
         return ResponseEntity.ok(body);
     }
 
+    //TODO: Move to TransactionHeadController? Find solution.
     @GetMapping("/transactionHeads/{transactionHeadId}")
-    public ResponseEntity<CustomersAndTransactionHead> getCustomersAndTransactionHead(@PathVariable final long transactionHeadId) {
-        CustomersAndTransactionHead body = customerService.getCustomersAndTransactionHead(transactionHeadId);
+    public ResponseEntity<CustomersAndTransactionHeadDTO> getCustomersAndTransactionHead(@PathVariable final long transactionHeadId) {
+        logger.info("Request to get customers and transaction head with transactionHeadId: {} received.", transactionHeadId);
 
+        CustomersAndTransactionHeadDTO body = customerService.getCustomersAndTransactionHead(transactionHeadId);
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping(ApiPaths.GET_CUSTOMER_PATH)
-    public ResponseEntity<Customer> getCustomer(@PathVariable final long customerId) {
-        Customer body = customerService.getCustomer(customerId);
+    @GetMapping(ApiPaths.CUSTOMER_PATH)
+    public ResponseEntity<CustomerDTO> getCustomer(@PathVariable final long customerId) {
+        logger.info("Request to get customer with ID: {} received.", customerId);
+
+        CustomerDTO body = customerService.getCustomer(customerId);
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping("/{customerId}/transactionHeads")
-    public ResponseEntity<CustomerAndTransactionHeads> getCustomerAndTransactionHeads(@PathVariable final long customerId) {
-        CustomerAndTransactionHeads body = customerService.getCustomerAndTransactionHeads(customerId);
+    @GetMapping(ApiPaths.CUSTOMER_AND_TRANSACTION_HEADS_PATH)
+    public ResponseEntity<CustomerAndTransactionHeadsDTO> getCustomerAndTransactionHeads(@PathVariable final long customerId) {
+        logger.info("Request to get customer and transaction heads with customerId: {} received.", customerId);
 
+        CustomerAndTransactionHeadsDTO body = customerService.getCustomerAndTransactionHeads(customerId);
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping("/{customerId}/transactionHeads/{transactionHeadId}")
-    public ResponseEntity<CustomerAndTransactionHead> getCustomerAndTransactionHead(@PathVariable final long customerId, @PathVariable final long transactionHeadId) {
-        CustomerAndTransactionHead body = customerService.getCustomerAndTransactionHead(customerId, transactionHeadId);
+    @GetMapping(ApiPaths.CUSTOMER_AND_TRANSACTION_HEAD_PATH)
+    public ResponseEntity<CustomerAndTransactionHeadDTO> getCustomerAndTransactionHead(@PathVariable final long customerId, @PathVariable final long transactionHeadId) {
+        logger.info("Request to get customer with ID: {} and transaction head with ID: {} received.", customerId, transactionHeadId);
 
+        CustomerAndTransactionHeadDTO body = customerService.getCustomerAndTransactionHead(customerId, transactionHeadId);
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping("/{customerId}/transactionHeads/{transactionHeadId}/transactionRows")
-    public ResponseEntity<CustomerAndTransactionHeadAndTransactionRows> getCustomerAndTransactionHeadAndRows(@PathVariable final long customerId, @PathVariable final long transactionHeadId) {
-        CustomerAndTransactionHeadAndTransactionRows body = customerService.getCustomerTransactionHeadAndRows(customerId, transactionHeadId);
+    @GetMapping(ApiPaths.CUSTOMER_AND_TRANSACTION_HEAD_AND_ROWS_PATH)
+    public ResponseEntity<CustomerWithTransactionHeadAndRowsDTO> getCustomerAndTransactionHeadAndRows(@PathVariable final long customerId, @PathVariable final long transactionHeadId) {
+        logger.info("Request to get customer, transaction head, and rows for customerId: {} and transactionHeadId: {} received.", customerId, transactionHeadId);
 
+        CustomerWithTransactionHeadAndRowsDTO body = customerService.getCustomerTransactionHeadAndRows(customerId, transactionHeadId);
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping("/{customerId}/transactionHeads/{transactionHeadId}/transactionRows/{transactionRowId}")
+    @GetMapping(ApiPaths.CUSTOMER_AND_TRANSACTION_HEAD_AND_ROW_PATH)
     public ResponseEntity<?> getCustomerAndTransactionHeadAndTransactionRow(@PathVariable final long customerId, @PathVariable final long transactionHeadId, @PathVariable final long transactionRowId) {
-        CustomerAndTransactionHeadAndTransactionRow body = customerService.getCustomerAndTransactionHeadAndTransactionRow(customerId, transactionHeadId, transactionRowId);
+        logger.info("Request to get customer, transaction head, and row for customerId: {}, transactionHeadId: {}, and transactionRowId: {} received.", customerId, transactionHeadId, transactionRowId);
 
+        CustomerWithTransactionHeadAndRowDTO body = customerService.getCustomerAndTransactionHeadAndTransactionRow(customerId, transactionHeadId, transactionRowId);
         return ResponseEntity.ok(body);
     }
 }

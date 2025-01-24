@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Entity
 @Data
 @Table(name = "TypeOfUser", schema = "BankLookup")
-public class TypeOfUser {
+public class TypeOfUserEntity {
     @Id
     @Column(name = "Code")
     private String code;
