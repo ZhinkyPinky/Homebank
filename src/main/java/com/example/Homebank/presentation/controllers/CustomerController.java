@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping(ApiPaths.CUSTOMERS_BASE_PATH)
+@RequestMapping(ApiPaths.CUSTOMERS)
 public class CustomerController {
     private static final Logger logger = LoggerFactory.getLogger(CustomerController.class);
 
@@ -39,7 +39,7 @@ public class CustomerController {
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping(ApiPaths.CUSTOMER_PATH)
+    @GetMapping(ApiPaths.CUSTOMER)
     public ResponseEntity<CustomerDTO> getCustomer(@PathVariable final long customerId) {
         logger.info("Request to get customer with ID: {} received.", customerId);
 
@@ -47,7 +47,7 @@ public class CustomerController {
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping(ApiPaths.CUSTOMER_AND_TRANSACTION_HEADS_PATH)
+    @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEADS)
     public ResponseEntity<CustomerAndTransactionHeadsDTO> getCustomerAndTransactionHeads(@PathVariable final long customerId) {
         logger.info("Request to get customer and transaction heads with customerId: {} received.", customerId);
 
@@ -55,7 +55,7 @@ public class CustomerController {
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping(ApiPaths.CUSTOMER_AND_TRANSACTION_HEAD_PATH)
+    @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD)
     public ResponseEntity<CustomerAndTransactionHeadDTO> getCustomerAndTransactionHead(@PathVariable final long customerId, @PathVariable final long transactionHeadId) {
         logger.info("Request to get customer with ID: {} and transaction head with ID: {} received.", customerId, transactionHeadId);
 
@@ -63,7 +63,7 @@ public class CustomerController {
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping(ApiPaths.CUSTOMER_AND_TRANSACTION_HEAD_AND_ROWS_PATH)
+    @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD_AND_ROWS)
     public ResponseEntity<CustomerWithTransactionHeadAndRowsDTO> getCustomerAndTransactionHeadAndRows(@PathVariable final long customerId, @PathVariable final long transactionHeadId) {
         logger.info("Request to get customer, transaction head, and rows for customerId: {} and transactionHeadId: {} received.", customerId, transactionHeadId);
 
@@ -71,7 +71,7 @@ public class CustomerController {
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping(ApiPaths.CUSTOMER_AND_TRANSACTION_HEAD_AND_ROW_PATH)
+    @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD_AND_ROW)
     public ResponseEntity<?> getCustomerAndTransactionHeadAndTransactionRow(@PathVariable final long customerId, @PathVariable final long transactionHeadId, @PathVariable final long transactionRowId) {
         logger.info("Request to get customer, transaction head, and row for customerId: {}, transactionHeadId: {}, and transactionRowId: {} received.", customerId, transactionHeadId, transactionRowId);
 

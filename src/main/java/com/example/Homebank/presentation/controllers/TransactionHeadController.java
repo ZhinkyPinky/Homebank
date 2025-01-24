@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping(ApiPaths.TRANSACTION_HEADS_BASE_PATH)
+@RequestMapping(ApiPaths.TRANSACTION_HEADS)
 public class TransactionHeadController {
     private static final Logger logger = LoggerFactory.getLogger(TransactionHeadController.class);
 

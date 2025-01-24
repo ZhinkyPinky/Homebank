@@ -11,13 +11,13 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping(ApiPaths.TRANSACTION_ROW_BASE_PATH)
+@RequestMapping(ApiPaths.TRANSACTION_ROWS)
 public class TransactionRowController {
     private static final Logger logger = LoggerFactory.getLogger(CustomerController.class);
 
     private final TransactionRowService transactionRowService;
 
-    @GetMapping(ApiPaths.TRANSACTION_ROW_PATH)
+    @GetMapping(ApiPaths.TRANSACTION_ROW)
     public ResponseEntity<TransactionRowDTO> get(@PathVariable final long transactionRowId) {
         logger.info("Request to get transaction head with ID: {} received.", transactionRowId);
 

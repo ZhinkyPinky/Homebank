@@ -4,6 +4,7 @@ import com.example.Homebank.dataAccess.entities.TransactionHeadEntity;
 import com.example.Homebank.dataAccess.repositories.TransactionHeadRepository;
 import com.example.Homebank.presentation.dto.TransactionHeadDTO;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,11 +15,11 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class TransactionHeadService {
     private static final Logger logger = LoggerFactory.getLogger(TransactionHeadService.class);
 
-    @Autowired
-    private TransactionHeadRepository transactionHeadRepository;
+    private final TransactionHeadRepository transactionHeadRepository;
 
     @Transactional(readOnly = true)
     public List<TransactionHeadDTO> getTransactionHeads() {
