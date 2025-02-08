@@ -3,6 +3,7 @@ package com.example.Homebank.presentation.controllers;
 import com.example.Homebank.businessLogic.services.TransactionRowService;
 import com.example.Homebank.presentation.ApiPaths;
 import com.example.Homebank.presentation.dto.TransactionRowDTO;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,12 +22,12 @@ public class TransactionRowController {
     public ResponseEntity<TransactionRowDTO> get(@PathVariable final long transactionRowId) {
         logger.info("Request to get transaction head with ID: {} received.", transactionRowId);
 
-        TransactionRowDTO transactionRow = transactionRowService.getTransactionRow(transactionRowId);
+        TransactionRowDTO transactionRow = transactionRowService.getTransactionRowById(transactionRowId);
         return ResponseEntity.ok(transactionRow);
     }
 
     @PostMapping(ApiPaths.SAVE)
-    public ResponseEntity<String> saveTransactionRow(@RequestBody final TransactionRowDTO transactionRow) {
+    public ResponseEntity<String> saveTransactionRow(@Valid @RequestBody final TransactionRowDTO transactionRow) {
         logger.info("Request to save transaction row with ID: {} received.", transactionRow.id());
 
         transactionRowService.saveTransactionRow(transactionRow);
@@ -34,7 +35,7 @@ public class TransactionRowController {
     }
 
     @PostMapping(ApiPaths.DELETE)
-    public ResponseEntity<String> deleteTransactionRow(@RequestBody final TransactionRowDTO transactionRow) {
+    public ResponseEntity<String> deleteTransactionRow(@Valid @RequestBody final TransactionRowDTO transactionRow) {
         logger.info("Request to delete transaction row with ID: {} received.", transactionRow.id());
 
         transactionRowService.deleteTransactionRow(transactionRow);

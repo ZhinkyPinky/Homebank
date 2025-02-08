@@ -84,7 +84,7 @@ public class AuthService {
             throw new EntityExistsException("Username already exists");
         }
 
-        if (userRepository.findByPassword(registrationRequest.password()).isPresent()) {
+        if (userRepository.findByPassword(passwordEncoder.encode(registrationRequest.password())).isPresent()) {
             logger.error("Password already exists");
             throw new EntityExistsException("Password already exists");
         }
@@ -123,5 +123,10 @@ public class AuthService {
         logger.info("Tokens refreshed successfully for user: {}", username);
 
         return new AuthenticationResponseDTO(newAccessToken, newRefreshToken, "Tokens refreshed");
+    }
+
+    public boolean logout() {
+
+        return true;
     }
 }

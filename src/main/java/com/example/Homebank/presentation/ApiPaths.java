@@ -12,9 +12,11 @@ public class ApiPaths {
 
     public static final String TRANSACTION_ROWS = "/transactionRows";
     public static final String TRANSACTION_ROW = "/{transactionRowId}";
+    public static final String SAVE_TRANSACTION_ROW = TRANSACTION_ROW + SAVE;
 
     public static final String TRANSACTION_HEADS = "/transactionHeads";
     public static final String TRANSACTION_HEAD = "/{transactionHeadId}";
+    public static final String SAVE_TRANSACTION_HEAD = TRANSACTION_HEADS + SAVE;
 
     public static final String CUSTOMERS = "/customers";
     public static final String CUSTOMER = "/{customerId}";

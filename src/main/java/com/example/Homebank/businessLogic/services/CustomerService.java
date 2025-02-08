@@ -1,6 +1,6 @@
 package com.example.Homebank.businessLogic.services;
 
-import com.example.Homebank.dataAccess.entities.CustomerEntity;
+import com.example.Homebank.dataAccess.views.CustomerView;
 import com.example.Homebank.dataAccess.repositories.CustomerRepository;
 import com.example.Homebank.presentation.dto.*;
 import jakarta.persistence.EntityNotFoundException;
@@ -46,13 +46,13 @@ public class CustomerService {
     public CustomerDTO getCustomer(long customerId) {
         logger.info("Fetching customer with ID: {}", customerId);
 
-        CustomerEntity customerEntity = customerRepository.findById(customerId).orElseThrow(() -> {
+        CustomerView customerView = customerRepository.findById(customerId).orElseThrow(() -> {
             logger.error("Customer with ID: {} not found.", customerId);
             return new EntityNotFoundException("The customer could not be found.");
         });
 
-        logger.debug("Retrieved customer: {}", customerEntity);
-        return CustomerDTO.fromEntity(customerEntity);
+        logger.debug("Retrieved customer: {}", customerView);
+        return CustomerDTO.fromEntity(customerView);
     }
 
     @Transactional(readOnly = true)
@@ -95,7 +95,7 @@ public class CustomerService {
 
         CustomerDTO customer = getCustomer(customerId);
         TransactionHeadDTO transactionHead = transactionHeadService.getTransactionHead(transactionHeadId); //TODO: Make sure that customer id match lender/borrower id?
-        TransactionRowDTO transactionRow = transactionRowService.getTransactionRow(transactionRowId);
+        TransactionRowDTO transactionRow = transactionRowService.getTransactionRowById(transactionRowId);
 
         logger.debug("Retrieved customer with ID: {}, transaction head with ID: {}, and transaction row with ID: {}", customerId, transactionHeadId, transactionRowId);
         return new CustomerWithTransactionHeadAndRowDTO(customer, transactionHead, transactionRow);

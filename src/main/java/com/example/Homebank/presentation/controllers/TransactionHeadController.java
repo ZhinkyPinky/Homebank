@@ -3,6 +3,7 @@ package com.example.Homebank.presentation.controllers;
 import com.example.Homebank.businessLogic.services.TransactionHeadService;
 import com.example.Homebank.presentation.ApiPaths;
 import com.example.Homebank.presentation.dto.TransactionHeadDTO;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +19,7 @@ public class TransactionHeadController {
     private final TransactionHeadService transactionHeadService;
 
     @PostMapping(ApiPaths.SAVE)
-    public ResponseEntity<String> saveTransactionHead(@RequestBody TransactionHeadDTO transactionHead) {
+    public ResponseEntity<String> saveTransactionHead(@Valid @RequestBody TransactionHeadDTO transactionHead) {
         logger.info("Request to save transaction head received.");
 
         transactionHeadService.saveTransactionHead(transactionHead);
@@ -26,7 +27,7 @@ public class TransactionHeadController {
     }
 
     @PostMapping(ApiPaths.DELETE)
-    public ResponseEntity<String> deleteTransactionHead(@RequestBody TransactionHeadDTO transactionHead) {
+    public ResponseEntity<String> deleteTransactionHead(@Valid @RequestBody TransactionHeadDTO transactionHead) {
         logger.info("Request to delete transaction head with ID: {} received.", transactionHead.id());
 
         transactionHeadService.deleteTransactionHead(transactionHead);

@@ -26,8 +26,9 @@ public class AuthController {
 
     @PostMapping(ApiPaths.LOGOUT)
     public ResponseEntity<String> logout() {
-        //TODO: Implement.
         logger.info("Logout request received.");
+        //TODO: Implement.
+        authService.logout();
         return ResponseEntity.ok().build();
     }
 

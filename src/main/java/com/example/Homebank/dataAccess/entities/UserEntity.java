@@ -44,6 +44,9 @@ public class UserEntity implements UserDetails, CredentialsContainer {
     @Column(name = "TypeOfUser_Code")
     private String typeOfUserCode;
 
+    @Column(name = "IsEnabled_Code")
+    private boolean isEnabled = false;
+
     @Column(name = "RowCreatedBy")
     private String rowCreatedBy;
 
@@ -81,7 +84,7 @@ public class UserEntity implements UserDetails, CredentialsContainer {
 
     @Override
     public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
+        return isEnabled;
     }
 
     @Override

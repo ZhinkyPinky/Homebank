@@ -28,7 +28,7 @@ public class TransactionRowService {
         return transactionRows;
     }
 
-    public TransactionRowDTO getTransactionRow(long transactionRowId) {
+    public TransactionRowDTO getTransactionRowById(long transactionRowId) {
         logger.info("Fetching transaction row with ID: {}", transactionRowId);
 
         TransactionRowEntity transactionRowEntity = transactionRowRepository.findById(transactionRowId).orElseThrow(() -> {

@@ -1,9 +1,7 @@
-package com.example.Homebank.dataAccess.entities;
+package com.example.Homebank.dataAccess.views;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,8 +12,8 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "Customer", schema = "bank")
-public class CustomerEntity {
+@Table(name = "vCustomer", schema = "bank")
+public class CustomerView {
     @Id
     @Column(name = "Id")
     private Long id;
