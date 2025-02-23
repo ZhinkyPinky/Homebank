@@ -40,7 +40,6 @@ import java.time.LocalDateTime;
         }
 )
 @Entity
-@Immutable
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

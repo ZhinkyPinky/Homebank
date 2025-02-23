@@ -19,7 +19,7 @@ public record TransactionHeadDTO(
         int amount,
         String borrower,
         String lender,
-        @NotNull(message = "Row version is missing") LocalDateTime rowVersion
+        LocalDateTime rowVersion
 ) {
     public static TransactionHeadDTO fromEntity(TransactionHeadEntity entity) {
         return new TransactionHeadDTO(

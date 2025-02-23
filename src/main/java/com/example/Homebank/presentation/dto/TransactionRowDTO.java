@@ -16,9 +16,9 @@ public record TransactionRowDTO(
         String description,
         @NotNull(message = "Payment date is missing") LocalDate paymentDate,
         @NotNull(message = "Amount is missing") int amount,
-        @NotBlank(message = "Transaction name is missing") String transactionName,
+        String transactionName,
         @NotBlank(message = "Type of transaction is missing") String typeOfTransaction,
-        @NotNull(message = "Row version is missing") LocalDateTime rowVersion
+        LocalDateTime rowVersion
 ) {
     public static TransactionRowDTO fromEntity(TransactionRowEntity entity) {
         return new TransactionRowDTO(

@@ -17,15 +17,14 @@ public class HomeBankApplication {
 
         /*
         UserRepository userRepository = configurableApplicationContext.getBean(UserRepository.class);
-        List<User> users = userRepository.findAll();
+        List<UserEntity> users = userRepository.findAll();
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         users.forEach((user -> {
-            if (user.getId() != 4L && user.getId() != 5L) {
-                user.setPassword(encoder.encode(user.getPassword()));
-                userRepository.save(user);
-            }
+            user.setPassword(encoder.encode(user.getPassword()));
+            userRepository.save(user);
         }));
-        */
+         */
+
 
 //        byte[] secret = new byte[64];
 //        SecureRandom secureRandom = new SecureRandom();
