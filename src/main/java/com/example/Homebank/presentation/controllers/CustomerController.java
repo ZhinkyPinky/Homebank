@@ -25,7 +25,7 @@ public class CustomerController {
     @GetMapping
     public ResponseEntity<List<CustomerDTO>> getCustomers() {
         logger.info("Request to get customers received.");
-
+        
         List<CustomerDTO> body = customerService.getCustomers();
         return ResponseEntity.ok(body);
     }

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -39,8 +40,9 @@ public class AuthService {
         UserEntity userEntity = ((UserEntity) authentication.getPrincipal());
         String accessToken = accessJwtUtil.generateToken(userEntity.getUsername());
         String refreshToken = refreshJwtUtil.generateToken(userEntity.getUsername());
+        String encryptedRefreshToken = passwordEncoder.encode(refreshToken);
 
-        userEntity.setUserToken(refreshToken);
+        userEntity.setUserToken(encryptedRefreshToken);
         userRepository.save(userEntity);
 
         logger.info("User {} authenticated successfully. Tokens generated.", userEntity.getUsername());
@@ -56,13 +58,14 @@ public class AuthService {
         String username = registrationRequest.username();
         String accessToken = accessJwtUtil.generateToken(username);
         String refreshToken = refreshJwtUtil.generateToken(username);
+        String encryptedRefreshToken = passwordEncoder.encode(refreshToken);
 
         //TODO: Needs a procedure?
         UserEntity userEntity = new UserEntity();
         userEntity.setUsername(registrationRequest.username());
         userEntity.setPassword(passwordEncoder.encode(registrationRequest.password()));
         userEntity.setEmail(registrationRequest.email());
-        userEntity.setUserToken(refreshToken);
+        userEntity.setUserToken(encryptedRefreshToken);
         userEntity.setNextUserTokenChangeDate(LocalDateTime.now()); //TODO: Remove column.
         userEntity.setTypeOfUserCode("ENDUSER");
         userEntity.setRowCreatedDate(LocalDateTime.now());
@@ -103,21 +106,26 @@ public class AuthService {
 
         logger.info("Attempting to refresh tokens for user: {}", username);
 
-        UserEntity userEntity = userRepository.findByUserToken(refreshRequest.refreshToken()).orElseThrow(() -> {
-            logger.error("User not found for refresh token: {}", refreshRequest.refreshToken());
+        UserEntity userEntity = userRepository.findByUsername(username).orElseThrow(() -> {
+            logger.error("User with username: {} not found", username);
             return new EntityNotFoundException("User not found");
         });
-
 
         if (!refreshJwtUtil.isTokenValid(refreshToken, userEntity)) {
             logger.error("Invalid refresh token: {}", refreshToken);
             throw new IllegalArgumentException("Invalid refresh token");
         }
 
+        if (!passwordEncoder.matches(refreshToken, userEntity.getUserToken())) {
+            logger.error("Failed to authenticate user with username: {} since the provided refresh token does not match the stored token", username);
+            throw new BadCredentialsException("Bad credentials");
+        }
+
         String newAccessToken = accessJwtUtil.generateToken(username);
         String newRefreshToken = refreshJwtUtil.generateToken(username);
+        String encryptedNewRefreshToken = passwordEncoder.encode(newRefreshToken);
 
-        userEntity.setUserToken(newRefreshToken);
+        userEntity.setUserToken(encryptedNewRefreshToken);
         userRepository.save(userEntity);
 
         logger.info("Tokens refreshed successfully for user: {}", username);
@@ -125,8 +133,17 @@ public class AuthService {
         return new AuthenticationResponseDTO(newAccessToken, newRefreshToken, "Tokens refreshed");
     }
 
-    public boolean logout() {
+    public void signOut(String refreshToken) {
+        String username = refreshJwtUtil.extractUsername(refreshToken);
 
-        return true;
+        logger.info("Attempting to sign out user: {}", username);
+
+        UserEntity userEntity = userRepository.findByUsername(username).orElseThrow(() -> {
+            logger.error("User with username: {} not found", username);
+            return new EntityNotFoundException("User not found");
+        });
+
+        userEntity.setUserToken(null);
+        userRepository.save(userEntity);
     }
 }

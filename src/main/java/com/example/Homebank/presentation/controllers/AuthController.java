@@ -24,11 +24,11 @@ public class AuthController {
         return ResponseEntity.ok(authService.authenticate(authenticationRequestDTO));
     }
 
-    @PostMapping(ApiPaths.LOGOUT)
-    public ResponseEntity<String> logout() {
+    @PostMapping(ApiPaths.SIGN_OUT)
+    public ResponseEntity<String> logout(@Valid @RequestBody SignOutRequest signOutRequest) {
         logger.info("Logout request received.");
         //TODO: Implement.
-        authService.logout();
+        authService.signOut(signOutRequest.refreshToken());
         return ResponseEntity.ok().build();
     }
 
