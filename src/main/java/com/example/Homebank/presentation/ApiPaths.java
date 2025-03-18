@@ -24,4 +24,7 @@ public class ApiPaths {
     public static final String CUSTOMER_WITH_TRANSACTION_HEAD = CUSTOMER + TRANSACTION_HEADS + TRANSACTION_HEAD;
     public static final String CUSTOMER_WITH_TRANSACTION_HEAD_AND_ROWS = CUSTOMER_WITH_TRANSACTION_HEAD + TRANSACTION_ROWS;
     public static final String CUSTOMER_WITH_TRANSACTION_HEAD_AND_ROW = CUSTOMER_WITH_TRANSACTION_HEAD_AND_ROWS + TRANSACTION_ROW;
+
+    public static final String USERS = "/users";
+    public static final String CHANGE_PASSWORD = "/changePassword";
 }
