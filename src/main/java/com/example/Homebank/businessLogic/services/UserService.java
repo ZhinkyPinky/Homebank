@@ -46,8 +46,8 @@ public class UserService implements UserDetailsService {
 
         String oldPassword = changePasswordDTO.oldPassword();
         if (!passwordEncoder.matches(oldPassword, userEntity.getPassword())) {
-            logger.error("Invalid password.");
-            throw new BadCredentialsException("Invalid password");
+            logger.error("Wrong password.");
+            throw new BadCredentialsException("Wrong password");
         }
 
 

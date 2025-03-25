@@ -29,6 +29,7 @@ public class AuthService {
     private final RefreshJwtUtil refreshJwtUtil;
     private final AccessJwtUtil accessJwtUtil;
     private final UserRepository userRepository;
+    private final UserService userService;
 
     public AuthenticationResponseDTO authenticate(AuthenticationRequestDTO authenticationRequestDTO) {
         logger.info("Attempting to authenticate user: {}", authenticationRequestDTO.username());
@@ -106,10 +107,12 @@ public class AuthService {
 
         logger.info("Attempting to refresh tokens for user: {}", username);
 
-        UserEntity userEntity = userRepository.findByUsername(username).orElseThrow(() -> {
-            logger.error("User with username: {} not found", username);
-            return new EntityNotFoundException("User not found");
-        });
+
+        UserEntity userEntity = (UserEntity) userService.loadUserByUsername(username);
+//                userRepository.findByUsername(username).orElseThrow(() -> {
+//            logger.error("User with username: {} not found", username);
+//            return new EntityNotFoundException("User not found");
+//        });
 
         if (!refreshJwtUtil.isTokenValid(refreshToken, userEntity)) {
             logger.error("Invalid refresh token: {}", refreshToken);
@@ -138,10 +141,11 @@ public class AuthService {
 
         logger.info("Attempting to sign out user: {}", username);
 
-        UserEntity userEntity = userRepository.findByUsername(username).orElseThrow(() -> {
-            logger.error("User with username: {} not found", username);
-            return new EntityNotFoundException("User not found");
-        });
+        UserEntity userEntity = (UserEntity) userService.loadUserByUsername(username);
+//        UserEntity userEntity = userRepository.findByUsername(username).orElseThrow(() -> {
+//            logger.error("User with username: {} not found", username);
+//            return new EntityNotFoundException("User not found");
+//        });
 
         userEntity.setUserToken(null);
         userRepository.save(userEntity);
