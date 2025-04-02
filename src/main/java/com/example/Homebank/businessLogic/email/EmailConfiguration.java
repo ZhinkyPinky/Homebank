@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 
 import java.util.Properties;
 
@@ -23,6 +24,11 @@ public class EmailConfiguration {
     @Value("${email.app.password}")
     private String appPassword;
 
+    /**
+     * Creates and configures a JavaMailSender implementation used for sending e-mails.
+     *
+     * @return the JavaMailSender implementation.
+     */
     @Bean
     public JavaMailSender getJavaMailSender() {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();

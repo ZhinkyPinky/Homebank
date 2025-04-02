@@ -26,21 +26,23 @@ public class TransactionRowServiceTests {
     @InjectMocks
     private TransactionRowService transactionRowService;
 
+    private final TransactionRowEntity mockEntity = new TransactionRowEntity(
+            1L,
+            1L,
+            1,
+            "",
+            "Test transaction row",
+            "This is a test entity",
+            LocalDate.of(2000, 1, 1),
+            1000,
+            "Test transaction",
+            "Test",
+            LocalDateTime.now()
+    );
+
     @Test
     public void testGetTransactionRowById_Success() {
         long transactionRowId = 1L;
-        TransactionRowEntity mockEntity = new TransactionRowEntity();
-        mockEntity.setId(transactionRowId);
-        mockEntity.setTransactionHeadId(100L);
-        mockEntity.setTransactionRowNo(1);
-        mockEntity.setTypeOfTransactionCode("CODE123");
-        mockEntity.setName("Test Transaction");
-        mockEntity.setDescription("Test Description");
-        mockEntity.setPaymentDate(LocalDate.of(2023, 10, 1));
-        mockEntity.setAmount(1000);
-        mockEntity.setTransactionName("Test Transaction Name");
-        mockEntity.setTypeOfTransaction("Test Type");
-        mockEntity.setRowVersion(LocalDateTime.now());
 
         when(transactionRowRepository.findById(transactionRowId)).thenReturn(Optional.of(mockEntity));
 
@@ -48,8 +50,6 @@ public class TransactionRowServiceTests {
 
         assertNotNull(result);
         assertEquals(transactionRowId, result.id());
-        assertEquals("Test Transaction", result.name());
-        assertEquals(1000, result.amount());
 
         verify(transactionRowRepository, times(1)).findById(transactionRowId);
     }

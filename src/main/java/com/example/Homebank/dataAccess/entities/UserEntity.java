@@ -62,6 +62,9 @@ public class UserEntity implements UserDetails, CredentialsContainer {
     @Column(name = "RowVersion")
     private LocalDateTime rowVersion;
 
+    @Column(name = "RecoveryToken")
+    private String recoveryToken;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();

@@ -1,5 +1,6 @@
 package com.example.Homebank.businessLogic.services;
 
+import com.example.Homebank.businessLogic.email.EmailService;
 import com.example.Homebank.businessLogic.security.AccessJwtUtil;
 import com.example.Homebank.businessLogic.security.RefreshJwtUtil;
 import com.example.Homebank.dataAccess.entities.UserEntity;
@@ -10,6 +11,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,6 +32,10 @@ public class AuthService {
     private final AccessJwtUtil accessJwtUtil;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final EmailService emailService;
+
+//    @Value("${email.message.registration}")
+//    private String registrationMessage;
 
     public AuthenticationResponseDTO authenticate(AuthenticationRequestDTO authenticationRequestDTO) {
         logger.info("Attempting to authenticate user: {}", authenticationRequestDTO.username());
@@ -57,21 +63,27 @@ public class AuthService {
         validateRegistrationDetails(registrationRequest);
 
         String username = registrationRequest.username();
+        String password = registrationRequest.password();
+        String encodedPassword = passwordEncoder.encode(password);
+        String email = registrationRequest.email();
+
         String accessToken = accessJwtUtil.generateToken(username);
         String refreshToken = refreshJwtUtil.generateToken(username);
         String encryptedRefreshToken = passwordEncoder.encode(refreshToken);
 
         //TODO: Needs a procedure?
+        LocalDateTime currentDateTime = LocalDateTime.now();
+
         UserEntity userEntity = new UserEntity();
-        userEntity.setUsername(registrationRequest.username());
-        userEntity.setPassword(passwordEncoder.encode(registrationRequest.password()));
-        userEntity.setEmail(registrationRequest.email());
+        userEntity.setUsername(username);
+        userEntity.setPassword(encodedPassword);
+        userEntity.setEmail(email);
         userEntity.setUserToken(encryptedRefreshToken);
-        userEntity.setNextUserTokenChangeDate(LocalDateTime.now()); //TODO: Remove column.
+        userEntity.setNextUserTokenChangeDate(currentDateTime); //TODO: Remove column.
         userEntity.setTypeOfUserCode("ENDUSER");
-        userEntity.setRowCreatedDate(LocalDateTime.now());
-        userEntity.setRowLastEditDate(LocalDateTime.now());
-        userEntity.setRowVersion(LocalDateTime.now());
+        userEntity.setRowCreatedDate(currentDateTime);
+        userEntity.setRowLastEditDate(currentDateTime);
+        userEntity.setRowVersion(currentDateTime);
 
         userRepository.save(userEntity);
 
@@ -109,10 +121,6 @@ public class AuthService {
 
 
         UserEntity userEntity = (UserEntity) userService.loadUserByUsername(username);
-//                userRepository.findByUsername(username).orElseThrow(() -> {
-//            logger.error("User with username: {} not found", username);
-//            return new EntityNotFoundException("User not found");
-//        });
 
         if (!refreshJwtUtil.isTokenValid(refreshToken, userEntity)) {
             logger.error("Invalid refresh token: {}", refreshToken);
@@ -142,11 +150,6 @@ public class AuthService {
         logger.info("Attempting to sign out user: {}", username);
 
         UserEntity userEntity = (UserEntity) userService.loadUserByUsername(username);
-//        UserEntity userEntity = userRepository.findByUsername(username).orElseThrow(() -> {
-//            logger.error("User with username: {} not found", username);
-//            return new EntityNotFoundException("User not found");
-//        });
-
         userEntity.setUserToken(null);
         userRepository.save(userEntity);
     }
