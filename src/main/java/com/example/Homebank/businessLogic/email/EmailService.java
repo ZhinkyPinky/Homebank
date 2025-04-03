@@ -1,6 +1,5 @@
 package com.example.Homebank.businessLogic.email;
 
-import com.example.Homebank.businessLogic.services.UserService;
 import com.example.Homebank.presentation.ApiPaths;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

@@ -32,6 +32,12 @@ public class UserService implements UserDetailsService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
+    /**
+     * Loads a user based on their username.
+     *
+     * @param username Username of user to load.
+     * @return A UserDetail implementation.
+     */
     @Transactional(readOnly = true)
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -46,8 +52,16 @@ public class UserService implements UserDetailsService {
         return userDetails;
     }
 
+    /**
+     * Change password for a user provided that:
+     * 1. Refresh token is valid.
+     * 2. The old password match the current one.
+     * 3. The new password match the confirmation password.
+     *
+     * @param changePasswordDTO Refresh token, old password, new password, new password confirmation.
+     */
     @Transactional
-    public void changePassword(ChangePasswordDTO changePasswordDTO) {
+    public void changePassword(ChangePasswordDTO changePasswordDTO) throws IllegalArgumentException, BadCredentialsException {
         logger.info("Attempting to change password.");
         String refreshToken = changePasswordDTO.refreshToken();
         String username = refreshJwtUtil.extractUsername(refreshToken);
@@ -65,7 +79,6 @@ public class UserService implements UserDetailsService {
             throw new BadCredentialsException("Wrong password");
         }
 
-
         String newPassword = changePasswordDTO.newPassword();
         String confirmNewPassword = changePasswordDTO.confirmNewPassword();
         if (!newPassword.equals(confirmNewPassword)) {
@@ -80,6 +93,12 @@ public class UserService implements UserDetailsService {
         logger.debug("Password changed successfully for user: {}", username);
     }
 
+    /**
+     * Initiates account recovery for a user by sending a recovery e-mail to the provided address, if a user with it
+     * exists, with a generated recovery token.
+     *
+     * @param emailDTO E-mail of user that wants to initiate account recovery.
+     */
     @Transactional
     public void initiateUserAccountRecovery(EmailDTO emailDTO) {
         String email = emailDTO.email();
@@ -91,6 +110,7 @@ public class UserService implements UserDetailsService {
 
         UserEntity userEntity = optionalUserEntity.get();
 
+        //TODO: Generate a JWT instead??? Could be easier to store in DB encrypted and still allow finding user.
         SecureRandom random = new SecureRandom();
         byte[] tokenBytes = new byte[20];
         random.nextBytes(tokenBytes);
@@ -102,9 +122,14 @@ public class UserService implements UserDetailsService {
         emailService.sendRecoveryEmail(email, recoveryToken);
     }
 
-
+    /**
+     * Generates a new password for the user and sends it to their e-mail address if a user with the recovery token
+     * exists.
+     *
+     * @param recoveryToken Token used to confirm that the user wants their account recovered.
+     */
     @Transactional
-    public void recoverUserAccount(String recoveryToken) {
+    public void recoverUserAccount(String recoveryToken) throws EntityNotFoundException {
         logger.info("Recovering user account with recovery token: {}", recoveryToken);
 
         UserEntity userEntity = userRepository.findByRecoveryToken(recoveryToken).orElseThrow(() -> {
