@@ -21,6 +21,11 @@ public class CustomerService {
     private final TransactionHeadService transactionHeadService;
     private final TransactionRowService transactionRowService;
 
+    /**
+     * Retrieves all customers from the DB.
+     *
+     * @return All customers.
+     */
     @Transactional(readOnly = true)
     public List<CustomerDTO> getCustomers() {
         logger.info("Fetching all customers.");
@@ -31,6 +36,12 @@ public class CustomerService {
         return customers;
     }
 
+    /**
+     * Retrieves all customers and the specified transaction head.
+     *
+     * @param transactionHeadId ID of the transaction head to retrieve.
+     * @return All customers and the specified transaction head.
+     */
     @Transactional(readOnly = true)
     public CustomersAndTransactionHeadDTO getCustomersAndTransactionHead(long transactionHeadId) {
         logger.info("Fetching customers and transactionHead for transactionHeadId: {}", transactionHeadId);
@@ -42,6 +53,12 @@ public class CustomerService {
         return new CustomersAndTransactionHeadDTO(customers, transactionHead);
     }
 
+    /**
+     * Retrieves the specified customer.
+     *
+     * @param customerId ID of the customer to retrieve.
+     * @return The specified customer.
+     */
     @Transactional(readOnly = true)
     public CustomerDTO getCustomer(long customerId) {
         logger.info("Fetching customer with ID: {}", customerId);
@@ -55,6 +72,12 @@ public class CustomerService {
         return CustomerDTO.fromEntity(customerView);
     }
 
+    /**
+     * Retrieves the specified customer and all transaction heads related to them.
+     *
+     * @param customerId ID of the customer.
+     * @return The specified customer and all transaction heads related to them.
+     */
     @Transactional(readOnly = true)
     public CustomerAndTransactionHeadsDTO getCustomerAndTransactionHeads(long customerId) {
         logger.info("Fetching customer and transaction heads for customerId: {}", customerId);
@@ -66,6 +89,13 @@ public class CustomerService {
         return new CustomerAndTransactionHeadsDTO(customer, transactionHeads);
     }
 
+    /**
+     * Retrieves the specified customer and transaction head.
+     *
+     * @param customerId        ID of the customer.
+     * @param transactionHeadId ID of the transaction head.
+     * @return The specified customer and transaction head.
+     */
     @Transactional(readOnly = true)
     public CustomerAndTransactionHeadDTO getCustomerAndTransactionHead(long customerId, long transactionHeadId) {
         logger.info("Fetching customer and transaction head for customerId: {} and transactionHeadId: {}", customerId, transactionHeadId);
@@ -77,6 +107,13 @@ public class CustomerService {
         return new CustomerAndTransactionHeadDTO(customer, transactionHead);
     }
 
+    /**
+     * Retrieves the specified customer, transaction head and all transaction rows related to the head.
+     *
+     * @param customerId        ID of the customer.
+     * @param transactionHeadId ID of the transaction head.
+     * @return The specified customer, transaction head and all transaction rows related to the head.
+     */
     @Transactional(readOnly = true)
     public CustomerWithTransactionHeadAndRowsDTO getCustomerTransactionHeadAndRows(long customerId, long transactionHeadId) {
         logger.info("Fetching customer, transaction head, and rows for customerId: {} and transactionHeadId: {}", customerId, transactionHeadId);
@@ -89,6 +126,14 @@ public class CustomerService {
         return new CustomerWithTransactionHeadAndRowsDTO(customer, transactionHead, transactionRows);
     }
 
+    /**
+     * Retrieves the specified customer, transaction head and transaction row.
+     *
+     * @param customerId        ID of the customer.
+     * @param transactionHeadId ID of the transaction head.
+     * @param transactionRowId  ID of the transaction row.
+     * @return The specified customer, transaction head and transaction row.
+     */
     @Transactional(readOnly = true)
     public CustomerWithTransactionHeadAndRowDTO getCustomerAndTransactionHeadAndTransactionRow(long customerId, long transactionHeadId, long transactionRowId) {
         logger.info("Fetching customer, transaction head, and row for customerId: {}, transactionHeadId: {}, and transactionRowId: {}", customerId, transactionHeadId, transactionRowId);

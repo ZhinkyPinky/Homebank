@@ -1,6 +1,5 @@
 package com.example.Homebank.businessLogic.security;
 
-import com.example.Homebank.businessLogic.services.CustomerService;
 import com.example.Homebank.businessLogic.services.UserService;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
@@ -21,6 +20,9 @@ import java.io.IOException;
 
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
+/**
+ * Filter to pass requests for end-points requiring JWT authentication through.
+ */
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -29,6 +31,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final AccessJwtUtil jwtUtil;
     private final UserService userDetailsService;
 
+    /**
+     * Authenticates a user based a provided JWT.
+     *
+     * @param request     Request sent by user.
+     * @param response    Response to send to the user.
+     * @param filterChain Filters to pass request through.
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         try {
@@ -38,6 +47,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String username = null;
             String jwt = null;
 
+            //Find username of the subject making the request if JWT exists.
             if (authHeader != null && authHeader.startsWith("Bearer")) {
                 jwt = authHeader.substring(7);
                 username = jwtUtil.extractUsername(jwt);
@@ -46,6 +56,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 logger.warn("No Bearer token found in Authorization header");
             }
 
+            //Load the user and authenticate if token is valid.
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 logger.debug("Loading user details for username: {}", username);
 

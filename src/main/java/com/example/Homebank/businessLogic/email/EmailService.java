@@ -23,7 +23,7 @@ public class EmailService {
     private final JavaMailSender emailSender;
 
     /**
-     * Sends an e-mail to the specified targetAddress.
+     * Sends an e-mail to the specified address.
      *
      * @param targetAddress Address of the recipient.
      * @param subject       Subject of the e-mail.

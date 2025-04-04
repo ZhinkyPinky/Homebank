@@ -19,6 +19,12 @@ public class TransactionRowService {
 
     private final TransactionRowRepository transactionRowRepository;
 
+    /**
+     * Retrieves all transaction rows related to the specified transaction head.
+     *
+     * @param transactionHeadId ID of the transaction head.
+     * @return All transaction rows related to the specified transaction head.
+     */
     public List<TransactionRowDTO> getAllByTransactionHeadId(long transactionHeadId) {
         logger.info("Fetching all transaction rows for transaction head ID: {}", transactionHeadId);
 
@@ -28,6 +34,12 @@ public class TransactionRowService {
         return transactionRows;
     }
 
+    /**
+     * Retrieves the specified transaction row.
+     *
+     * @param transactionRowId ID of the transaction row.
+     * @return The specified transaction row.
+     */
     public TransactionRowDTO getTransactionRowById(long transactionRowId) {
         logger.info("Fetching transaction row with ID: {}", transactionRowId);
 
@@ -40,6 +52,12 @@ public class TransactionRowService {
         return TransactionRowDTO.fromEntity(transactionRowEntity);
     }
 
+    /**
+     * Saves a transaction row to the DB.
+     *
+     * @param transactionRow The transaction row to save.
+     * @return
+     */
     public Map<String, Object> saveTransactionRow(TransactionRowDTO transactionRow) {
         logger.info("Saving transaction row: {}", transactionRow);
 
@@ -59,6 +77,12 @@ public class TransactionRowService {
         return result;
     }
 
+    /**
+     * Sets the transaction row as deleted in the DB.
+     *
+     * @param transactionRow The transaction row to set as deleted.
+     * @return
+     */
     public Map<String, Object> deleteTransactionRow(TransactionRowDTO transactionRow) {
         logger.info("Deleting transaction row with ID: {}", transactionRow.id());
 

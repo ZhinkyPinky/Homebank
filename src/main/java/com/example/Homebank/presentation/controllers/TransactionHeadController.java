@@ -18,6 +18,12 @@ public class TransactionHeadController {
 
     private final TransactionHeadService transactionHeadService;
 
+    /**
+     * Handles requests to save a transaction head.
+     *
+     * @param transactionHead The transaction head to save.
+     * @return Response indicating whether the transaction head was successfully saved.
+     */
     @PostMapping(ApiPaths.SAVE)
     public ResponseEntity<String> saveTransactionHead(@Valid @RequestBody TransactionHeadDTO transactionHead) {
         logger.info("Request to save transaction head received.");
@@ -26,6 +32,12 @@ public class TransactionHeadController {
         return ResponseEntity.ok("Transaction head saved");
     }
 
+    /**
+     * Handles requests to set a transaction head as deleted.
+     *
+     * @param transactionHead The transaction head to set as deleted.
+     * @return Response indicating whether the transaction head was successfully set as deleted.
+     */
     @PostMapping(ApiPaths.DELETE)
     public ResponseEntity<String> deleteTransactionHead(@Valid @RequestBody TransactionHeadDTO transactionHead) {
         logger.info("Request to delete transaction head with ID: {} received.", transactionHead.id());

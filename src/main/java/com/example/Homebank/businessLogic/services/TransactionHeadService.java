@@ -21,6 +21,11 @@ public class TransactionHeadService {
 
     private final TransactionHeadRepository transactionHeadRepository;
 
+    /**
+     * Retrieves all transaction heads.
+     *
+     * @return All transaction heads.
+     */
     @Transactional(readOnly = true)
     public List<TransactionHeadDTO> getTransactionHeads() {
         logger.info("Fetching all transaction heads.");
@@ -31,6 +36,12 @@ public class TransactionHeadService {
         return transactionHeads;
     }
 
+    /**
+     * Retrieves the specified transaction head.
+     *
+     * @param transactionHeadId ID of the transaction head.
+     * @return The specified transaction head.
+     */
     @Transactional(readOnly = true)
     public TransactionHeadDTO getTransactionHead(long transactionHeadId) {
         logger.info("Fetching transaction head with ID: {}", transactionHeadId);
@@ -44,6 +55,12 @@ public class TransactionHeadService {
         return TransactionHeadDTO.fromEntity(transactionHeadEntity);
     }
 
+    /**
+     * Retrieves all transaction heads related to the specified customer.
+     *
+     * @param customerId ID of the customer.
+     * @return All transaction heads related to the specified customer.
+     */
     @Transactional(readOnly = true)
     public List<TransactionHeadDTO> getTransactionHeadsByCustomerId(long customerId) {
         logger.info("Fetching all transaction heads for customer ID: {}", customerId);
@@ -54,6 +71,12 @@ public class TransactionHeadService {
         return transactionHeads;
     }
 
+    /**
+     * Saves a transaction head to the DB.
+     *
+     * @param transactionHead Transaction head to save.
+     * @return
+     */
     @Transactional
     public Map<String, Object> saveTransactionHead(TransactionHeadDTO transactionHead) {
         logger.info("Saving transaction head: {}", transactionHead);
@@ -74,6 +97,11 @@ public class TransactionHeadService {
         return result;
     }
 
+    /**
+     * Sets the transaction head as deleted in the DB.
+     *
+     * @param transactionHead Transaction head to set as deleted.
+     */
     @Transactional
     public void deleteTransactionHead(TransactionHeadDTO transactionHead) {
         logger.info("Deleting transaction head with ID: {}", transactionHead.id());

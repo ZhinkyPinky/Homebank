@@ -13,11 +13,22 @@ public class RefreshJwtUtil extends AbstractJwtUtil {
     @Value("${jwt.refresh.duration}")
     private String REFRESH_DURATION;
 
+    /**
+     * Retrieves the secret used to generate the refresh tokens.
+     *
+     * @return The secret used to generate the signing key for the refresh tokens.
+     */
     @Override
     protected String getSecret() {
         return REFRESH_SECRET;
     }
 
+
+    /**
+     * Retrieves the duration of the refresh tokens.
+     *
+     * @return Refresh token duration.
+     */
     @Override
     protected long getTokenDuration() {
         return TimeUnit.DAYS.toMillis(Long.parseLong(REFRESH_DURATION));

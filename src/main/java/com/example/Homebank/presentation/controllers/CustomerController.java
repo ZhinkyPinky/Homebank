@@ -22,23 +22,41 @@ public class CustomerController {
 
     private final CustomerService customerService;
 
+    /**
+     * Handles requests to retrieve all customers.
+     *
+     * @return All customers.
+     */
     @GetMapping
     public ResponseEntity<List<CustomerDTO>> getCustomers() {
         logger.info("Request to get customers received.");
-        
+
         List<CustomerDTO> body = customerService.getCustomers();
         return ResponseEntity.ok(body);
     }
 
-    //TODO: Move to TransactionHeadController? Find solution.
+
+    /**
+     * Handles requests to retrieve all customers and a specified transaction head.
+     *
+     * @param transactionHeadId ID of the transaction head.
+     * @return All customers and the specified transaction head.
+     */
     @GetMapping("/transactionHeads/{transactionHeadId}")
     public ResponseEntity<CustomersAndTransactionHeadDTO> getCustomersAndTransactionHead(@PathVariable final long transactionHeadId) {
+        //TODO: Move to TransactionHeadController? Find solution.
         logger.info("Request to get customers and transaction head with transactionHeadId: {} received.", transactionHeadId);
 
         CustomersAndTransactionHeadDTO body = customerService.getCustomersAndTransactionHead(transactionHeadId);
         return ResponseEntity.ok(body);
     }
 
+    /**
+     * Handles requests to retrieve a customer.
+     *
+     * @param customerId ID of the customer.
+     * @return The customer.
+     */
     @GetMapping(ApiPaths.CUSTOMER)
     public ResponseEntity<CustomerDTO> getCustomer(@PathVariable final long customerId) {
         logger.info("Request to get customer with ID: {} received.", customerId);
@@ -47,6 +65,12 @@ public class CustomerController {
         return ResponseEntity.ok(body);
     }
 
+    /**
+     * Handles requests to retrieve a customer and all related transaction heads.
+     *
+     * @param customerId ID of the customer.
+     * @return The customer and all related transaction heads.
+     */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEADS)
     public ResponseEntity<CustomerAndTransactionHeadsDTO> getCustomerAndTransactionHeads(@PathVariable final long customerId) {
         logger.info("Request to get customer and transaction heads with customerId: {} received.", customerId);
@@ -55,6 +79,13 @@ public class CustomerController {
         return ResponseEntity.ok(body);
     }
 
+    /**
+     * Handles requests to retrieve a customer and transaction head.
+     *
+     * @param customerId        ID of the customer.
+     * @param transactionHeadId ID of the transaction head.
+     * @return The customer and transaction head.
+     */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD)
     public ResponseEntity<CustomerAndTransactionHeadDTO> getCustomerAndTransactionHead(@PathVariable final long customerId, @PathVariable final long transactionHeadId) {
         logger.info("Request to get customer with ID: {} and transaction head with ID: {} received.", customerId, transactionHeadId);
@@ -63,6 +94,13 @@ public class CustomerController {
         return ResponseEntity.ok(body);
     }
 
+    /**
+     * Handles requests to retrieve a customer, transaction head and all transaction rows related to the transaction head.
+     *
+     * @param customerId        ID of the customer.
+     * @param transactionHeadId ID of the transaction head.
+     * @return The customer, transaction head and all transaction rows related to the transaction head.
+     */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD_AND_ROWS)
     public ResponseEntity<CustomerWithTransactionHeadAndRowsDTO> getCustomerAndTransactionHeadAndRows(@PathVariable final long customerId, @PathVariable final long transactionHeadId) {
         logger.info("Request to get customer, transaction head, and rows for customerId: {} and transactionHeadId: {} received.", customerId, transactionHeadId);
@@ -71,6 +109,14 @@ public class CustomerController {
         return ResponseEntity.ok(body);
     }
 
+    /**
+     * Handles requests to retrieve a customer, transaction head and transaction row.
+     *
+     * @param customerId        ID of the customer.
+     * @param transactionHeadId ID of the transaction head.
+     * @param transactionRowId  ID of the transaction row.
+     * @return The customer, transaction head and transaction row.
+     */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD_AND_ROW)
     public ResponseEntity<?> getCustomerAndTransactionHeadAndTransactionRow(@PathVariable final long customerId, @PathVariable final long transactionHeadId, @PathVariable final long transactionRowId) {
         logger.info("Request to get customer, transaction head, and row for customerId: {}, transactionHeadId: {}, and transactionRowId: {} received.", customerId, transactionHeadId, transactionRowId);

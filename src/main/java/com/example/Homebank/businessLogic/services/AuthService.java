@@ -18,6 +18,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -34,9 +35,14 @@ public class AuthService {
     private final UserService userService;
     private final EmailService emailService;
 
-//    @Value("${email.message.registration}")
-//    private String registrationMessage;
-
+    /**
+     * Authenticate a user based on username and password. Generates access and refresh tokens if authentication is
+     * successful. The refresh token is saved encrypted in the DB.
+     *
+     * @param authenticationRequestDTO Username and password.
+     * @return Access and refresh tokens.
+     */
+    @Transactional
     public AuthenticationResponseDTO authenticate(AuthenticationRequestDTO authenticationRequestDTO) {
         logger.info("Attempting to authenticate user: {}", authenticationRequestDTO.username());
 
@@ -57,6 +63,13 @@ public class AuthService {
         return new AuthenticationResponseDTO(accessToken, refreshToken, "Login successful");
     }
 
+    /**
+     * Registers a new user.
+     *
+     * @param registrationRequest Username, e-mail and password.
+     * @return Access and refresh tokens.
+     */
+    @Transactional
     public RegistrationResponse register(RegistrationRequest registrationRequest) {
         logger.info("Attempting to register new user: {}", registrationRequest.username());
 
@@ -89,9 +102,17 @@ public class AuthService {
 
         logger.info("User {} registered successfully. Tokens generated.", username);
 
+        //TODO: Send confirmation e-mail to activate account instead of returning tokens.
         return new RegistrationResponse(accessToken, refreshToken, "Registration successful");
     }
 
+    /**
+     * Validates the details provided for registration by checking:
+     * 1. If the username is taken.
+     * 2. If the e-mail is taken.
+     *
+     * @param registrationRequest Username, e-mail and password.
+     */
     private void validateRegistrationDetails(RegistrationRequest registrationRequest) {
         logger.debug("Validation registration details for user: {}", registrationRequest.username());
 
@@ -100,6 +121,7 @@ public class AuthService {
             throw new EntityExistsException("Username already exists");
         }
 
+        //TODO: Can be removed? Can't search based on encoded password.
         if (userRepository.findByPassword(passwordEncoder.encode(registrationRequest.password())).isPresent()) {
             logger.error("Password already exists");
             throw new EntityExistsException("Password already exists");
@@ -113,6 +135,13 @@ public class AuthService {
         logger.debug("Registration details validated successfully for user: {}", registrationRequest.username());
     }
 
+    /**
+     * Generates new access and refresh tokens for a user provided that the refresh token is valid.
+     *
+     * @param refreshRequest Refresh token.
+     * @return New access and refresh token.
+     */
+    @Transactional
     public AuthenticationResponseDTO refreshToken(RefreshRequest refreshRequest) {
         String refreshToken = refreshRequest.refreshToken();
         String username = refreshJwtUtil.extractUsername(refreshToken);
@@ -144,6 +173,12 @@ public class AuthService {
         return new AuthenticationResponseDTO(newAccessToken, newRefreshToken, "Tokens refreshed");
     }
 
+    /**
+     * Sign out a user by removing the saved refresh token from the DB.
+     *
+     * @param refreshToken Provided refresh token.
+     */
+    @Transactional
     public void signOut(String refreshToken) {
         String username = refreshJwtUtil.extractUsername(refreshToken);
 

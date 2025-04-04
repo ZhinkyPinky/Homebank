@@ -18,6 +18,12 @@ public class TransactionRowController {
 
     private final TransactionRowService transactionRowService;
 
+    /**
+     * Handles requests to retrieve a transaction row.
+     *
+     * @param transactionRowId ID of the transaction row.
+     * @return The transaction row.
+     */
     @GetMapping(ApiPaths.TRANSACTION_ROW)
     public ResponseEntity<TransactionRowDTO> get(@PathVariable final long transactionRowId) {
         logger.info("Request to get transaction head with ID: {} received.", transactionRowId);
@@ -26,6 +32,12 @@ public class TransactionRowController {
         return ResponseEntity.ok(transactionRow);
     }
 
+    /**
+     * Handles requests to save a transaction row.
+     *
+     * @param transactionRow The transaction row to save.
+     * @return Response indicating whether the transaction row was successfully saved.
+     */
     @PostMapping(ApiPaths.SAVE)
     public ResponseEntity<String> saveTransactionRow(@Valid @RequestBody final TransactionRowDTO transactionRow) {
         logger.info("Request to save transaction row with ID: {} received.", transactionRow.id());
@@ -34,6 +46,12 @@ public class TransactionRowController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Handles requests to set a transaction row as deleted.
+     *
+     * @param transactionRow The transaction row to set as deleted.
+     * @return Response indicating whether the transaction row was successfully set as deleted.
+     */
     @PostMapping(ApiPaths.DELETE)
     public ResponseEntity<String> deleteTransactionRow(@Valid @RequestBody final TransactionRowDTO transactionRow) {
         logger.info("Request to delete transaction row with ID: {} received.", transactionRow.id());
