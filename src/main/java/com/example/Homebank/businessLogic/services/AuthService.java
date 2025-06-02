@@ -46,11 +46,13 @@ public class AuthService {
     public AuthenticationResponseDTO authenticate(AuthenticationRequestDTO authenticationRequestDTO) {
         logger.info("Attempting to authenticate user: {}", authenticationRequestDTO.username());
 
-        Authentication authentication = authenticationManager.authenticate(
-                UsernamePasswordAuthenticationToken.unauthenticated(authenticationRequestDTO.username(), authenticationRequestDTO.password())
-        );
+        String username = authenticationRequestDTO.username();
+        String password = authenticationRequestDTO.password();
 
-        UserEntity userEntity = ((UserEntity) authentication.getPrincipal());
+        UsernamePasswordAuthenticationToken authenticationToken = UsernamePasswordAuthenticationToken.unauthenticated(username, password);
+        Authentication authentication = authenticationManager.authenticate(authenticationToken);
+
+        UserEntity userEntity = (UserEntity) authentication.getPrincipal();
         String accessToken = accessJwtUtil.generateToken(userEntity.getUsername());
         String refreshToken = refreshJwtUtil.generateToken(userEntity.getUsername());
         String encryptedRefreshToken = passwordEncoder.encode(refreshToken);
