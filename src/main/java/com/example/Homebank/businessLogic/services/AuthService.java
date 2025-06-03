@@ -7,11 +7,9 @@ import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
 import com.example.Homebank.presentation.dto.*;
 import jakarta.persistence.EntityExistsException;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -84,6 +82,7 @@ public class AuthService {
 
         String accessToken = accessJwtUtil.generateToken(username);
         String refreshToken = refreshJwtUtil.generateToken(username);
+        LocalDateTime refreshTokenExpirationDate = LocalDateTime.ofInstant(refreshJwtUtil.extractExpirationDate(refreshToken).toInstant(), java.time.ZoneId.systemDefault());
         String encryptedRefreshToken = passwordEncoder.encode(refreshToken);
 
         //TODO: Needs a procedure?
@@ -94,7 +93,7 @@ public class AuthService {
         userEntity.setPassword(encodedPassword);
         userEntity.setEmail(email);
         userEntity.setUserToken(encryptedRefreshToken);
-        userEntity.setNextUserTokenChangeDate(currentDateTime); //TODO: Remove column.
+        userEntity.setNextUserTokenChangeDate(refreshTokenExpirationDate); //TODO: Remove column.
         userEntity.setTypeOfUserCode("ENDUSER");
         userEntity.setRowCreatedDate(currentDateTime);
         userEntity.setRowLastEditDate(currentDateTime);
@@ -123,12 +122,6 @@ public class AuthService {
             throw new EntityExistsException("Username already exists");
         }
 
-        //TODO: Can be removed? Can't search based on encoded password.
-        if (userRepository.findByPassword(passwordEncoder.encode(registrationRequest.password())).isPresent()) {
-            logger.error("Password already exists");
-            throw new EntityExistsException("Password already exists");
-        }
-
         if (userRepository.findByEmail(registrationRequest.email()).isPresent()) {
             logger.error("Email {} already exists", registrationRequest.email());
             throw new EntityExistsException("Email already exists");
@@ -150,7 +143,6 @@ public class AuthService {
 
         logger.info("Attempting to refresh tokens for user: {}", username);
 
-
         UserEntity userEntity = (UserEntity) userService.loadUserByUsername(username);
 
         if (!refreshJwtUtil.isTokenValid(refreshToken, userEntity)) {
@@ -165,9 +157,11 @@ public class AuthService {
 
         String newAccessToken = accessJwtUtil.generateToken(username);
         String newRefreshToken = refreshJwtUtil.generateToken(username);
+        LocalDateTime newRefreshTokenExpirationDate = LocalDateTime.ofInstant(refreshJwtUtil.extractExpirationDate(newRefreshToken).toInstant(), java.time.ZoneId.systemDefault());
         String encryptedNewRefreshToken = passwordEncoder.encode(newRefreshToken);
 
         userEntity.setUserToken(encryptedNewRefreshToken);
+        userEntity.setNextUserTokenChangeDate(newRefreshTokenExpirationDate);
         userRepository.save(userEntity);
 
         logger.info("Tokens refreshed successfully for user: {}", username);
@@ -189,5 +183,7 @@ public class AuthService {
         UserEntity userEntity = (UserEntity) userService.loadUserByUsername(username);
         userEntity.setUserToken(null);
         userRepository.save(userEntity);
+
+        logger.info("User {} signed out successfully.", username);
     }
 }

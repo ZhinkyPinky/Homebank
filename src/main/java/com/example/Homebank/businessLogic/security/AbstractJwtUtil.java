@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Map;
 
@@ -96,13 +97,23 @@ public abstract class AbstractJwtUtil {
     }
 
     /**
+     * Extracts the expiration date of the JWT.
+     *
+     * @param token The JWT.
+     * @return The expiration date of the JWT.
+     */
+    public Date extractExpirationDate(String token) {
+        return extractClaims(token).getExpiration();
+    }
+
+    /**
      * Checks whether the JWT is expired.
      *
      * @param token The JWT.
      * @return true if expired, otherwise false.
      */
     private boolean isTokenExpired(String token) {
-        return extractClaims(token).getExpiration().before(new Date());
+        return extractExpirationDate(token).before(new Date());
     }
 
     /**
