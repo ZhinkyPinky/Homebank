@@ -27,6 +27,8 @@ public class ApiPaths {
 
     public static final String USERS = "/users";
     public static final String CHANGE_PASSWORD = "/changePassword";
-    public static final String INITIATE_RECOVERY = "/initiate-recovery";
-    public static final String RECOVER = "/recover";
+
+    public static final String ACCOUNT_RECOVERY = "/account-recovery";
+    public static final String INITIATE_RECOVERY = "/initiate";
+    public static final String AUTHENTICATE = "/authenticate";
 }

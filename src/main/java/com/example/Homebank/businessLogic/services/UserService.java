@@ -5,8 +5,6 @@ import com.example.Homebank.businessLogic.security.RefreshJwtUtil;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
 import com.example.Homebank.presentation.dto.ChangePasswordDTO;
-import com.example.Homebank.presentation.dto.EmailDTO;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,10 +16,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
-import java.util.Base64;
-import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
 public class UserService implements UserDetailsService {
@@ -30,7 +24,6 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final RefreshJwtUtil refreshJwtUtil;
     private final PasswordEncoder passwordEncoder;
-    private final EmailService emailService;
 
     /**
      * Loads a user based on their username.
@@ -55,8 +48,8 @@ public class UserService implements UserDetailsService {
     /**
      * Change password for a user provided that:
      * 1. Refresh token is valid.
-     * 2. The old password match the current one.
-     * 3. The new password match the confirmation password.
+     * 2. The old password matches the current one.
+     * 3. The new password matches the confirmation password.
      *
      * @param changePasswordDTO Refresh token, old password, new password, new password confirmation.
      */
@@ -91,63 +84,5 @@ public class UserService implements UserDetailsService {
         userRepository.save(userEntity);
 
         logger.debug("Password changed successfully for user: {}", username);
-    }
-
-    /**
-     * Initiates account recovery for a user by sending a recovery e-mail to the provided address, if a user with it
-     * exists, with a generated recovery token.
-     *
-     * @param emailDTO E-mail of user that wants to initiate account recovery.
-     */
-    @Transactional
-    public void initiateUserAccountRecovery(EmailDTO emailDTO) {
-        String email = emailDTO.email();
-
-        logger.info("Initiating recovery of user with e-mail: {}", email);
-
-        Optional<UserEntity> optionalUserEntity = userRepository.findByEmail(email);
-        if (optionalUserEntity.isEmpty()) return; //Return without throwing to not disclose whether e-mail exists.
-
-        UserEntity userEntity = optionalUserEntity.get();
-
-        //TODO: Generate a JWT instead??? Could be easier to store in DB encrypted and still allow finding user.
-        SecureRandom random = new SecureRandom();
-        byte[] tokenBytes = new byte[20];
-        random.nextBytes(tokenBytes);
-        String recoveryToken = Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
-
-        userEntity.setRecoveryToken(recoveryToken);
-        userRepository.save(userEntity);
-
-        emailService.sendRecoveryEmail(email, recoveryToken);
-    }
-
-    /**
-     * Generates a new password for the user and sends it to their e-mail address if a user with the recovery token
-     * exists.
-     *
-     * @param recoveryToken Token used to confirm that the user wants their account recovered.
-     */
-    @Transactional
-    public void recoverUserAccount(String recoveryToken) throws EntityNotFoundException {
-        logger.info("Recovering user account with recovery token: {}", recoveryToken);
-
-        UserEntity userEntity = userRepository.findByRecoveryToken(recoveryToken).orElseThrow(() -> {
-            logger.error("User with recovery token: {} not found.", recoveryToken);
-            return new EntityNotFoundException();
-        });
-
-        SecureRandom random = new SecureRandom();
-        byte[] tokenBytes = new byte[20];
-        random.nextBytes(tokenBytes);
-        String tempPassword = Base64.getEncoder().withoutPadding().encodeToString(tokenBytes);
-        String encodedTempPassword = passwordEncoder.encode(tempPassword);
-
-        userEntity.setPassword(encodedTempPassword);
-        userEntity.setRecoveryToken(null);
-        userRepository.save(userEntity);
-
-        String email = userEntity.getEmail();
-        emailService.sendEmail(email, "Homebank - Recovery password", "Here's your recovery password: " + tempPassword + "\nMake sure to change it as soon as possible.");
     }
 }

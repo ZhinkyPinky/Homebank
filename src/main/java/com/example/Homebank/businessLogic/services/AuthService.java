@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -37,15 +38,15 @@ public class AuthService {
      * Authenticate a user based on username and password. Generates access and refresh tokens if authentication is
      * successful. The refresh token is saved encrypted in the DB.
      *
-     * @param authenticationRequestDTO Username and password.
+     * @param authenticationDTO Username and password.
      * @return Access and refresh tokens.
      */
     @Transactional
-    public AuthenticationResponseDTO authenticate(AuthenticationRequestDTO authenticationRequestDTO) {
-        logger.info("Attempting to authenticate user: {}", authenticationRequestDTO.username());
+    public AccessAndRefreshTokenDTO authenticate(AuthenticationDTO authenticationDTO) {
+        logger.info("Attempting to authenticate user: {}", authenticationDTO.username());
 
-        String username = authenticationRequestDTO.username();
-        String password = authenticationRequestDTO.password();
+        String username = authenticationDTO.username();
+        String password = authenticationDTO.password();
 
         UsernamePasswordAuthenticationToken authenticationToken = UsernamePasswordAuthenticationToken.unauthenticated(username, password);
         Authentication authentication = authenticationManager.authenticate(authenticationToken);
@@ -60,25 +61,25 @@ public class AuthService {
 
         logger.info("User {} authenticated successfully. Tokens generated.", userEntity.getUsername());
 
-        return new AuthenticationResponseDTO(accessToken, refreshToken, "Login successful");
+        return new AccessAndRefreshTokenDTO(accessToken, refreshToken, "Login successful");
     }
 
     /**
      * Registers a new user.
      *
-     * @param registrationRequest Username, e-mail and password.
+     * @param registrationDTO Username, e-mail and password.
      * @return Access and refresh tokens.
      */
     @Transactional
-    public RegistrationResponse register(RegistrationRequest registrationRequest) {
-        logger.info("Attempting to register new user: {}", registrationRequest.username());
+    public AccessAndRefreshTokenDTO register(RegistrationDTO registrationDTO) {
+        logger.info("Attempting to register new user: {}", registrationDTO.username());
 
-        validateRegistrationDetails(registrationRequest);
+        validateRegistrationDetails(registrationDTO);
 
-        String username = registrationRequest.username();
-        String password = registrationRequest.password();
+        String username = registrationDTO.username();
+        String password = registrationDTO.password();
         String encodedPassword = passwordEncoder.encode(password);
-        String email = registrationRequest.email();
+        String email = registrationDTO.email();
 
         String accessToken = accessJwtUtil.generateToken(username);
         String refreshToken = refreshJwtUtil.generateToken(username);
@@ -104,7 +105,7 @@ public class AuthService {
         logger.info("User {} registered successfully. Tokens generated.", username);
 
         //TODO: Send confirmation e-mail to activate account instead of returning tokens.
-        return new RegistrationResponse(accessToken, refreshToken, "Registration successful");
+        return new AccessAndRefreshTokenDTO(accessToken, refreshToken, "Registration successful");
     }
 
     /**
@@ -112,33 +113,33 @@ public class AuthService {
      * 1. If the username is taken.
      * 2. If the e-mail is taken.
      *
-     * @param registrationRequest Username, e-mail and password.
+     * @param registrationDTO Username, e-mail and password.
      */
-    private void validateRegistrationDetails(RegistrationRequest registrationRequest) {
-        logger.debug("Validation registration details for user: {}", registrationRequest.username());
+    private void validateRegistrationDetails(RegistrationDTO registrationDTO) {
+        logger.debug("Validation registration details for user: {}", registrationDTO.username());
 
-        if (userRepository.findByUsername(registrationRequest.username()).isPresent()) {
-            logger.error("Username {} already exists", registrationRequest.username());
+        if (userRepository.findByUsername(registrationDTO.username()).isPresent()) {
+            logger.error("Username {} already exists", registrationDTO.username());
             throw new EntityExistsException("Username already exists");
         }
 
-        if (userRepository.findByEmail(registrationRequest.email()).isPresent()) {
-            logger.error("Email {} already exists", registrationRequest.email());
+        if (userRepository.findByEmail(registrationDTO.email()).isPresent()) {
+            logger.error("Email {} already exists", registrationDTO.email());
             throw new EntityExistsException("Email already exists");
         }
 
-        logger.debug("Registration details validated successfully for user: {}", registrationRequest.username());
+        logger.debug("Registration details validated successfully for user: {}", registrationDTO.username());
     }
 
     /**
      * Generates new access and refresh tokens for a user provided that the refresh token is valid.
      *
-     * @param refreshRequest Refresh token.
+     * @param refreshTokenDTO Refresh token.
      * @return New access and refresh token.
      */
     @Transactional
-    public AuthenticationResponseDTO refreshToken(RefreshRequest refreshRequest) {
-        String refreshToken = refreshRequest.refreshToken();
+    public AccessAndRefreshTokenDTO refreshTokens(RefreshTokenDTO refreshTokenDTO) {
+        String refreshToken = refreshTokenDTO.refreshToken();
         String username = refreshJwtUtil.extractUsername(refreshToken);
 
         logger.info("Attempting to refresh tokens for user: {}", username);
@@ -166,7 +167,7 @@ public class AuthService {
 
         logger.info("Tokens refreshed successfully for user: {}", username);
 
-        return new AuthenticationResponseDTO(newAccessToken, newRefreshToken, "Tokens refreshed");
+        return new AccessAndRefreshTokenDTO(newAccessToken, newRefreshToken, "Tokens refreshed");
     }
 
     /**

@@ -10,7 +10,6 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.annotation.web.configurers.LogoutConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,13 +26,12 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize ->
-                        authorize
-                                .requestMatchers(
+                        authorize.requestMatchers(
                                         "auth/login",
                                         "auth/refresh",
                                         "auth/register",
-                                        "users/initiate-recovery",
-                                        "users/recover").permitAll()
+                                        "account-recovery/initiate",
+                                        "account-recovery/authenticate").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
@@ -44,21 +42,38 @@ public class SecurityConfig {
                 .build();
     }
 
+    /**
+     * Creates and configures an AuthenticationManager implementation used for authenticating users.
+     *
+     * @param authenticationProviders The DaoAuthenticationProvider implementations used for authenticating users.
+     * @return The AuthenticationManager implementation.
+     */
     @Bean
-    public AuthenticationManager authenticationManager(DaoAuthenticationProvider authenticationProvider) {
-        ProviderManager providerManager = new ProviderManager(authenticationProvider);
+    public AuthenticationManager authenticationManager(DaoAuthenticationProvider... authenticationProviders) {
+        ProviderManager providerManager = new ProviderManager(authenticationProviders);
         providerManager.setEraseCredentialsAfterAuthentication(false);
 
         return providerManager;
     }
 
+    /**
+     * Creates and configures DaoAuthenticationProvider implementations used for authenticating users.
+     *
+     * @param userService     Service used for retrieving user details from the database.
+     * @param passwordEncoder Encoder used for encoding passwords before storing them in the database.
+     * @return The DaoAuthenticationProvider implementation.
+     */
     @Bean
-    public DaoAuthenticationProvider authenticationProvider(UserService userService, PasswordEncoder passwordEncoder) {
+    public DaoAuthenticationProvider[] authenticationProviders(UserService userService, PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
         authenticationProvider.setUserDetailsService(userService);
         authenticationProvider.setPasswordEncoder(passwordEncoder);
 
-        return authenticationProvider;
+//        DaoAuthenticationProvider accountRecoveryAuthenticationProvider = new DaoAuthenticationProvider();
+//        accountRecoveryAuthenticationProvider.setUserDetailsService(accountRecoveryUserDetailsService);
+//        accountRecoveryAuthenticationProvider.setPasswordEncoder(passwordEncoder);
+
+        return new DaoAuthenticationProvider[]{authenticationProvider};
     }
 
     @Bean

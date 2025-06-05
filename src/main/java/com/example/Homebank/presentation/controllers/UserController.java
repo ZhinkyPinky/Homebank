@@ -1,9 +1,9 @@
 package com.example.Homebank.presentation.controllers;
 
+import com.example.Homebank.businessLogic.services.AccountRecoveryService;
 import com.example.Homebank.businessLogic.services.UserService;
 import com.example.Homebank.presentation.ApiPaths;
 import com.example.Homebank.presentation.dto.ChangePasswordDTO;
-import com.example.Homebank.presentation.dto.EmailDTO;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,31 +30,5 @@ public class UserController {
 
         userService.changePassword(changePasswordDTO);
         return ResponseEntity.ok().build();
-    }
-
-    /**
-     * Handles requests to initiate the recovery of an account.
-     *
-     * @param emailDTO E-mail of the user that wants to recover their account.
-     * @return Response indicating whether the request was successful or not.
-     */
-    @PostMapping(ApiPaths.INITIATE_RECOVERY)
-    public ResponseEntity<String> initiateUserAccountRecovery(@RequestBody EmailDTO emailDTO) {
-        logger.info("Request to initiate recovery for user account with e-mail: {} received.", emailDTO.email());
-        userService.initiateUserAccountRecovery(emailDTO);
-        return ResponseEntity.ok().build();
-    }
-
-    /**
-     * Handles requests to recover an account.
-     *
-     * @param recoveryToken Token used to confirm that the user wants to recover their account.
-     * @return Response indicating whether the request was successful or not.
-     */
-    @GetMapping(ApiPaths.RECOVER)
-    public ResponseEntity<String> recoverUserAccount(@RequestParam String recoveryToken) {
-        logger.info("Request to recover user account with recovery token: {} received.", recoveryToken);
-        userService.recoverUserAccount(recoveryToken);
-        return ResponseEntity.ok("An e-mail with a recovery password should be sent soon.");
     }
 }

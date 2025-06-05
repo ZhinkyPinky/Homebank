@@ -48,10 +48,24 @@ public class EmailService {
      * @param targetAddress Address of the recipient.
      * @param recoveryToken Generated token used to confirm the recovery request.
      */
-    public void sendRecoveryEmail(String targetAddress, String recoveryToken) {
+    public void sendRecoveryURLEmail(String targetAddress, String recoveryToken) {
         logger.info("Sending a recovery e-mail to: {}", targetAddress);
-        String recoveryURL = applicationURL + ApiPaths.USERS + ApiPaths.RECOVER+ "?recoveryToken=" + recoveryToken;
+        String recoveryURL = applicationURL + ApiPaths.USERS + ApiPaths.ACCOUNT_RECOVERY + "?recoveryToken=" + recoveryToken;
 
         sendEmail(targetAddress, "Homebank - Account recovery confirmation", recoveryURL);
+    }
+
+    /**
+     * Sends an e-mail with a recovery password to the specified address.
+     *
+     * @param targetAddress    Address of the recipient.
+     * @param recoveryPassword Generated recovery password.
+     */
+    public void sendRecoveryPasswordEmail(String targetAddress, String recoveryPassword) {
+        logger.info("Sending a recovery password e-mail to: {}", targetAddress);
+
+        sendEmail(targetAddress, "Homebank - Recovery password", recoveryPassword);
+
+        logger.info("Recovery password e-mail sent successfully.");
     }
 }

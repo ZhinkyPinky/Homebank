@@ -32,11 +32,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final UserService userDetailsService;
 
     /**
-     * Authenticates a user based a provided JWT.
+     * Authenticates a user based on a provided JWT.
      *
-     * @param request     Request sent by user.
+     * @param request     Request sent by a user.
      * @param response    Response to send to the user.
-     * @param filterChain Filters to pass request through.
+     * @param filterChain Filters to pass the request through.
      */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -47,7 +47,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String username = null;
             String jwt = null;
 
-            //Find username of the subject making the request if JWT exists.
+            //Find the username of the subject making the request if JWT exists.
             if (authHeader != null && authHeader.startsWith("Bearer")) {
                 jwt = authHeader.substring(7);
                 username = jwtUtil.extractUsername(jwt);
@@ -56,7 +56,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 logger.warn("No Bearer token found in Authorization header");
             }
 
-            //Load the user and authenticate if token is valid.
+            //Load the user and authenticate if the token is valid.
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 logger.debug("Loading user details for username: {}", username);
 

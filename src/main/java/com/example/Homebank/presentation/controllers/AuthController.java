@@ -25,9 +25,9 @@ public class AuthController {
      * @return a response containing access and refresh tokens if successful, otherwise an error response.
      */
     @PostMapping(ApiPaths.SIGN_IN)
-    public ResponseEntity<AuthenticationResponseDTO> signIn(@Valid @RequestBody AuthenticationRequestDTO authenticationRequest) {
+    public ResponseEntity<AccessAndRefreshTokenDTO> signIn(@Valid @RequestBody AuthenticationDTO authenticationRequest) {
         logger.info("Sign in request received for user: {}", authenticationRequest.username());
-        AuthenticationResponseDTO responseBody = authService.authenticate(authenticationRequest);
+        AccessAndRefreshTokenDTO responseBody = authService.authenticate(authenticationRequest);
 
         return ResponseEntity.ok(responseBody);
     }
@@ -35,40 +35,40 @@ public class AuthController {
     /**
      * Handles requests to sign out a user.
      *
-     * @param signOutRequest Request body containing a refresh token.
+     * @param refreshTokenDTO Request body containing a refresh token.
      * @return a response indicating whether the request was successful.
      */
     @PostMapping(ApiPaths.SIGN_OUT)
-    public ResponseEntity<String> logout(@Valid @RequestBody SignOutRequest signOutRequest) {
+    public ResponseEntity<String> logout(@Valid @RequestBody RefreshTokenDTO refreshTokenDTO) {
         logger.info("Sign out request received.");
         //TODO: Implement.
-        authService.signOut(signOutRequest.refreshToken());
+        authService.signOut(refreshTokenDTO.refreshToken());
         return ResponseEntity.ok().build();
     }
 
     /**
      * Handles requests to register a new user.
      *
-     * @param registrationRequest Request body containing username, password and e-mail.
+     * @param registrationDTO Request body containing username, password and e-mail.
      * @return a response indicating whether the request was successful.
      */
     @PostMapping(ApiPaths.REGISTER)
-    public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody RegistrationRequest registrationRequest) {
+    public ResponseEntity<AccessAndRefreshTokenDTO> register(@Valid @RequestBody RegistrationDTO registrationDTO) {
         //TODO: Don't return tokens on registration, send confirmation e-mail instead to unlock the user account.
-        logger.info("Registration request received for user: {}", registrationRequest.username());
-        return ResponseEntity.ok(authService.register(registrationRequest));
+        logger.info("Registration request received for user: {}", registrationDTO.username());
+        return ResponseEntity.ok(authService.register(registrationDTO));
     }
 
     /**
      * Handles requests to refresh JWTs.
      *
-     * @param refreshRequest Request body containing a refresh token.
+     * @param refreshTokenDTO Request body containing a refresh token.
      * @return the new access and refresh tokens.
      */
     @PostMapping(ApiPaths.REFRESH)
-    public ResponseEntity<AuthenticationResponseDTO> refresh(@Valid @RequestBody RefreshRequest refreshRequest) {
+    public ResponseEntity<AccessAndRefreshTokenDTO> refresh(@Valid @RequestBody RefreshTokenDTO refreshTokenDTO) {
         logger.info("Refresh request received.");
-        return ResponseEntity.ok(authService.refreshToken(refreshRequest));
+        return ResponseEntity.ok(authService.refreshTokens(refreshTokenDTO));
     }
 
 }
