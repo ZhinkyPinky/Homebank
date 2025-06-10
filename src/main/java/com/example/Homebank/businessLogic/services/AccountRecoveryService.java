@@ -1,12 +1,12 @@
 package com.example.Homebank.businessLogic.services;
 
 import com.example.Homebank.businessLogic.email.EmailService;
+import com.example.Homebank.businessLogic.security.AccessJwtUtil;
 import com.example.Homebank.businessLogic.security.RecoveryJwtUtil;
+import com.example.Homebank.businessLogic.security.RefreshJwtUtil;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
-import com.example.Homebank.presentation.dto.AuthenticationDTO;
-import com.example.Homebank.presentation.dto.EmailDTO;
-import com.example.Homebank.presentation.dto.RecoveryTokenDTO;
+import com.example.Homebank.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,17 +30,19 @@ public class AccountRecoveryService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final RecoveryJwtUtil recoveryJwtUtil;
+    private final AccessJwtUtil accessJwtUtil;
+    private final RefreshJwtUtil refreshJwtUtil;
 
     /**
      * Loads a user based on their e-mail.
      *
-     * @param username E-mail of user to load.
+     * @param email E-mail of user to load.
      * @return A UserDetail implementation.
      */
     @Transactional(readOnly = true)
-    public UserEntity loadUserByEmail(String username) throws UsernameNotFoundException {
-        return userRepository.findByEmail(username).orElseThrow(() -> {
-            logger.error("User with e-mail: {} not found.", username);
+    public UserEntity loadUserByEmail(String email) throws UsernameNotFoundException {
+        return userRepository.findByEmail(email.toLowerCase()).orElseThrow(() -> {
+            logger.error("User with e-mail: {} not found.", email);
             return new UsernameNotFoundException("User not found");
         });
     }
@@ -114,8 +116,51 @@ public class AccountRecoveryService {
         return new RecoveryTokenDTO(recoveryToken);
     }
 
+    /**
+     * Updates the user's password and refresh token after validating the recovery token and provided passwords.
+     *
+     * @param setNewPasswordDTO A DTO containing the recovery token, new password, and confirmation of the new password.
+     *                          The recovery token is used to validate the request.
+     *                          The new password and confirm new password must match to proceed.
+     * @return A DTO containing the new access token, new refresh token, and a success message if the update is successful.
+     *         Throws an exception if the recovery token is invalid or if the provided passwords do not match.
+     */
     @Transactional
-    public void setNewPassword(EmailDTO emailDTO) {
+    public AccessAndRefreshTokenDTO setNewPassword(SetNewPasswordDTO setNewPasswordDTO) {
+        logger.info("Attempting to change password.");
+
+        String recoveryToken = setNewPasswordDTO.recoveryToken();
+        String newPassword = setNewPasswordDTO.newPassword();
+        String confirmNewPassword = setNewPasswordDTO.confirmNewPassword();
+
+        if (!newPassword.equals(confirmNewPassword)) {
+            logger.error("Changing password failed due to the new password not matching the confirm new password.");
+            throw new BadCredentialsException("Passwords do not match");
+        }
+
+        String username = recoveryJwtUtil.extractUsername(recoveryToken);
+        UserEntity userEntity = (UserEntity) userService.loadUserByUsername(username);
+
+        if (!recoveryJwtUtil.isTokenValid(recoveryToken, userEntity)) {
+            logger.error("Changing password failed due to an invalid recovery token: {}", recoveryToken);
+            throw new IllegalArgumentException("Invalid recovery token");
+        }
+
+        String encodedNewPassword = passwordEncoder.encode(newPassword);
+
+        String accessToken = accessJwtUtil.generateToken(username);
+        String refreshToken = refreshJwtUtil.generateToken(username);
+        String encodedRefreshToken = passwordEncoder.encode(refreshToken);
+        LocalDateTime refreshTokenExpirationDate = LocalDateTime.ofInstant(refreshJwtUtil.extractExpirationDate(refreshToken).toInstant(), java.time.ZoneId.systemDefault());
+
+        userEntity.setPassword(encodedNewPassword);
+        userEntity.setUserToken(encodedRefreshToken);
+        userEntity.setNextUserTokenChangeDate(refreshTokenExpirationDate);
+        userRepository.save(userEntity);
+
+        logger.debug("Password changed successfully for user: {}", username);
+
+        return new AccessAndRefreshTokenDTO(accessToken, refreshToken, "Password changed successfully");
     }
 
 }

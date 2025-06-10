@@ -31,4 +31,5 @@ public class ApiPaths {
     public static final String ACCOUNT_RECOVERY = "/account-recovery";
     public static final String INITIATE_RECOVERY = "/initiate";
     public static final String AUTHENTICATE = "/authenticate";
+    public static final String SET_NEW_PASSWORD = "/set-new-password";
 }
