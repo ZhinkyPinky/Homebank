@@ -2,9 +2,7 @@ package com.example.Homebank.presentation.controllers;
 
 import com.example.Homebank.businessLogic.services.AccountRecoveryService;
 import com.example.Homebank.presentation.ApiPaths;
-import com.example.Homebank.presentation.dto.AuthenticationDTO;
-import com.example.Homebank.presentation.dto.EmailDTO;
-import com.example.Homebank.presentation.dto.RecoveryTokenDTO;
+import com.example.Homebank.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,5 +43,13 @@ public class AccountRecoveryController {
 
         RecoveryTokenDTO recoveryTokenDTO = accountRecoveryService.authenticate(authenticationDTO);
         return ResponseEntity.ok(recoveryTokenDTO);
+    }
+
+    @PostMapping(ApiPaths.SET_NEW_PASSWORD)
+    public ResponseEntity<AccessAndRefreshTokenDTO> setNetPassword(@RequestBody SetNewPasswordDTO setNewPasswordDTO) {
+        logger.info("Request to set new password received.");
+
+        AccessAndRefreshTokenDTO accessAndRefreshTokenDTO = accountRecoveryService.setNewPassword(setNewPasswordDTO);
+        return ResponseEntity.ok(accessAndRefreshTokenDTO);
     }
 }

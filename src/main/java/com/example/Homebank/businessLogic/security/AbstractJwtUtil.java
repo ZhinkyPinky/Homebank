@@ -64,6 +64,16 @@ public abstract class AbstractJwtUtil {
      * Checks whether the provided JWT is valid.
      *
      * @param token The JWT.
+     * @return true if valid, otherwise false.
+     */
+    public boolean isTokenValid(String token) {
+        return !isTokenExpired(token);
+    }
+
+    /**
+     * Checks whether the provided JWT is valid.
+     *
+     * @param token The JWT.
      * @param user  The subject.
      * @return true if valid, otherwise false.
      */
