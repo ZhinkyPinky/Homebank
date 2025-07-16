@@ -21,12 +21,12 @@ public class AuthController {
     /**
      * Handles requests to sign in a user.
      *
-     * @param authenticationRequest Request body containing username and password.
+     * @param authenticationRequest Request body containing email and password.
      * @return a response containing access and refresh tokens if successful, otherwise an error response.
      */
     @PostMapping(ApiPaths.SIGN_IN)
     public ResponseEntity<AccessAndRefreshTokenDTO> signIn(@Valid @RequestBody AuthenticationDTO authenticationRequest) {
-        logger.info("Sign in request received for user: {}", authenticationRequest.username());
+        logger.info("Sign in request received for user: {}", authenticationRequest.email());
         AccessAndRefreshTokenDTO responseBody = authService.authenticate(authenticationRequest);
 
         return ResponseEntity.ok(responseBody);
@@ -55,7 +55,7 @@ public class AuthController {
     @PostMapping(ApiPaths.REGISTER)
     public ResponseEntity<AccessAndRefreshTokenDTO> register(@Valid @RequestBody RegistrationDTO registrationDTO) {
         //TODO: Don't return tokens on registration, send confirmation e-mail instead to unlock the user account.
-        logger.info("Registration request received for user: {}", registrationDTO.username());
+        logger.info("Registration request received for user: {}", registrationDTO.email());
         return ResponseEntity.ok(authService.register(registrationDTO));
     }
 

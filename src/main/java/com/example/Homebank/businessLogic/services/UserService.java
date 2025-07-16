@@ -1,6 +1,5 @@
 package com.example.Homebank.businessLogic.services;
 
-import com.example.Homebank.businessLogic.email.EmailService;
 import com.example.Homebank.businessLogic.security.RefreshJwtUtil;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
@@ -26,18 +25,18 @@ public class UserService implements UserDetailsService {
     private final PasswordEncoder passwordEncoder;
 
     /**
-     * Loads a user based on their username.
+     * Loads a user based on their email.
      *
-     * @param username Username of user to load.
+     * @param email Email of user to load.
      * @return A UserDetail implementation.
      */
     @Transactional(readOnly = true)
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        logger.info("Loading user with username: {}", username);
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        logger.info("Loading user with email: {}", email);
 
-        UserDetails userDetails = userRepository.findByUsername(username).orElseThrow(() -> {
-            logger.error("User with username: {} not found.", username);
+        UserDetails userDetails = userRepository.findByEmail(email).orElseThrow(() -> {
+            logger.error("User with email: {} not found.", email);
             return new UsernameNotFoundException("User not found");
         });
 
@@ -57,11 +56,11 @@ public class UserService implements UserDetailsService {
     public void changePassword(ChangePasswordDTO changePasswordDTO) throws IllegalArgumentException, BadCredentialsException {
         logger.info("Attempting to change password.");
         String refreshToken = changePasswordDTO.refreshToken();
-        String username = refreshJwtUtil.extractUsername(refreshToken);
+        String email = refreshJwtUtil.extractEmail(refreshToken);
 
-        UserEntity userEntity = (UserEntity) loadUserByUsername(username);
+        UserEntity userEntity = (UserEntity) loadUserByUsername(email);
 
-        if (!refreshJwtUtil.isTokenValid(refreshToken, userEntity)) {
+        if (!refreshJwtUtil.isTokenValid(refreshToken, userEntity.getUsername())) {
             logger.error("Changing password failed due to an invalid refresh token: {}", refreshToken);
             throw new IllegalArgumentException("Invalid refresh token");
         }
@@ -83,6 +82,6 @@ public class UserService implements UserDetailsService {
         userEntity.setPassword(encodedNewPassword);
         userRepository.save(userEntity);
 
-        logger.debug("Password changed successfully for user: {}", username);
+        logger.debug("Password changed successfully for user: {}", email);
     }
 }

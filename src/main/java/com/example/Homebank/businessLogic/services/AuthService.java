@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -43,12 +42,12 @@ public class AuthService {
      */
     @Transactional
     public AccessAndRefreshTokenDTO authenticate(AuthenticationDTO authenticationDTO) {
-        logger.info("Attempting to authenticate user: {}", authenticationDTO.username());
+        logger.info("Attempting to authenticate user: {}", authenticationDTO.email());
 
-        String username = authenticationDTO.username();
+        String email = authenticationDTO.email();
         String password = authenticationDTO.password();
 
-        UsernamePasswordAuthenticationToken authenticationToken = UsernamePasswordAuthenticationToken.unauthenticated(username, password);
+        UsernamePasswordAuthenticationToken authenticationToken = UsernamePasswordAuthenticationToken.unauthenticated(email, password);
         Authentication authentication = authenticationManager.authenticate(authenticationToken);
 
         UserEntity userEntity = (UserEntity) authentication.getPrincipal();
@@ -67,22 +66,21 @@ public class AuthService {
     /**
      * Registers a new user.
      *
-     * @param registrationDTO Username, e-mail and password.
+     * @param registrationDTO Email and password.
      * @return Access and refresh tokens.
      */
     @Transactional
     public AccessAndRefreshTokenDTO register(RegistrationDTO registrationDTO) {
-        logger.info("Attempting to register new user: {}", registrationDTO.username());
+        logger.info("Attempting to register new user: {}", registrationDTO.email());
 
         validateRegistrationDetails(registrationDTO);
 
-        String username = registrationDTO.username();
+        String email = registrationDTO.email();
         String password = registrationDTO.password();
         String encodedPassword = passwordEncoder.encode(password);
-        String email = registrationDTO.email();
 
-        String accessToken = accessJwtUtil.generateToken(username);
-        String refreshToken = refreshJwtUtil.generateToken(username);
+        String accessToken = accessJwtUtil.generateToken(email);
+        String refreshToken = refreshJwtUtil.generateToken(email);
         LocalDateTime refreshTokenExpirationDate = LocalDateTime.ofInstant(refreshJwtUtil.extractExpirationDate(refreshToken).toInstant(), java.time.ZoneId.systemDefault());
         String encryptedRefreshToken = passwordEncoder.encode(refreshToken);
 
@@ -90,9 +88,8 @@ public class AuthService {
         LocalDateTime currentDateTime = LocalDateTime.now();
 
         UserEntity userEntity = new UserEntity();
-        userEntity.setUsername(username);
-        userEntity.setPassword(encodedPassword);
         userEntity.setEmail(email);
+        userEntity.setPassword(encodedPassword);
         userEntity.setUserToken(encryptedRefreshToken);
         userEntity.setNextUserTokenChangeDate(refreshTokenExpirationDate); //TODO: Remove column.
         userEntity.setTypeOfUserCode("ENDUSER");
@@ -102,7 +99,7 @@ public class AuthService {
 
         userRepository.save(userEntity);
 
-        logger.info("User {} registered successfully. Tokens generated.", username);
+        logger.info("User {} registered successfully. Tokens generated.", email);
 
         //TODO: Send confirmation e-mail to activate account instead of returning tokens.
         return new AccessAndRefreshTokenDTO(accessToken, refreshToken, "Registration successful");
@@ -110,25 +107,20 @@ public class AuthService {
 
     /**
      * Validates the details provided for registration by checking:
-     * 1. If the username is taken.
+     * 1. If the email is taken.
      * 2. If the e-mail is taken.
      *
-     * @param registrationDTO Username, e-mail and password.
+     * @param registrationDTO Email and password.
      */
     private void validateRegistrationDetails(RegistrationDTO registrationDTO) {
-        logger.debug("Validation registration details for user: {}", registrationDTO.username());
-
-        if (userRepository.findByUsername(registrationDTO.username()).isPresent()) {
-            logger.error("Username {} already exists", registrationDTO.username());
-            throw new EntityExistsException("Username already exists");
-        }
+        logger.debug("Validation registration details for user: {}", registrationDTO.email());
 
         if (userRepository.findByEmail(registrationDTO.email()).isPresent()) {
             logger.error("Email {} already exists", registrationDTO.email());
             throw new EntityExistsException("Email already exists");
         }
 
-        logger.debug("Registration details validated successfully for user: {}", registrationDTO.username());
+        logger.debug("Registration details validated successfully for user: {}", registrationDTO.email());
     }
 
     /**
@@ -140,24 +132,24 @@ public class AuthService {
     @Transactional
     public AccessAndRefreshTokenDTO refreshTokens(RefreshTokenDTO refreshTokenDTO) {
         String refreshToken = refreshTokenDTO.refreshToken();
-        String username = refreshJwtUtil.extractUsername(refreshToken);
+        String email = refreshJwtUtil.extractEmail(refreshToken);
 
-        logger.info("Attempting to refresh tokens for user: {}", username);
+        logger.info("Attempting to refresh tokens for user: {}", email);
 
-        UserEntity userEntity = (UserEntity) userService.loadUserByUsername(username);
+        UserEntity userEntity = (UserEntity) userService.loadUserByUsername(email);
 
-        if (!refreshJwtUtil.isTokenValid(refreshToken, userEntity)) {
+        if (!refreshJwtUtil.isTokenValid(refreshToken, userEntity.getUsername())) {
             logger.error("Invalid refresh token: {}", refreshToken);
             throw new IllegalArgumentException("Invalid refresh token");
         }
 
         if (!passwordEncoder.matches(refreshToken, userEntity.getUserToken())) {
-            logger.error("Failed to authenticate user with username: {} since the provided refresh token does not match the stored token", username);
+            logger.error("Failed to authenticate user with email: {} since the provided refresh token does not match the stored token", email);
             throw new BadCredentialsException("Bad credentials");
         }
 
-        String newAccessToken = accessJwtUtil.generateToken(username);
-        String newRefreshToken = refreshJwtUtil.generateToken(username);
+        String newAccessToken = accessJwtUtil.generateToken(email);
+        String newRefreshToken = refreshJwtUtil.generateToken(email);
         LocalDateTime newRefreshTokenExpirationDate = LocalDateTime.ofInstant(refreshJwtUtil.extractExpirationDate(newRefreshToken).toInstant(), java.time.ZoneId.systemDefault());
         String encryptedNewRefreshToken = passwordEncoder.encode(newRefreshToken);
 
@@ -165,7 +157,7 @@ public class AuthService {
         userEntity.setNextUserTokenChangeDate(newRefreshTokenExpirationDate);
         userRepository.save(userEntity);
 
-        logger.info("Tokens refreshed successfully for user: {}", username);
+        logger.info("Tokens refreshed successfully for user: {}", email);
 
         return new AccessAndRefreshTokenDTO(newAccessToken, newRefreshToken, "Tokens refreshed");
     }
@@ -177,14 +169,14 @@ public class AuthService {
      */
     @Transactional
     public void signOut(String refreshToken) {
-        String username = refreshJwtUtil.extractUsername(refreshToken);
+        String email = refreshJwtUtil.extractEmail(refreshToken);
 
-        logger.info("Attempting to sign out user: {}", username);
+        logger.info("Attempting to sign out user: {}", email);
 
-        UserEntity userEntity = (UserEntity) userService.loadUserByUsername(username);
+        UserEntity userEntity = (UserEntity) userService.loadUserByUsername(email);
         userEntity.setUserToken(null);
         userRepository.save(userEntity);
 
-        logger.info("User {} signed out successfully.", username);
+        logger.info("User {} signed out successfully.", email);
     }
 }

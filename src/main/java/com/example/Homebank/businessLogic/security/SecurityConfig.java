@@ -31,7 +31,9 @@ public class SecurityConfig {
                                         "auth/refresh",
                                         "auth/register",
                                         "account-recovery/initiate",
-                                        "account-recovery/authenticate").permitAll()
+                                        "account-recovery/authenticate",
+                                        "account-recovery/set-new-password"
+                                        ).permitAll()
                                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

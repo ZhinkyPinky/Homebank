@@ -86,16 +86,16 @@ public class AccountRecoveryService {
      */
     @Transactional
     public RecoveryTokenDTO authenticate(AuthenticationDTO authenticationDTO) {
-        logger.info("Attempting to authenticate user: {}", authenticationDTO.username());
+        logger.info("Attempting to authenticate user: {}", authenticationDTO.email());
 
-        String username = authenticationDTO.username();
+        String email = authenticationDTO.email();
         String providedRecoveryPassword = authenticationDTO.password();
 
-        UserEntity userEntity = loadUserByEmail(username);
+        UserEntity userEntity = loadUserByEmail(email);
         String encodedRecoveryPassword = userEntity.getRecoveryPassword();
         LocalDateTime recoveryPasswordExpirationDate = userEntity.getRecoveryPasswordExpiration();
 
-        if (recoveryPasswordExpirationDate.isAfter(LocalDateTime.now())) {
+        if (recoveryPasswordExpirationDate.isBefore(LocalDateTime.now())) {
             logger.error("Authentication failed due to the recovery password having expired.");
             throw new BadCredentialsException("Recovery password has expired");
         }
@@ -109,7 +109,7 @@ public class AccountRecoveryService {
         userEntity.setRecoveryPasswordExpiration(null);
         userRepository.save(userEntity);
 
-        String recoveryToken = recoveryJwtUtil.generateToken(username);
+        String recoveryToken = recoveryJwtUtil.generateToken(email);
 
         logger.info("User {} authenticated successfully. Token generated.", userEntity.getUsername());
 
@@ -138,18 +138,18 @@ public class AccountRecoveryService {
             throw new BadCredentialsException("Passwords do not match");
         }
 
-        String username = recoveryJwtUtil.extractUsername(recoveryToken);
-        UserEntity userEntity = (UserEntity) userService.loadUserByUsername(username);
+        String email = recoveryJwtUtil.extractEmail(recoveryToken);
+        UserEntity userEntity = (UserEntity) userService.loadUserByUsername(email);
 
-        if (!recoveryJwtUtil.isTokenValid(recoveryToken, userEntity)) {
+        if (!recoveryJwtUtil.isTokenValid(recoveryToken, userEntity.getEmail())) {
             logger.error("Changing password failed due to an invalid recovery token: {}", recoveryToken);
             throw new IllegalArgumentException("Invalid recovery token");
         }
 
         String encodedNewPassword = passwordEncoder.encode(newPassword);
 
-        String accessToken = accessJwtUtil.generateToken(username);
-        String refreshToken = refreshJwtUtil.generateToken(username);
+        String accessToken = accessJwtUtil.generateToken(userEntity.getUsername());
+        String refreshToken = refreshJwtUtil.generateToken(userEntity.getUsername());
         String encodedRefreshToken = passwordEncoder.encode(refreshToken);
         LocalDateTime refreshTokenExpirationDate = LocalDateTime.ofInstant(refreshJwtUtil.extractExpirationDate(refreshToken).toInstant(), java.time.ZoneId.systemDefault());
 
@@ -158,7 +158,7 @@ public class AccountRecoveryService {
         userEntity.setNextUserTokenChangeDate(refreshTokenExpirationDate);
         userRepository.save(userEntity);
 
-        logger.debug("Password changed successfully for user: {}", username);
+        logger.debug("Password changed successfully for user: {}", email);
 
         return new AccessAndRefreshTokenDTO(accessToken, refreshToken, "Password changed successfully");
     }

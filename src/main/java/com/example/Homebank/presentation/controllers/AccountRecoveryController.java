@@ -39,14 +39,14 @@ public class AccountRecoveryController {
      */
     @PostMapping(ApiPaths.AUTHENTICATE)
     public ResponseEntity<RecoveryTokenDTO> authenticate(@RequestBody AuthenticationDTO authenticationDTO) {
-        logger.info("Request to authenticate user with e-mail: {} received.", authenticationDTO.username());
+        logger.info("Request to authenticate user with e-mail: {} received.", authenticationDTO.email());
 
         RecoveryTokenDTO recoveryTokenDTO = accountRecoveryService.authenticate(authenticationDTO);
         return ResponseEntity.ok(recoveryTokenDTO);
     }
 
     @PostMapping(ApiPaths.SET_NEW_PASSWORD)
-    public ResponseEntity<AccessAndRefreshTokenDTO> setNetPassword(@RequestBody SetNewPasswordDTO setNewPasswordDTO) {
+    public ResponseEntity<AccessAndRefreshTokenDTO> setNewPassword(@RequestBody SetNewPasswordDTO setNewPasswordDTO) {
         logger.info("Request to set new password received.");
 
         AccessAndRefreshTokenDTO accessAndRefreshTokenDTO = accountRecoveryService.setNewPassword(setNewPasswordDTO);

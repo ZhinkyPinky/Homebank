@@ -23,14 +23,11 @@ public class UserEntity implements UserDetails, CredentialsContainer {
     @Column(name = "Id")
     private Long id;
 
-    @Column(name = "UserName")
-    private String username;
+    @Column(name = "EMail")
+    private String email;
 
     @Column(name = "Password")
     private String password;
-
-    @Column(name = "EMail")
-    private String email;
 
     @Column(name = "Description")
     private String description;
@@ -71,6 +68,11 @@ public class UserEntity implements UserDetails, CredentialsContainer {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
     }
 
     @Override

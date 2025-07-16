@@ -5,7 +5,6 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.MacAlgorithm;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import javax.crypto.SecretKey;
 import java.time.Instant;
@@ -17,12 +16,12 @@ public abstract class AbstractJwtUtil {
     /**
      * Generates a JWT.
      *
-     * @param username The subject.
+     * @param email The subject.
      * @return The JWT.
      */
-    public String generateToken(String username) {
+    public String generateToken(String email) {
         return Jwts.builder()
-                .subject(username)
+                .subject(email)
                 .issuedAt(new Date())
                 .expiration(getExpirationDate())
                 .signWith(getKey(), SIG_ALG)
@@ -74,31 +73,31 @@ public abstract class AbstractJwtUtil {
      * Checks whether the provided JWT is valid.
      *
      * @param token The JWT.
-     * @param user  The subject.
+     * @param email The email of the subject.
      * @return true if valid, otherwise false.
      */
-    public boolean isTokenValid(String token, UserDetails user) {
-        return isUsernameCorrect(token, user.getUsername()) && !isTokenExpired(token);
+    public boolean isTokenValid(String token, String email) {
+        return isEmailCorrect(token, email) && !isTokenExpired(token);
     }
 
     /**
-     * Checks whether the provided username of the subject match the one found in the JWT.
+     * Checks whether the provided email of the subject match the one found in the JWT.
      *
      * @param token    The JWT.
-     * @param username The username of the subject
+     * @param email The email of the subject
      * @return true if matching, otherwise false.
      */
-    private boolean isUsernameCorrect(String token, String username) {
-        return extractUsername(token).equals(username);
+    private boolean isEmailCorrect(String token, String email) {
+        return extractEmail(token).equals(email);
     }
 
     /**
-     * Extracts the username of the subject from the JWT.
+     * Extracts the email of the subject from the JWT.
      *
      * @param token The JWT.
-     * @return The username of the subject.
+     * @return The email of the subject.
      */
-    public String extractUsername(String token) {
+    public String extractEmail(String token) {
         return extractClaims(token).getSubject();
     }
 

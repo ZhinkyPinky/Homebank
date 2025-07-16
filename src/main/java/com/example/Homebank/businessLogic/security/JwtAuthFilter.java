@@ -50,7 +50,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             //Find the username of the subject making the request if JWT exists.
             if (authHeader != null && authHeader.startsWith("Bearer")) {
                 jwt = authHeader.substring(7);
-                username = jwtUtil.extractUsername(jwt);
+                username = jwtUtil.extractEmail(jwt);
                 logger.debug("Extracted JWT for username: {}", username);
             } else {
                 logger.warn("No Bearer token found in Authorization header");
@@ -62,7 +62,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                if (jwtUtil.isTokenValid(jwt, userDetails)) {
+                if (jwtUtil.isTokenValid(jwt, userDetails.getUsername())) {
                     logger.debug("JWT is valid for username: {}", username);
 
                     UsernamePasswordAuthenticationToken authenticationToken = UsernamePasswordAuthenticationToken.authenticated(userDetails.getUsername(), null, userDetails.getAuthorities());
