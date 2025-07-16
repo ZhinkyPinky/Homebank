@@ -53,9 +53,9 @@ public class AuthService {
         UserEntity userEntity = (UserEntity) authentication.getPrincipal();
         String accessToken = accessJwtUtil.generateToken(userEntity.getUsername());
         String refreshToken = refreshJwtUtil.generateToken(userEntity.getUsername());
-        String encryptedRefreshToken = passwordEncoder.encode(refreshToken);
+        //String encryptedRefreshToken = passwordEncoder.encode(refreshToken);
 
-        userEntity.setUserToken(encryptedRefreshToken);
+        userEntity.setUserToken(refreshToken);
         userRepository.save(userEntity);
 
         logger.info("User {} authenticated successfully. Tokens generated.", userEntity.getUsername());

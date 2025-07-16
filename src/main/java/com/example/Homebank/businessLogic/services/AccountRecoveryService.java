@@ -123,7 +123,7 @@ public class AccountRecoveryService {
      *                          The recovery token is used to validate the request.
      *                          The new password and confirm new password must match to proceed.
      * @return A DTO containing the new access token, new refresh token, and a success message if the update is successful.
-     *         Throws an exception if the recovery token is invalid or if the provided passwords do not match.
+     * Throws an exception if the recovery token is invalid or if the provided passwords do not match.
      */
     @Transactional
     public AccessAndRefreshTokenDTO setNewPassword(SetNewPasswordDTO setNewPasswordDTO) {
@@ -150,11 +150,12 @@ public class AccountRecoveryService {
 
         String accessToken = accessJwtUtil.generateToken(userEntity.getUsername());
         String refreshToken = refreshJwtUtil.generateToken(userEntity.getUsername());
-        String encodedRefreshToken = passwordEncoder.encode(refreshToken);
+        // TODO: Fix length of refresh token, currently it is too long for the encoder to handle.
+        //String encodedRefreshToken = passwordEncoder.encode(refreshToken);
         LocalDateTime refreshTokenExpirationDate = LocalDateTime.ofInstant(refreshJwtUtil.extractExpirationDate(refreshToken).toInstant(), java.time.ZoneId.systemDefault());
 
         userEntity.setPassword(encodedNewPassword);
-        userEntity.setUserToken(encodedRefreshToken);
+        userEntity.setUserToken(refreshToken);
         userEntity.setNextUserTokenChangeDate(refreshTokenExpirationDate);
         userRepository.save(userEntity);
 
