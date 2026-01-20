@@ -27,13 +27,13 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize ->
                         authorize.requestMatchers(
-                                        "auth/login",
-                                        "auth/refresh",
-                                        "auth/register",
-                                        "account-recovery/initiate",
-                                        "account-recovery/authenticate",
-                                        "account-recovery/set-new-password"
-                                        ).permitAll()
+                                        "/auth/login",
+                                        "/auth/refresh",
+                                        "/auth/register",
+                                        "/account-recovery/initiate",
+                                        "/account-recovery/authenticate",
+                                        "/account-recovery/set-new-password"
+                                ).permitAll()
                                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
@@ -67,8 +67,8 @@ public class SecurityConfig {
      */
     @Bean
     public DaoAuthenticationProvider[] authenticationProviders(UserService userService, PasswordEncoder passwordEncoder) {
-        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-        authenticationProvider.setUserDetailsService(userService);
+        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(userService);
+        //authenticationProvider.setUserDetailsService(userService);
         authenticationProvider.setPasswordEncoder(passwordEncoder);
 
 //        DaoAuthenticationProvider accountRecoveryAuthenticationProvider = new DaoAuthenticationProvider();
