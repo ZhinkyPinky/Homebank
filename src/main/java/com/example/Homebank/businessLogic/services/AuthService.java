@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -53,9 +52,9 @@ public class AuthService {
         UserEntity userEntity = (UserEntity) authentication.getPrincipal();
         String accessToken = accessJwtUtil.generateToken(userEntity.getUsername());
         String refreshToken = refreshJwtUtil.generateToken(userEntity.getUsername());
-        String encryptedRefreshToken = passwordEncoder.encode(refreshToken);
+        //String encryptedRefreshToken = passwordEncoder.encode(refreshToken);
 
-        userEntity.setUserToken(encryptedRefreshToken);
+        userEntity.setUserToken(refreshToken);
         userRepository.save(userEntity);
 
         logger.info("User {} authenticated successfully. Tokens generated.", userEntity.getUsername());
@@ -82,7 +81,7 @@ public class AuthService {
         String accessToken = accessJwtUtil.generateToken(email);
         String refreshToken = refreshJwtUtil.generateToken(email);
         LocalDateTime refreshTokenExpirationDate = LocalDateTime.ofInstant(refreshJwtUtil.extractExpirationDate(refreshToken).toInstant(), java.time.ZoneId.systemDefault());
-        String encryptedRefreshToken = passwordEncoder.encode(refreshToken);
+        //String encryptedRefreshToken = passwordEncoder.encode(refreshToken);
 
         //TODO: Needs a procedure?
         LocalDateTime currentDateTime = LocalDateTime.now();
@@ -90,7 +89,7 @@ public class AuthService {
         UserEntity userEntity = new UserEntity();
         userEntity.setEmail(email);
         userEntity.setPassword(encodedPassword);
-        userEntity.setUserToken(encryptedRefreshToken);
+        userEntity.setUserToken(refreshToken);
         userEntity.setNextUserTokenChangeDate(refreshTokenExpirationDate); //TODO: Remove column.
         userEntity.setTypeOfUserCode("ENDUSER");
         userEntity.setRowCreatedDate(currentDateTime);
@@ -143,17 +142,18 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid refresh token");
         }
 
-        if (!passwordEncoder.matches(refreshToken, userEntity.getUserToken())) {
-            logger.error("Failed to authenticate user with email: {} since the provided refresh token does not match the stored token", email);
-            throw new BadCredentialsException("Bad credentials");
-        }
+        // TODO: Fix so that the refresh token stored in the DB is encrypted.
+//        if (!passwordEncoder.matches(refreshToken, userEntity.getUserToken())) {
+//            logger.error("Failed to authenticate user with email: {} since the provided refresh token does not match the stored token", email);
+//            throw new BadCredentialsException("Bad credentials");
+//        }
 
         String newAccessToken = accessJwtUtil.generateToken(email);
         String newRefreshToken = refreshJwtUtil.generateToken(email);
         LocalDateTime newRefreshTokenExpirationDate = LocalDateTime.ofInstant(refreshJwtUtil.extractExpirationDate(newRefreshToken).toInstant(), java.time.ZoneId.systemDefault());
-        String encryptedNewRefreshToken = passwordEncoder.encode(newRefreshToken);
+        //String encryptedNewRefreshToken = passwordEncoder.encode(newRefreshToken);
 
-        userEntity.setUserToken(encryptedNewRefreshToken);
+        userEntity.setUserToken(newRefreshToken);
         userEntity.setNextUserTokenChangeDate(newRefreshTokenExpirationDate);
         userRepository.save(userEntity);
 
