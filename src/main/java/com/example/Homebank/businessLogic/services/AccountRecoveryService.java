@@ -72,7 +72,7 @@ public class AccountRecoveryService {
         user.setRecoveryPasswordExpiration(recoveryPasswordExpirationDate);
         userRepository.save(user);
 
-        emailService.sendRecoveryPasswordEmail(email, recoveryPassword);
+        emailService.sendEmail(email, "Homebank - Recovery password", recoveryPassword);
 
         logger.debug("Recovery password generated for user with e-mail: {}", email);
     }
