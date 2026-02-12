@@ -10,6 +10,9 @@ import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.util.Date;
 
+/**
+ * Abstract class that provides common methods for generating and validating JWTs.
+ */
 public abstract class AbstractJwtUtil {
     private final MacAlgorithm SIG_ALG = Jwts.SIG.HS512;
 

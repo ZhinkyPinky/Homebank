@@ -10,7 +10,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     Optional<UserEntity> findByPassword(String password);
 
-    Optional<UserEntity> findByUserToken(String refreshToken);
+    Optional<UserEntity> findByRefreshToken(String refreshToken);
 
-    //Optional<UserEntity> findByRecoveryToken(String recoveryToken);
+    Optional<UserEntity> findByActivationToken(String activationToken);
 }

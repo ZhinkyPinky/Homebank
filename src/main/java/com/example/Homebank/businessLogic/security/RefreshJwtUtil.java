@@ -5,6 +5,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Utility class for generating and validating refresh JWT tokens.
+ */
 @Component
 public class RefreshJwtUtil extends AbstractJwtUtil {
     @Value("${jwt.refresh.secret}")

@@ -12,6 +12,9 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * Entity representing a user in the system. Implements UserDetails and CredentialsContainer for integration with Spring Security.
+ */
 @Entity
 @Data
 @NoArgsConstructor
@@ -32,17 +35,23 @@ public class UserEntity implements UserDetails, CredentialsContainer {
     @Column(name = "Description")
     private String description;
 
-    @Column(name = "UserToken")
-    private String userToken;
+    @Column(name = "RefreshToken")
+    private String refreshToken;
 
-    @Column(name = "NextUserTokenChangeDate")
-    private LocalDateTime nextUserTokenChangeDate;
+    @Column(name = "NextRefreshTokenExpirationDate")
+    private LocalDateTime nextRefreshTokenExpirationDate;
 
     @Column(name = "TypeOfUser_Code")
     private String typeOfUserCode;
 
     @Column(name = "IsEnabled_Code")
     private boolean isEnabled = false;
+
+    @Column(name = "ActivationToken")
+    private String activationToken;
+
+    @Column(name = "ActivationTokenExpiration")
+    private LocalDateTime activationTokenExpiration;
 
     @Column(name = "RowCreatedBy")
     private String rowCreatedBy;

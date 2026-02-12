@@ -10,6 +10,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controller responsible for handling authentication-related requests, such as signing in, signing out, registering and refreshing tokens.
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(ApiPaths.AUTH)
@@ -53,10 +56,10 @@ public class AuthController {
      * @return a response indicating whether the request was successful.
      */
     @PostMapping(ApiPaths.REGISTER)
-    public ResponseEntity<AccessAndRefreshTokenDTO> register(@Valid @RequestBody RegistrationDTO registrationDTO) {
-        //TODO: Don't return tokens on registration, send confirmation e-mail instead to unlock the user account.
+    public ResponseEntity<String> register(@Valid @RequestBody RegistrationDTO registrationDTO) {
         logger.info("Registration request received for user: {}", registrationDTO.email());
-        return ResponseEntity.ok(authService.register(registrationDTO));
+        authService.register(registrationDTO);
+        return ResponseEntity.ok("Registration successful. Please check your e-mail to activate your account.");
     }
 
     /**
@@ -69,6 +72,19 @@ public class AuthController {
     public ResponseEntity<AccessAndRefreshTokenDTO> refresh(@Valid @RequestBody RefreshTokenDTO refreshTokenDTO) {
         logger.info("Refresh request received.");
         return ResponseEntity.ok(authService.refreshTokens(refreshTokenDTO));
+    }
+
+    /**
+     * Handles requests to activate a user account.
+     *
+     * @param token Activation token sent to the user's e-mail.
+     * @return a response indicating whether the request was successful.
+     */
+    @GetMapping(ApiPaths.ACTIVATE)
+    public ResponseEntity<String> activateAccount(@RequestParam String token) {
+        logger.info("Account activation request received.");
+        authService.activateAccount(token);
+        return ResponseEntity.ok("Account activated successfully");
     }
 
 }

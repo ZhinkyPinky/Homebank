@@ -1,6 +1,6 @@
 package com.example.Homebank.businessLogic.services;
 
-import com.example.Homebank.businessLogic.email.EmailService;
+import com.example.Homebank.businessLogic.services.email.EmailService;
 import com.example.Homebank.businessLogic.security.AccessJwtUtil;
 import com.example.Homebank.businessLogic.security.RecoveryJwtUtil;
 import com.example.Homebank.businessLogic.security.RefreshJwtUtil;
@@ -155,8 +155,8 @@ public class AccountRecoveryService {
         LocalDateTime refreshTokenExpirationDate = LocalDateTime.ofInstant(refreshJwtUtil.extractExpirationDate(refreshToken).toInstant(), java.time.ZoneId.systemDefault());
 
         userEntity.setPassword(encodedNewPassword);
-        userEntity.setUserToken(refreshToken);
-        userEntity.setNextUserTokenChangeDate(refreshTokenExpirationDate);
+        userEntity.setRefreshToken(refreshToken);
+        userEntity.setNextRefreshTokenExpirationDate(refreshTokenExpirationDate);
         userRepository.save(userEntity);
 
         logger.debug("Password changed successfully for user: {}", email);

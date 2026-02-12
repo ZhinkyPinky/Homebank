@@ -5,6 +5,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Utility class for handling JWT operations related to access tokens.
+ */
 @Component
 public class AccessJwtUtil extends AbstractJwtUtil {
     @Value("${jwt.access.secret}")

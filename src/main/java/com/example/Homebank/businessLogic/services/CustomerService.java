@@ -12,6 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Service for handling operations related to customers. Mainly used for retrieving customers and related transaction heads and rows.
+ */
 @Service
 @RequiredArgsConstructor
 public class CustomerService {

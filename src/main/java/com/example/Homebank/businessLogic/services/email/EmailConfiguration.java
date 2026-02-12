@@ -1,4 +1,4 @@
-package com.example.Homebank.businessLogic.email;
+package com.example.Homebank.businessLogic.services.email;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

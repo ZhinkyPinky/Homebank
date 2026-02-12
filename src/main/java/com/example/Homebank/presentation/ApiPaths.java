@@ -5,6 +5,7 @@ public class ApiPaths {
     public static final String SIGN_IN = "/login";
     public static final String SIGN_OUT = "/logout";
     public static final String REGISTER = "/register";
+    public static final String ACTIVATE = "/activate";
     public static final String REFRESH = "/refresh";
 
     public static final String SAVE = "/save";

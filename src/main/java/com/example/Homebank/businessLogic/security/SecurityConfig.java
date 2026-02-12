@@ -16,6 +16,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Security configuration class for the application. Configures authentication and authorization, as well as other
+ * security-related settings.
+ */
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -30,6 +34,7 @@ public class SecurityConfig {
                                         "/auth/login",
                                         "/auth/refresh",
                                         "/auth/register",
+                                        "/auth/activate",
                                         "/account-recovery/initiate",
                                         "/account-recovery/authenticate",
                                         "/account-recovery/set-new-password"

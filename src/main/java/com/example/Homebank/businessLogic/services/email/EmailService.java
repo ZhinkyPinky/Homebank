@@ -1,6 +1,5 @@
-package com.example.Homebank.businessLogic.email;
+package com.example.Homebank.businessLogic.services.email;
 
-import com.example.Homebank.presentation.ApiPaths;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,8 +16,6 @@ public class EmailService {
     @Value("${email.app.username}")
     private String appUsername;
 
-    @Value("${application.url}")
-    private String applicationURL;
 
     private final JavaMailSender emailSender;
 
@@ -42,18 +39,5 @@ public class EmailService {
         emailSender.send(message);
 
         logger.info("E-mail sent to: {}", targetAddress);
-    }
-
-    /**
-     * Sends an e-mail with a link to confirm that the user wants to recover their account.
-     *
-     * @param targetAddress Address of the recipient.
-     * @param recoveryToken Generated token used to confirm the recovery request.
-     */
-    public void sendRecoveryURLEmail(String targetAddress, String recoveryToken) {
-        logger.info("Sending a recovery e-mail to: {}", targetAddress);
-        String recoveryURL = applicationURL + ApiPaths.USERS + ApiPaths.ACCOUNT_RECOVERY + "?recoveryToken=" + recoveryToken;
-
-        sendEmail(targetAddress, "Homebank - Account recovery confirmation", recoveryURL);
     }
 }
