@@ -47,7 +47,7 @@ public class AuthService {
     private final EmailService emailService;
 
     // Duration in days.
-    @Value("${jwt.refresh.duration:7}")
+    @Value("${auth.refresh-token.duration-days:7}")
     private String refreshTokenDurationDays;
 
     @Value("${application.url}")

@@ -1,6 +1,6 @@
 package com.example.Homebank.businessLogic.services;
 
-import com.example.Homebank.businessLogic.security.RefreshJwtUtil;
+import com.example.Homebank.businessLogic.security.TokenHasher;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
 import com.example.Homebank.presentation.dto.ChangePasswordDTO;
@@ -16,6 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 /**
  * Service for handling user-related operations, such as loading user details and changing passwords.
  */
@@ -25,7 +27,6 @@ public class UserService implements UserDetailsService {
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
-    private final RefreshJwtUtil refreshJwtUtil;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -60,13 +61,19 @@ public class UserService implements UserDetailsService {
     public void changePassword(ChangePasswordDTO changePasswordDTO) throws IllegalArgumentException, BadCredentialsException {
         logger.info("Attempting to change password.");
         String refreshToken = changePasswordDTO.refreshToken();
-        String email = refreshJwtUtil.extractEmail(refreshToken);
+        String hashedRefreshToken = TokenHasher.hash(refreshToken);
 
-        UserEntity userEntity = (UserEntity) loadUserByUsername(email);
-
-        if (!refreshJwtUtil.isTokenValid(refreshToken, userEntity.getUsername())) {
+        UserEntity userEntity = userRepository.findByRefreshToken(hashedRefreshToken).orElseThrow(() -> {
             logger.error("Changing password failed due to an invalid refresh token: {}", refreshToken);
-            throw new IllegalArgumentException("Invalid refresh token");
+            return new IllegalArgumentException("Invalid refresh token");
+        });
+
+        if (userEntity.getNextRefreshTokenExpirationDate() == null || userEntity.getNextRefreshTokenExpirationDate().isBefore(LocalDateTime.now())) {
+            logger.error("Changing password failed due to an expired refresh token for user: {}", userEntity.getEmail());
+            userEntity.setRefreshToken(null);
+            userEntity.setNextRefreshTokenExpirationDate(LocalDateTime.MIN);
+            userRepository.save(userEntity);
+            throw new IllegalArgumentException("Refresh token has expired");
         }
 
         String oldPassword = changePasswordDTO.oldPassword();
@@ -86,6 +93,6 @@ public class UserService implements UserDetailsService {
         userEntity.setPassword(encodedNewPassword);
         userRepository.save(userEntity);
 
-        logger.debug("Password changed successfully for user: {}", email);
+        logger.debug("Password changed successfully for user: {}", userEntity.getEmail());
     }
 }

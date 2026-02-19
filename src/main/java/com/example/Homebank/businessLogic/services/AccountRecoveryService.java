@@ -2,14 +2,16 @@ package com.example.Homebank.businessLogic.services;
 
 import com.example.Homebank.businessLogic.services.email.EmailService;
 import com.example.Homebank.businessLogic.security.AccessJwtUtil;
+import com.example.Homebank.businessLogic.security.OpaqueTokenGenerator;
 import com.example.Homebank.businessLogic.security.RecoveryJwtUtil;
-import com.example.Homebank.businessLogic.security.RefreshJwtUtil;
+import com.example.Homebank.businessLogic.security.TokenHasher;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
 import com.example.Homebank.presentation.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,7 +33,9 @@ public class AccountRecoveryService {
     private final EmailService emailService;
     private final RecoveryJwtUtil recoveryJwtUtil;
     private final AccessJwtUtil accessJwtUtil;
-    private final RefreshJwtUtil refreshJwtUtil;
+
+    @Value("${auth.refresh-token.duration-days:7}")
+    private String refreshTokenDurationDays;
 
     /**
      * Loads a user based on their e-mail.
@@ -149,13 +153,12 @@ public class AccountRecoveryService {
         String encodedNewPassword = passwordEncoder.encode(newPassword);
 
         String accessToken = accessJwtUtil.generateToken(userEntity.getUsername());
-        String refreshToken = refreshJwtUtil.generateToken(userEntity.getUsername());
-        // TODO: Fix length of refresh token, currently it is too long for the encoder to handle.
-        //String encodedRefreshToken = passwordEncoder.encode(refreshToken);
-        LocalDateTime refreshTokenExpirationDate = LocalDateTime.ofInstant(refreshJwtUtil.extractExpirationDate(refreshToken).toInstant(), java.time.ZoneId.systemDefault());
+        String refreshToken = OpaqueTokenGenerator.generateToken();
+        String hashedRefreshToken = TokenHasher.hash(refreshToken);
+        LocalDateTime refreshTokenExpirationDate = LocalDateTime.now().plusDays(Long.parseLong(refreshTokenDurationDays));
 
         userEntity.setPassword(encodedNewPassword);
-        userEntity.setRefreshToken(refreshToken);
+        userEntity.setRefreshToken(hashedRefreshToken);
         userEntity.setNextRefreshTokenExpirationDate(refreshTokenExpirationDate);
         userRepository.save(userEntity);
 
