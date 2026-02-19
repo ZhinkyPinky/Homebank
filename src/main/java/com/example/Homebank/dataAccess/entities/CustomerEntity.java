@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 public class CustomerEntity {
     @Id
     @Column(name = "Id")
-    private Long id;
+    private int id;
 
     @Column(name = "Name")
     private String name;
@@ -29,8 +29,17 @@ public class CustomerEntity {
     @Column(name = "TypeOfCustomer_Code")
     private String typeOfCustomerCode;
 
-    @Column(name = "CustomerAmount")
-    private int customerAmount;
+    @Column(name = "RowCreatedBy")
+    private String rowCreatedBy;
+
+    @Column(name = "RowCreatedDate")
+    private LocalDateTime rowCreateDate;
+
+    @Column(name = "RowLastEditBy")
+    private String rowLastEditBy;
+
+    @Column(name = "RowLastEditDate")
+    private LocalDateTime rowLastEditDate;
 
     @Column(name = "RowVersion")
     private LocalDateTime rowVersion;

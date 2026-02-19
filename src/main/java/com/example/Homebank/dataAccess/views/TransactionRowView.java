@@ -1,4 +1,4 @@
-package com.example.Homebank.dataAccess.entities;
+package com.example.Homebank.dataAccess.views;
 
 
 import jakarta.persistence.*;
@@ -14,8 +14,8 @@ import java.time.LocalDateTime;
         name = "SaveTransactionRow",
         procedureName = "bank.TransactionRow_Save",
         parameters = {
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Id", type = Long.class),
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_TransactionHead_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Id", type = Integer.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_TransactionHead_Id", type = Integer.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_TransactionRowNo", type = Integer.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_TypeOfTransaction_Code", type = String.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Name", type = String.class),
@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_PaymentDate", type = LocalDate.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Amount", type = Integer.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_RowVersion", type = LocalDateTime.class),
-                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_Id", type = Integer.class),
                 @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_RowVersion", type = LocalDateTime.class)
         }
 )
@@ -31,26 +31,27 @@ import java.time.LocalDateTime;
         name = "DeleteTransactionRow",
         procedureName = "bank.TransactionRow_Delete",
         parameters = {
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Id", type = Long.class),
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_TransactionHead_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Id", type = Integer.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_TransactionHead_Id", type = Integer.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_TransactionRowNo", type = Integer.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_RowVersion", type = LocalDateTime.class),
-                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_Id", type = Integer.class),
                 @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_RowVersion", type = LocalDateTime.class)
         }
 )
 @Entity
+@Immutable
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "vTransactionRow", schema = "bank")
-public class TransactionRowEntity {
+public class TransactionRowView {
     @Id
     @Column(name = "Id")
-    private Long id;
+    private int id;
 
     @Column(name = "TransactionHead_Id")
-    private long transactionHeadId;
+    private int transactionHeadId;
 
     @Column(name = "TransactionRowNo")
     private int transactionRowNo;

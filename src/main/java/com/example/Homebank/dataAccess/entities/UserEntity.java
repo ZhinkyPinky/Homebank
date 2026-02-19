@@ -24,7 +24,7 @@ public class UserEntity implements UserDetails, CredentialsContainer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "Id")
-    private Long id;
+    private int id;
 
     @Column(name = "EMail")
     private String email;
@@ -42,16 +42,20 @@ public class UserEntity implements UserDetails, CredentialsContainer {
     private LocalDateTime nextRefreshTokenExpirationDate;
 
     @Column(name = "TypeOfUser_Code")
-    private String typeOfUserCode;
+    private String typeOfUserCode = "ENDUSER";
 
     @Column(name = "IsEnabled_Code")
-    private boolean isEnabled = false;
+    private boolean isEnabled = true;
+
+    @Column(name = "Status")
+    @Enumerated(EnumType.STRING)
+    private UserStatus status = UserStatus.ACTIVATION_PENDING;
 
     @Column(name = "ActivationToken")
     private String activationToken;
 
-    @Column(name = "ActivationTokenExpiration")
-    private LocalDateTime activationTokenExpiration;
+    @Column(name = "ActivationTokenExpirationDate")
+    private LocalDateTime activationTokenExpirationDate;
 
     @Column(name = "RowCreatedBy")
     private String rowCreatedBy;

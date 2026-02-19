@@ -1,6 +1,6 @@
 package com.example.Homebank.dataAccess.repositories;
 
-import com.example.Homebank.dataAccess.entities.TransactionHeadEntity;
+import com.example.Homebank.dataAccess.views.TransactionHeadView;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
@@ -14,16 +14,16 @@ import java.util.Map;
 
 
 @Repository
-public interface TransactionHeadRepository extends JpaRepository<TransactionHeadEntity, Long> {
+public interface TransactionHeadRepository extends JpaRepository<TransactionHeadView, Integer> {
 
     @Query(nativeQuery = true, value = "SELECT * FROM bank.vTransactionHead WHERE Lender_Id = :customerId OR Borrower_Id = :customerId")
-    List<TransactionHeadEntity> findAllByLenderIdOrBorrowerId(long customerId);
+    List<TransactionHeadView> findAllByLenderIdOrBorrowerId(int customerId);
 
     @Procedure(name = "SaveTransactionHead")
     Map<String, Object> saveTransactionHead(
-            @Param("p_Id") Long id,
-            @Param("p_Lender_Id") Long lenderId,
-            @Param("p_Borrower_Id") Long borrowerId,
+            @Param("p_Id") int id,
+            @Param("p_Lender_Id") int lenderId,
+            @Param("p_Borrower_Id") int borrowerId,
             @Param("p_TransactionName") String transactionName,
             @Param("p_Description") String description,
             @Param("p_StartDate") LocalDate startDate,
@@ -35,7 +35,7 @@ public interface TransactionHeadRepository extends JpaRepository<TransactionHead
 
     @Procedure(name = "DeleteTransactionHead")
     Map<String, Object> deleteTransactionHead(
-            @Param("p_Id") Long id,
+            @Param("p_Id") int id,
             @Param("p_RowVersion") LocalDateTime rowVersion
     );
 }

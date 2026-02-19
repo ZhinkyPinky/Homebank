@@ -1,6 +1,6 @@
 package com.example.Homebank.presentation.dto;
 
-import com.example.Homebank.dataAccess.entities.TransactionRowEntity;
+import com.example.Homebank.dataAccess.views.TransactionRowView;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -8,8 +8,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public record TransactionRowDTO(
-        @NotNull(message = "Id is missing") long id,
-        @NotNull(message = "Transaction head id is missing") long transactionHeadId,
+        @NotNull(message = "Id is missing") int id,
+        @NotNull(message = "Transaction head id is missing") int transactionHeadId,
         @NotNull(message = "Transaction row number is missing") int transactionRowNo,
         @NotBlank(message = "Transaction code is missing") String typeOfTransactionCode,
         @NotBlank(message = "Name is missing") String name,
@@ -20,7 +20,7 @@ public record TransactionRowDTO(
         @NotBlank(message = "Type of transaction is missing") String typeOfTransaction,
         LocalDateTime rowVersion
 ) {
-    public static TransactionRowDTO fromEntity(TransactionRowEntity entity) {
+    public static TransactionRowDTO fromEntity(TransactionRowView entity) {
         return new TransactionRowDTO(
                 entity.getId(),
                 entity.getTransactionHeadId(),

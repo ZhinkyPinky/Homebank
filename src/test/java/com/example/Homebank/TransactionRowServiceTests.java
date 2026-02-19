@@ -1,7 +1,7 @@
 package com.example.Homebank;
 
 import com.example.Homebank.businessLogic.services.TransactionRowService;
-import com.example.Homebank.dataAccess.entities.TransactionRowEntity;
+import com.example.Homebank.dataAccess.views.TransactionRowView;
 import com.example.Homebank.dataAccess.repositories.TransactionRowRepository;
 import com.example.Homebank.presentation.dto.TransactionRowDTO;
 import jakarta.persistence.EntityNotFoundException;
@@ -26,9 +26,9 @@ public class TransactionRowServiceTests {
     @InjectMocks
     private TransactionRowService transactionRowService;
 
-    private final TransactionRowEntity mockEntity = new TransactionRowEntity(
-            1L,
-            1L,
+    private final TransactionRowView mockEntity = new TransactionRowView(
+            1,
+            1,
             1,
             "",
             "Test transaction row",
@@ -42,7 +42,7 @@ public class TransactionRowServiceTests {
 
     @Test
     public void testGetTransactionRowById_Success() {
-        long transactionRowId = 1L;
+        int transactionRowId = 1;
 
         when(transactionRowRepository.findById(transactionRowId)).thenReturn(Optional.of(mockEntity));
 
@@ -56,7 +56,7 @@ public class TransactionRowServiceTests {
 
     @Test
     public void testGetTransactionRowById_NotFound() {
-        long transactionRowId = 999L;
+        int transactionRowId = 999;
 
         when(transactionRowRepository.findById(transactionRowId)).thenReturn(Optional.empty());
 

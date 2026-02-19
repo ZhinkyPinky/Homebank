@@ -26,7 +26,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter, UserStatusFilter userStatusFilter) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize ->
@@ -42,6 +42,7 @@ public class SecurityConfig {
                                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(userStatusFilter, JwtAuthFilter.class)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.NEVER)
                 )
@@ -73,18 +74,14 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider[] authenticationProviders(UserService userService, PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(userService);
-        //authenticationProvider.setUserDetailsService(userService);
         authenticationProvider.setPasswordEncoder(passwordEncoder);
-
-//        DaoAuthenticationProvider accountRecoveryAuthenticationProvider = new DaoAuthenticationProvider();
-//        accountRecoveryAuthenticationProvider.setUserDetailsService(accountRecoveryUserDetailsService);
-//        accountRecoveryAuthenticationProvider.setPasswordEncoder(passwordEncoder);
 
         return new DaoAuthenticationProvider[]{authenticationProvider};
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
+        //TODO: Switch to Argon2
         return new BCryptPasswordEncoder();
     }
 }

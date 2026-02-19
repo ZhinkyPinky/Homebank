@@ -1,6 +1,6 @@
 package com.example.Homebank.dataAccess.repositories;
 
-import com.example.Homebank.dataAccess.entities.TransactionRowEntity;
+import com.example.Homebank.dataAccess.views.TransactionRowView;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
@@ -13,15 +13,15 @@ import java.util.List;
 import java.util.Map;
 
 @Repository
-public interface TransactionRowRepository extends JpaRepository<TransactionRowEntity, Long> {
+public interface TransactionRowRepository extends JpaRepository<TransactionRowView, Integer> {
 
     @Query(nativeQuery = true, value = "SELECT * FROM bank.vTransactionRow where TransactionHead_Id = :transactionHeadId ORDER BY TransactionRowNo")
-    List<TransactionRowEntity> findAllByTransactionHeadId(long transactionHeadId);
+    List<TransactionRowView> findAllByTransactionHeadId(int transactionHeadId);
 
     @Procedure(name = "SaveTransactionRow")
     Map<String, Object> saveTransactionRow(
-            @Param("p_Id") Long id,
-            @Param("p_TransactionHead_Id") long transactionHeadId,
+            @Param("p_Id") int id,
+            @Param("p_TransactionHead_Id") int transactionHeadId,
             @Param("p_TransactionRowNo") int transactionRowNo,
             @Param("p_TypeOfTransaction_Code") String typeOfTransactionCode,
             @Param("p_Name") String name,
@@ -32,8 +32,8 @@ public interface TransactionRowRepository extends JpaRepository<TransactionRowEn
 
     @Procedure(name = "DeleteTransactionRow")
     Map<String, Object> deleteTransactionRow(
-            @Param("p_Id") Long id,
-            @Param("p_TransactionHead_Id") long transactionHeadId,
+            @Param("p_Id") int id,
+            @Param("p_TransactionHead_Id") int transactionHeadId,
             @Param("p_TransactionRowNo") int transactionRowNo,
             @Param("p_RowVersion") LocalDateTime rowVersion);
 }

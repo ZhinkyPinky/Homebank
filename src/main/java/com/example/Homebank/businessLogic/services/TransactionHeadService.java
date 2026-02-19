@@ -1,13 +1,12 @@
 package com.example.Homebank.businessLogic.services;
 
-import com.example.Homebank.dataAccess.entities.TransactionHeadEntity;
+import com.example.Homebank.dataAccess.views.TransactionHeadView;
 import com.example.Homebank.dataAccess.repositories.TransactionHeadRepository;
 import com.example.Homebank.presentation.dto.TransactionHeadDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,16 +42,16 @@ public class TransactionHeadService {
      * @return The specified transaction head.
      */
     @Transactional(readOnly = true)
-    public TransactionHeadDTO getTransactionHead(long transactionHeadId) {
+    public TransactionHeadDTO getTransactionHead(int transactionHeadId) {
         logger.info("Fetching transaction head with ID: {}", transactionHeadId);
 
-        TransactionHeadEntity transactionHeadEntity = transactionHeadRepository.findById(transactionHeadId).orElseThrow(() -> {
+        TransactionHeadView transactionHeadView = transactionHeadRepository.findById(transactionHeadId).orElseThrow(() -> {
             logger.error("Transaction head with ID: {} not found.", transactionHeadId);
             return new EntityNotFoundException("Transaction head could not be found.");
         });
 
-        logger.debug("Retrieved transaction head: {}", transactionHeadEntity);
-        return TransactionHeadDTO.fromEntity(transactionHeadEntity);
+        logger.debug("Retrieved transaction head: {}", transactionHeadView);
+        return TransactionHeadDTO.fromEntity(transactionHeadView);
     }
 
     /**
@@ -62,7 +61,7 @@ public class TransactionHeadService {
      * @return All transaction heads related to the specified customer.
      */
     @Transactional(readOnly = true)
-    public List<TransactionHeadDTO> getTransactionHeadsByCustomerId(long customerId) {
+    public List<TransactionHeadDTO> getTransactionHeadsByCustomerId(int customerId) {
         logger.info("Fetching all transaction heads for customer ID: {}", customerId);
 
         List<TransactionHeadDTO> transactionHeads = transactionHeadRepository.findAllByLenderIdOrBorrowerId(customerId).stream().map(TransactionHeadDTO::fromEntity).toList();

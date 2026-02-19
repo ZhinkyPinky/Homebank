@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 public record CustomerDTO(
-        @NotNull(message = "Id missing") Long id,
+        @NotNull(message = "Id missing") int id,
         @NotBlank(message = "Name is missing") String name,
         String description,
         @NotBlank(message = "Customer code missing") String typeOfCustomerCode,

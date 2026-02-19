@@ -1,6 +1,6 @@
 package com.example.Homebank.presentation.dto;
 
-import com.example.Homebank.dataAccess.entities.TransactionHeadEntity;
+import com.example.Homebank.dataAccess.views.TransactionHeadView;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -8,9 +8,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public record TransactionHeadDTO(
-        @NotNull(message = "Id is missing") long id,
-        @NotNull(message = "Lender id is missing") long lenderId,
-        @NotNull(message = "Borrower id is missing") long borrowerId,
+        @NotNull(message = "Id is missing") int id,
+        @NotNull(message = "Lender id is missing") int lenderId,
+        @NotNull(message = "Borrower id is missing") int borrowerId,
         @NotBlank(message = "Transaction name is missing") String transactionName,
         String description,
         @NotNull(message = "Start date is missing") LocalDate startDate,
@@ -21,7 +21,7 @@ public record TransactionHeadDTO(
         String lender,
         LocalDateTime rowVersion
 ) {
-    public static TransactionHeadDTO fromEntity(TransactionHeadEntity entity) {
+    public static TransactionHeadDTO fromEntity(TransactionHeadView entity) {
         return new TransactionHeadDTO(
                 entity.getId(),
                 entity.getLenderId(),

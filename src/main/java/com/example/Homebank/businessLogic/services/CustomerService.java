@@ -46,7 +46,7 @@ public class CustomerService {
      * @return All customers and the specified transaction head.
      */
     @Transactional(readOnly = true)
-    public CustomersAndTransactionHeadDTO getCustomersAndTransactionHead(long transactionHeadId) {
+    public CustomersAndTransactionHeadDTO getCustomersAndTransactionHead(int transactionHeadId) {
         logger.info("Fetching customers and transactionHead for transactionHeadId: {}", transactionHeadId);
 
         List<CustomerDTO> customers = getCustomers();
@@ -63,7 +63,7 @@ public class CustomerService {
      * @return The specified customer.
      */
     @Transactional(readOnly = true)
-    public CustomerDTO getCustomer(long customerId) {
+    public CustomerDTO getCustomer(int customerId) {
         logger.info("Fetching customer with ID: {}", customerId);
 
         CustomerView customerView = customerRepository.findById(customerId).orElseThrow(() -> {
@@ -82,7 +82,7 @@ public class CustomerService {
      * @return The specified customer and all transaction heads related to them.
      */
     @Transactional(readOnly = true)
-    public CustomerAndTransactionHeadsDTO getCustomerAndTransactionHeads(long customerId) {
+    public CustomerAndTransactionHeadsDTO getCustomerAndTransactionHeads(int customerId) {
         logger.info("Fetching customer and transaction heads for customerId: {}", customerId);
 
         CustomerDTO customer = getCustomer(customerId);
@@ -100,7 +100,7 @@ public class CustomerService {
      * @return The specified customer and transaction head.
      */
     @Transactional(readOnly = true)
-    public CustomerAndTransactionHeadDTO getCustomerAndTransactionHead(long customerId, long transactionHeadId) {
+    public CustomerAndTransactionHeadDTO getCustomerAndTransactionHead(int customerId, int transactionHeadId) {
         logger.info("Fetching customer and transaction head for customerId: {} and transactionHeadId: {}", customerId, transactionHeadId);
 
         CustomerDTO customer = getCustomer(customerId);
@@ -118,7 +118,7 @@ public class CustomerService {
      * @return The specified customer, transaction head and all transaction rows related to the head.
      */
     @Transactional(readOnly = true)
-    public CustomerWithTransactionHeadAndRowsDTO getCustomerTransactionHeadAndRows(long customerId, long transactionHeadId) {
+    public CustomerWithTransactionHeadAndRowsDTO getCustomerTransactionHeadAndRows(int customerId, int transactionHeadId) {
         logger.info("Fetching customer, transaction head, and rows for customerId: {} and transactionHeadId: {}", customerId, transactionHeadId);
 
         CustomerDTO customer = getCustomer(customerId);
@@ -138,7 +138,7 @@ public class CustomerService {
      * @return The specified customer, transaction head and transaction row.
      */
     @Transactional(readOnly = true)
-    public CustomerWithTransactionHeadAndRowDTO getCustomerAndTransactionHeadAndTransactionRow(long customerId, long transactionHeadId, long transactionRowId) {
+    public CustomerWithTransactionHeadAndRowDTO getCustomerAndTransactionHeadAndTransactionRow(int customerId, int transactionHeadId, int transactionRowId) {
         logger.info("Fetching customer, transaction head, and row for customerId: {}, transactionHeadId: {}, and transactionRowId: {}", customerId, transactionHeadId, transactionRowId);
 
         CustomerDTO customer = getCustomer(customerId);

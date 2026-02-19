@@ -4,9 +4,10 @@ import com.example.Homebank.businessLogic.security.OpaqueTokenGenerator;
 import com.example.Homebank.businessLogic.security.TokenHasher;
 import com.example.Homebank.businessLogic.services.email.EmailService;
 import com.example.Homebank.businessLogic.security.AccessJwtUtil;
-import com.example.Homebank.businessLogic.security.RefreshJwtUtil;
 import com.example.Homebank.dataAccess.entities.UserEntity;
+import com.example.Homebank.dataAccess.entities.UserStatus;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
+import com.example.Homebank.exceptions.authentication.AccountNotActivatedException;
 import com.example.Homebank.presentation.ApiPaths;
 import com.example.Homebank.presentation.dto.*;
 import jakarta.persistence.EntityExistsException;
@@ -15,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
+import java.util.Optional;
 
 /**
  * Service for handling authentication and registration of users. Also handles refreshing of tokens and signing out.
@@ -35,7 +40,6 @@ public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
 
-    private final RefreshJwtUtil refreshJwtUtil; //TODO: Use opaque token for refresh tokens instead of JWT.
     private final AccessJwtUtil accessJwtUtil;
 
     private final UserRepository userRepository;
@@ -43,8 +47,8 @@ public class AuthService {
     private final EmailService emailService;
 
     // Duration in days.
-    @Value("${jwt.refresh.duration}")
-    private String REFRESH_DURATION;
+    @Value("${jwt.refresh.duration:7}")
+    private String refreshTokenDurationDays;
 
     @Value("${application.url}")
     private String applicationURL;
@@ -70,18 +74,30 @@ public class AuthService {
         Authentication authentication = authenticationManager.authenticate(authenticationToken);
 
         UserEntity userEntity = (UserEntity) authentication.getPrincipal();
-        String accessToken = accessJwtUtil.generateToken(userEntity.getUsername());
-        //TODO: Use opaque token for refresh tokens instead of JWT.
-        String refreshToken = refreshJwtUtil.generateToken(userEntity.getUsername());
-        LocalDateTime refreshTokenExpirationDate = LocalDateTime.now().plusDays(Long.parseLong(REFRESH_DURATION));
 
-        userEntity.setRefreshToken(refreshToken);
+        if (userEntity == null) {
+            logger.error("Authentication failed for user: {}. User not found.", email);
+            throw new BadCredentialsException("Wrong email or password");
+        }
+
+        //TODO: authentication manager should already pick up on this?
+        if (!userEntity.isEnabled()) {
+            logger.error("User {} attempted to authenticate but account is not activated.", email);
+            throw new DisabledException("Account is disabled");
+        }
+
+        String accessToken = accessJwtUtil.generateToken(userEntity.getUsername());
+        String refreshToken = OpaqueTokenGenerator.generateToken();
+        String hashedRefreshToken = TokenHasher.hash(refreshToken);
+        LocalDateTime refreshTokenExpirationDate = LocalDateTime.now().plusDays(Long.parseLong(refreshTokenDurationDays));
+
+        userEntity.setRefreshToken(hashedRefreshToken);
         userEntity.setNextRefreshTokenExpirationDate(refreshTokenExpirationDate);
         userRepository.save(userEntity);
 
         logger.info("User {} authenticated successfully. Tokens generated.", userEntity.getUsername());
 
-        return new AccessAndRefreshTokenDTO(accessToken, refreshToken, "Login successful");
+        return new AccessAndRefreshTokenDTO(accessToken, refreshToken, "Login successful", userEntity.getStatus().toString());
     }
 
     /**
@@ -93,16 +109,18 @@ public class AuthService {
     public void register(RegistrationDTO registrationDTO) {
         logger.info("Attempting to register new user: {}", registrationDTO.email());
 
-        validateRegistrationDetails(registrationDTO);
+        if (userRepository.findByEmail(registrationDTO.email()).isPresent()) {
+            logger.error("Email {} already exists", registrationDTO.email());
+            throw new EntityExistsException("Email already exists");
+        }
 
         String email = registrationDTO.email();
         String password = registrationDTO.password();
         String encodedPassword = passwordEncoder.encode(password);
 
-        //TODO: Use opaque token for refresh tokens instead of JWT.
-        String refreshToken = refreshJwtUtil.generateToken(email);
+        String refreshToken = OpaqueTokenGenerator.generateToken();
         String hashedRefreshToken = TokenHasher.hash(refreshToken);
-        LocalDateTime refreshTokenExpirationDate = LocalDateTime.now().plusDays(Long.parseLong(REFRESH_DURATION));
+        LocalDateTime refreshTokenExpirationDate = LocalDateTime.now().plusDays(Long.parseLong(refreshTokenDurationDays));
 
         String activationToken = OpaqueTokenGenerator.generateToken();
         String hashedActivationToken = TokenHasher.hash(activationToken);
@@ -115,10 +133,9 @@ public class AuthService {
         userEntity.setEmail(email);
         userEntity.setPassword(encodedPassword);
         userEntity.setRefreshToken(hashedRefreshToken);
-        userEntity.setNextRefreshTokenExpirationDate(refreshTokenExpirationDate); //TODO: Remove column.
-        userEntity.setTypeOfUserCode("ENDUSER");
+        userEntity.setNextRefreshTokenExpirationDate(refreshTokenExpirationDate);
         userEntity.setActivationToken(hashedActivationToken);
-        userEntity.setActivationTokenExpiration(activationTokenExpirationDate);
+        userEntity.setActivationTokenExpirationDate(activationTokenExpirationDate);
         userEntity.setRowCreatedDate(currentDateTime);
         userEntity.setRowLastEditDate(currentDateTime);
         userEntity.setRowVersion(currentDateTime);
@@ -127,27 +144,54 @@ public class AuthService {
 
         logger.info("User {} registered successfully. Tokens generated.", email);
 
+        sendActivationEmail(email, activationToken);
+    }
 
+    /**
+     * Sends an activation email to the user with a link containing the activation token.
+     *
+     * @param email           The email address of the user to send the activation email to.
+     * @param activationToken The activation token to include in the activation link.
+     */
+    private void sendActivationEmail(String email, String activationToken) {
         String activationLink = applicationURL + ApiPaths.AUTH + ApiPaths.ACTIVATE + "?token=" + activationToken;
         emailService.sendEmail(email, "Activate your account", "Please click the following link to activate your account: " + activationLink);
     }
 
     /**
-     * Validates the details provided for registration by checking:
-     * 1. If the email is taken.
-     * 2. If the e-mail is taken.
+     * Resends the activation email to the user if the account is not activated. Generates a new activation token and updates it in the DB.
      *
-     * @param registrationDTO Email and password.
+     * @param email E-mail extracted from authenticated principal.
      */
-    private void validateRegistrationDetails(RegistrationDTO registrationDTO) {
-        logger.debug("Validation registration details for user: {}", registrationDTO.email());
+    @Transactional
+    public void resendActivationEmail(String email) {
+        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+        logger.info("Processing resend activation email request.");
 
-        if (userRepository.findByEmail(registrationDTO.email()).isPresent()) {
-            logger.error("Email {} already exists", registrationDTO.email());
-            throw new EntityExistsException("Email already exists");
+        Optional<UserEntity> optionalUserEntity = userRepository.findByEmail(normalizedEmail);
+        if (optionalUserEntity.isEmpty()) {
+            logger.info("Resend activation email request completed.");
+            return;
         }
 
-        logger.debug("Registration details validated successfully for user: {}", registrationDTO.email());
+        UserEntity userEntity = optionalUserEntity.get();
+
+        if (userEntity.getStatus() != UserStatus.ACTIVATION_PENDING) {
+            logger.info("Resend activation email request completed.");
+            return;
+        }
+
+        String activationToken = OpaqueTokenGenerator.generateToken();
+        String hashedActivationToken = TokenHasher.hash(activationToken);
+        LocalDateTime activationTokenExpirationDate = LocalDateTime.now().plusHours(activationTokenDurationHours);
+
+        userEntity.setActivationToken(hashedActivationToken);
+        userEntity.setActivationTokenExpirationDate(activationTokenExpirationDate);
+        userRepository.save(userEntity);
+
+        logger.info("Resend activation email request completed.");
+
+        sendActivationEmail(normalizedEmail, activationToken);
     }
 
     /**
@@ -159,24 +203,36 @@ public class AuthService {
     @Transactional
     public AccessAndRefreshTokenDTO refreshTokens(RefreshTokenDTO refreshTokenDTO) {
         String refreshToken = refreshTokenDTO.refreshToken();
-        String email = refreshJwtUtil.extractEmail(refreshToken);
+        String hashedRefreshToken = TokenHasher.hash(refreshToken);
+
+        UserEntity userEntity = userRepository.findByRefreshToken(hashedRefreshToken).orElseThrow(() -> {
+            logger.error("Invalid refresh token.");
+            return new IllegalArgumentException("Invalid refresh token");
+        });
+
+        if (userEntity.getNextRefreshTokenExpirationDate() == null || userEntity.getNextRefreshTokenExpirationDate().isBefore(LocalDateTime.now())) {
+            logger.error("Refresh token has expired for user: {}", userEntity.getEmail());
+
+            userEntity.setRefreshToken(null);
+            userEntity.setNextRefreshTokenExpirationDate(LocalDateTime.MIN);
+            userRepository.save(userEntity);
+
+            throw new IllegalArgumentException("Refresh token has expired");
+        }
+
+        if (userEntity.getStatus() != UserStatus.ACTIVE) {
+            logger.error("Refresh token rejected for non-active account: {}", userEntity.getEmail());
+            throw new AccountNotActivatedException();
+        }
+
+        String email = userEntity.getEmail();
 
         logger.info("Attempting to refresh tokens for user: {}", email);
 
-        UserEntity userEntity = (UserEntity) userService.loadUserByUsername(email);
-
-        if (!refreshJwtUtil.isTokenValid(refreshToken, userEntity.getUsername())) {
-            logger.error("Invalid refresh token: {}", refreshToken);
-            throw new IllegalArgumentException("Invalid refresh token");
-        }
-
-        // TODO: Fix so that the refresh token stored in the DB is hashed and the provided refresh token is hashed before comparing.
-
         String newAccessToken = accessJwtUtil.generateToken(email);
-        //TODO: Use opaque token for refresh tokens instead of JWT.
-        String newRefreshToken = refreshJwtUtil.generateToken(email);
+        String newRefreshToken = OpaqueTokenGenerator.generateToken();
         String hashedNewRefreshToken = TokenHasher.hash(newRefreshToken);
-        LocalDateTime newRefreshTokenExpirationDate = LocalDateTime.now().plusDays(Long.parseLong(REFRESH_DURATION));
+        LocalDateTime newRefreshTokenExpirationDate = LocalDateTime.now().plusDays(Long.parseLong(refreshTokenDurationDays));
 
         userEntity.setRefreshToken(hashedNewRefreshToken);
         userEntity.setNextRefreshTokenExpirationDate(newRefreshTokenExpirationDate);
@@ -184,7 +240,7 @@ public class AuthService {
 
         logger.info("Tokens refreshed successfully for user: {}", email);
 
-        return new AccessAndRefreshTokenDTO(newAccessToken, newRefreshToken, "Tokens refreshed");
+        return new AccessAndRefreshTokenDTO(newAccessToken, newRefreshToken, "Tokens refreshed", userEntity.getStatus().toString());
     }
 
     /**
@@ -194,12 +250,19 @@ public class AuthService {
      */
     @Transactional
     public void signOut(String refreshToken) {
-        String email = refreshJwtUtil.extractEmail(refreshToken);
+        String hashedRefreshToken = TokenHasher.hash(refreshToken);
+
+        UserEntity userEntity = userRepository.findByRefreshToken(hashedRefreshToken).orElseThrow(() -> {
+            logger.error("Invalid refresh token provided for sign out.");
+            return new IllegalArgumentException("Invalid refresh token");
+        });
+
+        String email = userEntity.getEmail();
 
         logger.info("Attempting to sign out user: {}", email);
 
-        UserEntity userEntity = (UserEntity) userService.loadUserByUsername(email);
         userEntity.setRefreshToken(null);
+        userEntity.setNextRefreshTokenExpirationDate(LocalDateTime.MIN);
         userRepository.save(userEntity);
 
         logger.info("User {} signed out successfully.", email);
@@ -221,7 +284,7 @@ public class AuthService {
             return new IllegalArgumentException("Invalid activation token");
         });
 
-        LocalDateTime activationTokenExpiryDate = userEntity.getActivationTokenExpiration();
+        LocalDateTime activationTokenExpiryDate = userEntity.getActivationTokenExpirationDate();
         if (activationTokenExpiryDate == null) {
             logger.error("Activation token expiration is missing for user: {}", userEntity.getEmail());
             throw new IllegalArgumentException("Invalid activation token");
@@ -231,9 +294,9 @@ public class AuthService {
             throw new IllegalArgumentException("Activation token has expired");
         }
 
-        userEntity.setEnabled(true);
+        userEntity.setStatus(UserStatus.ACTIVE);
         userEntity.setActivationToken(null);
-        userEntity.setActivationTokenExpiration(null);
+        userEntity.setActivationTokenExpirationDate(null);
         userRepository.save(userEntity);
 
         logger.info("Account activated successfully for user: {}", userEntity.getEmail());

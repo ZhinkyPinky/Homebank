@@ -1,6 +1,6 @@
 package com.example.Homebank;
 
-import com.example.Homebank.dataAccess.entities.TransactionRowEntity;
+import com.example.Homebank.dataAccess.views.TransactionRowView;
 import com.example.Homebank.presentation.dto.TransactionRowDTO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,8 +17,8 @@ public class CustomerDTOTests {
 
     @Test
     public void testFromEntity_Success() {
-        final long id = 1L;
-        final long transactionHeadId = 100L;
+        final int id = 1;
+        final int transactionHeadId = 100;
         final int transactionRowNo = 1;
         final String typeOfTransactionCode = "CODE123";
         final String name = "Test";
@@ -29,7 +29,7 @@ public class CustomerDTOTests {
         final String typeOfTransaction = "Test Type";
         final LocalDateTime rowVersion = LocalDateTime.now();
 
-        final TransactionRowEntity mockEntity = new TransactionRowEntity();
+        final TransactionRowView mockEntity = new TransactionRowView();
         mockEntity.setId(id);
         mockEntity.setTransactionHeadId(transactionHeadId);
         mockEntity.setTransactionRowNo(transactionRowNo);

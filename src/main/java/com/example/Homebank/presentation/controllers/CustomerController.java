@@ -43,7 +43,7 @@ public class CustomerController {
      * @return All customers and the specified transaction head.
      */
     @GetMapping("/transactionHeads/{transactionHeadId}")
-    public ResponseEntity<CustomersAndTransactionHeadDTO> getCustomersAndTransactionHead(@PathVariable final long transactionHeadId) {
+    public ResponseEntity<CustomersAndTransactionHeadDTO> getCustomersAndTransactionHead(@PathVariable final int transactionHeadId) {
         //TODO: Move to TransactionHeadController? Find solution.
         logger.info("Request to get customers and transaction head with transactionHeadId: {} received.", transactionHeadId);
 
@@ -58,7 +58,7 @@ public class CustomerController {
      * @return The customer.
      */
     @GetMapping(ApiPaths.CUSTOMER)
-    public ResponseEntity<CustomerDTO> getCustomer(@PathVariable final long customerId) {
+    public ResponseEntity<CustomerDTO> getCustomer(@PathVariable final int customerId) {
         logger.info("Request to get customer with ID: {} received.", customerId);
 
         CustomerDTO body = customerService.getCustomer(customerId);
@@ -72,7 +72,7 @@ public class CustomerController {
      * @return The customer and all related transaction heads.
      */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEADS)
-    public ResponseEntity<CustomerAndTransactionHeadsDTO> getCustomerAndTransactionHeads(@PathVariable final long customerId) {
+    public ResponseEntity<CustomerAndTransactionHeadsDTO> getCustomerAndTransactionHeads(@PathVariable final int customerId) {
         logger.info("Request to get customer and transaction heads with customerId: {} received.", customerId);
 
         CustomerAndTransactionHeadsDTO body = customerService.getCustomerAndTransactionHeads(customerId);
@@ -87,7 +87,7 @@ public class CustomerController {
      * @return The customer and transaction head.
      */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD)
-    public ResponseEntity<CustomerAndTransactionHeadDTO> getCustomerAndTransactionHead(@PathVariable final long customerId, @PathVariable final long transactionHeadId) {
+    public ResponseEntity<CustomerAndTransactionHeadDTO> getCustomerAndTransactionHead(@PathVariable final int customerId, @PathVariable final int transactionHeadId) {
         logger.info("Request to get customer with ID: {} and transaction head with ID: {} received.", customerId, transactionHeadId);
 
         CustomerAndTransactionHeadDTO body = customerService.getCustomerAndTransactionHead(customerId, transactionHeadId);
@@ -102,7 +102,7 @@ public class CustomerController {
      * @return The customer, transaction head and all transaction rows related to the transaction head.
      */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD_AND_ROWS)
-    public ResponseEntity<CustomerWithTransactionHeadAndRowsDTO> getCustomerAndTransactionHeadAndRows(@PathVariable final long customerId, @PathVariable final long transactionHeadId) {
+    public ResponseEntity<CustomerWithTransactionHeadAndRowsDTO> getCustomerAndTransactionHeadAndRows(@PathVariable final int customerId, @PathVariable final int transactionHeadId) {
         logger.info("Request to get customer, transaction head, and rows for customerId: {} and transactionHeadId: {} received.", customerId, transactionHeadId);
 
         CustomerWithTransactionHeadAndRowsDTO body = customerService.getCustomerTransactionHeadAndRows(customerId, transactionHeadId);
@@ -118,7 +118,7 @@ public class CustomerController {
      * @return The customer, transaction head and transaction row.
      */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD_AND_ROW)
-    public ResponseEntity<?> getCustomerAndTransactionHeadAndTransactionRow(@PathVariable final long customerId, @PathVariable final long transactionHeadId, @PathVariable final long transactionRowId) {
+    public ResponseEntity<?> getCustomerAndTransactionHeadAndTransactionRow(@PathVariable final int customerId, @PathVariable final int transactionHeadId, @PathVariable final int transactionRowId) {
         logger.info("Request to get customer, transaction head, and row for customerId: {}, transactionHeadId: {}, and transactionRowId: {} received.", customerId, transactionHeadId, transactionRowId);
 
         CustomerWithTransactionHeadAndRowDTO body = customerService.getCustomerAndTransactionHeadAndTransactionRow(customerId, transactionHeadId, transactionRowId);

@@ -161,7 +161,7 @@ public class AccountRecoveryService {
 
         logger.debug("Password changed successfully for user: {}", email);
 
-        return new AccessAndRefreshTokenDTO(accessToken, refreshToken, "Password changed successfully");
+        return new AccessAndRefreshTokenDTO(accessToken, refreshToken, "Password changed successfully", userEntity.getStatus().toString());
     }
 
 }

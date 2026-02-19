@@ -1,3 +1,4 @@
 package com.example.Homebank.presentation.dto;
 
-public record ErrorResponse(String error) { }
+public record ErrorResponse(String error, String message) {
+}

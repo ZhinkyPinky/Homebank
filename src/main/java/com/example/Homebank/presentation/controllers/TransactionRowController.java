@@ -10,11 +10,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controller responsible for handling requests related to transaction rows, such as retrieving, saving and deleting transaction rows.
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(ApiPaths.TRANSACTION_ROWS)
 public class TransactionRowController {
-    private static final Logger logger = LoggerFactory.getLogger(CustomerController.class);
+    private static final Logger logger = LoggerFactory.getLogger(TransactionRowController.class);
 
     private final TransactionRowService transactionRowService;
 
@@ -25,7 +28,7 @@ public class TransactionRowController {
      * @return The transaction row.
      */
     @GetMapping(ApiPaths.TRANSACTION_ROW)
-    public ResponseEntity<TransactionRowDTO> get(@PathVariable final long transactionRowId) {
+    public ResponseEntity<TransactionRowDTO> get(@PathVariable final int transactionRowId) {
         logger.info("Request to get transaction head with ID: {} received.", transactionRowId);
 
         TransactionRowDTO transactionRow = transactionRowService.getTransactionRowById(transactionRowId);

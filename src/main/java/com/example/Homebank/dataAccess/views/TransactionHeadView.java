@@ -1,4 +1,4 @@
-package com.example.Homebank.dataAccess.entities;
+package com.example.Homebank.dataAccess.views;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -13,16 +13,16 @@ import java.time.LocalDateTime;
         name = "SaveTransactionHead",
         procedureName = "bank.TransactionHead_Save",
         parameters = {
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Id", type = Long.class),
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Lender_Id", type = Long.class),
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Borrower_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Id", type = Integer.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Lender_Id", type = Integer.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Borrower_Id", type = Integer.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_TransactionName", type = String.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Description", type = String.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_StartDate", type = LocalDate.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_PrelEndDate", type = LocalDate.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_EndDate", type = LocalDate.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_RowVersion", type = LocalDateTime.class),
-                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_Id", type = Integer.class),
                 @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_RowVersion", type = LocalDateTime.class)
         }
 )
@@ -30,9 +30,9 @@ import java.time.LocalDateTime;
         name = "DeleteTransactionHead",
         procedureName = "bank.TransactionHead_Delete",
         parameters = {
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_Id", type = Integer.class),
                 @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_RowVersion", type = LocalDateTime.class),
-                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_Id", type = Long.class),
+                @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_Id", type = Integer.class),
                 @StoredProcedureParameter(mode = ParameterMode.OUT, name = "p_OUT_RowVersion", type = LocalDateTime.class)
         }
 )
@@ -42,16 +42,16 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "vTransactionHead", schema = "bank")
-public class TransactionHeadEntity {
+public class TransactionHeadView {
     @Id
     @Column(name = "Id")
-    private Long id;
+    private int id;
 
     @Column(name = "Lender_Id")
-    private Long lenderId;
+    private int lenderId;
 
     @Column(name = "Borrower_Id")
-    private Long borrowerId;
+    private int borrowerId;
 
     @Column(name = "TransactionName")
     private String transactionName;

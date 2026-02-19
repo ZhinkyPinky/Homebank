@@ -5,6 +5,7 @@ import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
 import com.example.Homebank.presentation.dto.ChangePasswordDTO;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -15,6 +16,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Service for handling user-related operations, such as loading user details and changing passwords.
+ */
 @Service
 @RequiredArgsConstructor
 public class UserService implements UserDetailsService {
@@ -32,12 +36,12 @@ public class UserService implements UserDetailsService {
      */
     @Transactional(readOnly = true)
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(@NonNull String email) throws UsernameNotFoundException {
         logger.info("Loading user with email: {}", email);
 
         UserDetails userDetails = userRepository.findByEmail(email).orElseThrow(() -> {
             logger.error("User with email: {} not found.", email);
-            return new UsernameNotFoundException("User not found");
+            return new BadCredentialsException("Wrong email or password");
         });
 
         logger.debug("User loaded: {}", userDetails);

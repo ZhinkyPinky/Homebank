@@ -86,7 +86,7 @@ public abstract class AbstractJwtUtil {
     /**
      * Checks whether the provided email of the subject match the one found in the JWT.
      *
-     * @param token    The JWT.
+     * @param token The JWT.
      * @param email The email of the subject
      * @return true if matching, otherwise false.
      */

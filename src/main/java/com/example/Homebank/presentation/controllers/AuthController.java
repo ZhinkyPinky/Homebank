@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -85,6 +86,23 @@ public class AuthController {
         logger.info("Account activation request received.");
         authService.activateAccount(token);
         return ResponseEntity.ok("Account activated successfully");
+    }
+
+    /**
+     * Handles requests to resend the activation e-mail.
+     *
+     * @param authentication Authenticated user details.
+     * @return a response indicating whether the request was successful.
+     */
+    @PostMapping(ApiPaths.RESEND_ACTIVATION)
+    public ResponseEntity<String> resendActivationEmail(Authentication authentication) {
+        logger.info("Resend activation email request received.");
+        try {
+            authService.resendActivationEmail(authentication.getName());
+        } catch (RuntimeException e) {
+            logger.error("Failed to process resend activation email request.", e);
+        }
+        return ResponseEntity.ok("Activation email resent successfully. Please check your e-mail.");
     }
 
 }

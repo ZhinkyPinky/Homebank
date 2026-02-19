@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class CustomerView {
     @Id
     @Column(name = "Id")
-    private Long id;
+    private int id;
 
     @Column(name = "Name")
     private String name;
