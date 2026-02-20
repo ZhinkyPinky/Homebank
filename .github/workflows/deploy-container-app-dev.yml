@@ -1,0 +1,70 @@
+name: Build and Deploy Container App (Dev)
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      CONTAINER_APP_NAME: ${{ vars.AZURE_CONTAINER_APP_NAME_DEV }}
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP_DEV }}
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute image tag
+        id: image
+        shell: bash
+        run: |
+          echo "repository=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}-dev" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.image.outputs.image }}
+            ghcr.io/${{ steps.image.outputs.repository }}:latest-dev
+          build-args: |
+            MAVEN_PROFILE=dev
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy image to Azure Container App (Dev)
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          containerAppName: ${{ env.CONTAINER_APP_NAME }}
+          resourceGroup: ${{ env.RESOURCE_GROUP }}
+          imageToDeploy: ${{ steps.image.outputs.image }}
+          registryServer: ghcr.io
+          registryUsername: ${{ secrets.GHCR_USERNAME }}
+          registryPassword: ${{ secrets.GHCR_TOKEN }}
