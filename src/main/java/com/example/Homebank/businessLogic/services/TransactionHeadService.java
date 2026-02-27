@@ -1,5 +1,6 @@
 package com.example.Homebank.businessLogic.services;
 
+import com.example.Homebank.businessLogic.security.SecurityContextUtility;
 import com.example.Homebank.dataAccess.views.TransactionHeadView;
 import com.example.Homebank.dataAccess.repositories.TransactionHeadRepository;
 import com.example.Homebank.presentation.dto.TransactionHeadDTO;
@@ -18,22 +19,8 @@ import java.util.Map;
 public class TransactionHeadService {
     private static final Logger logger = LoggerFactory.getLogger(TransactionHeadService.class);
 
+    private final SecurityContextUtility securityContextUtility;
     private final TransactionHeadRepository transactionHeadRepository;
-
-    /**
-     * Retrieves all transaction heads.
-     *
-     * @return All transaction heads.
-     */
-    @Transactional(readOnly = true)
-    public List<TransactionHeadDTO> getTransactionHeads() {
-        logger.info("Fetching all transaction heads.");
-
-        List<TransactionHeadDTO> transactionHeads = transactionHeadRepository.findAll().stream().map(TransactionHeadDTO::fromEntity).toList();
-
-        logger.debug("Retrieved {} transaction heads.", transactionHeads.size());
-        return transactionHeads;
-    }
 
     /**
      * Retrieves the specified transaction head.
@@ -74,26 +61,25 @@ public class TransactionHeadService {
      * Saves a transaction head to the DB.
      *
      * @param transactionHead Transaction head to save.
-     * @return
      */
     @Transactional
-    public Map<String, Object> saveTransactionHead(TransactionHeadDTO transactionHead) {
+    public void saveTransactionHead(TransactionHeadDTO transactionHead) {
         logger.info("Saving transaction head: {}", transactionHead);
 
-        Map<String, Object> result = transactionHeadRepository.saveTransactionHead(
-                transactionHead.id(),
-                transactionHead.lenderId(),
-                transactionHead.borrowerId(),
-                transactionHead.transactionName(),
-                transactionHead.description(),
-                transactionHead.startDate(),
-                transactionHead.prelEndDate(),
-                transactionHead.endDate(),
-                transactionHead.rowVersion()
-        );
+        Map<String, Object> result =
+                transactionHeadRepository.saveTransactionHead(
+                        transactionHead.id(),
+                        transactionHead.lenderId(),
+                        transactionHead.borrowerId(),
+                        transactionHead.transactionName(),
+                        transactionHead.description(),
+                        transactionHead.startDate(),
+                        transactionHead.prelEndDate(),
+                        transactionHead.endDate(),
+                        transactionHead.rowVersion()
+                );
 
         logger.debug("Transaction head saved successfully with result: {}", result);
-        return result;
     }
 
     /**
