@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Entity representing a user in the system. Implements UserDetails and CredentialsContainer for integration with Spring Security.
@@ -42,7 +43,8 @@ public class UserEntity implements UserDetails, CredentialsContainer {
     private LocalDateTime nextRefreshTokenExpirationDate;
 
     @Column(name = "TypeOfUser_Code")
-    private String typeOfUserCode = "ENDUSER";
+    @Enumerated(EnumType.STRING)
+    private TypeOfUser typeOfUserCode = TypeOfUser.ENDUSER;
 
     @Column(name = "IsEnabled_Code")
     private boolean isEnabled = true;
@@ -77,6 +79,15 @@ public class UserEntity implements UserDetails, CredentialsContainer {
 
     @Column(name = "RecoveryPasswordExpiration")
     private LocalDateTime recoveryPasswordExpiration;
+
+    @ManyToMany
+    @JoinTable(
+            name = "User_Customer",
+            schema = "bank",
+            joinColumns = @JoinColumn(name = "UserId"),
+            inverseJoinColumns = @JoinColumn(name = "CustomerId")
+    )
+    private Set<CustomerEntity> customers;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

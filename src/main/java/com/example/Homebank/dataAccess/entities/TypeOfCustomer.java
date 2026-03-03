@@ -1,6 +1,6 @@
 package com.example.Homebank.dataAccess.entities;
 
-public enum CustomerCode {
+public enum TypeOfCustomer {
     PERSON,
     KONTO
 }
