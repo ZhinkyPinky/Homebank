@@ -3,6 +3,9 @@ package com.example.Homebank.businessLogic.services;
 import com.example.Homebank.businessLogic.security.TokenHasher;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
+import com.example.Homebank.exceptions.authentication.InvalidRefreshTokenException;
+import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredException;
+import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
 import com.example.Homebank.presentation.dto.auth.ChangePasswordDTO;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
@@ -42,7 +45,7 @@ public class UserService implements UserDetailsService {
 
         UserDetails userDetails = userRepository.findByEmail(email).orElseThrow(() -> {
             logger.error("User with email: {} not found.", email);
-            return new BadCredentialsException("Wrong email or password");
+            return new UsernameNotFoundException("User not found");
         });
 
         logger.debug("User loaded: {}", userDetails);
@@ -65,7 +68,7 @@ public class UserService implements UserDetailsService {
 
         UserEntity userEntity = userRepository.findByRefreshToken(hashedRefreshToken).orElseThrow(() -> {
             logger.error("Changing password failed due to an invalid refresh token: {}", refreshToken);
-            return new IllegalArgumentException("Invalid refresh token");
+            return new InvalidRefreshTokenException();
         });
 
         if (userEntity.getNextRefreshTokenExpirationDate() == null || userEntity.getNextRefreshTokenExpirationDate().isBefore(LocalDateTime.now())) {
@@ -73,7 +76,7 @@ public class UserService implements UserDetailsService {
             userEntity.setRefreshToken(null);
             userEntity.setNextRefreshTokenExpirationDate(LocalDateTime.MIN);
             userRepository.save(userEntity);
-            throw new IllegalArgumentException("Refresh token has expired");
+            throw new RefreshTokenExpiredException();
         }
 
         String oldPassword = changePasswordDTO.oldPassword();
@@ -86,7 +89,7 @@ public class UserService implements UserDetailsService {
         String confirmNewPassword = changePasswordDTO.confirmNewPassword();
         if (!newPassword.equals(confirmNewPassword)) {
             logger.error("Changing password failed due to the new password not matching the confirm new password.");
-            throw new BadCredentialsException("Passwords do not match");
+            throw new PasswordConfirmationMismatchException();
         }
 
         String encodedNewPassword = passwordEncoder.encode(newPassword);

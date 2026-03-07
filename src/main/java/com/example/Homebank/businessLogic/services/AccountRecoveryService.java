@@ -7,6 +7,8 @@ import com.example.Homebank.businessLogic.security.RecoveryJwtUtil;
 import com.example.Homebank.businessLogic.security.TokenHasher;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
+import com.example.Homebank.exceptions.authentication.InvalidRecoveryTokenException;
+import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
 import com.example.Homebank.presentation.dto.auth.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -143,7 +145,7 @@ public class AccountRecoveryService {
 
         if (!newPassword.equals(confirmNewPassword)) {
             logger.error("Changing password failed due to the new password not matching the confirm new password.");
-            throw new BadCredentialsException("Passwords do not match");
+            throw new PasswordConfirmationMismatchException();
         }
 
         String email = recoveryJwtUtil.extractEmail(recoveryToken);
@@ -151,7 +153,7 @@ public class AccountRecoveryService {
 
         if (!recoveryJwtUtil.isTokenValid(recoveryToken, userEntity.getEmail())) {
             logger.error("Changing password failed due to an invalid recovery token: {}", recoveryToken);
-            throw new IllegalArgumentException("Invalid recovery token");
+            throw new InvalidRecoveryTokenException();
         }
 
         String encodedNewPassword = passwordEncoder.encode(newPassword);

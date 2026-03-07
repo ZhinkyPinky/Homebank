@@ -1,8 +1,6 @@
 package com.example.Homebank.businessLogic.security;
 
 
-import org.springframework.stereotype.Component;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -24,7 +22,7 @@ public class TokenHasher {
             byte[] hashBytes = digest.digest(token.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hashBytes);
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
+            throw new IllegalStateException("SHA-256 algorithm is not available.", e);
         }
     }
 }

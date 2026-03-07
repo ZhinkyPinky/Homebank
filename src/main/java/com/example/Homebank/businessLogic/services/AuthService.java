@@ -8,6 +8,10 @@ import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.entities.UserStatus;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
 import com.example.Homebank.exceptions.authentication.AccountNotActivatedException;
+import com.example.Homebank.exceptions.authentication.ActivationTokenExpiredException;
+import com.example.Homebank.exceptions.authentication.InvalidActivationTokenException;
+import com.example.Homebank.exceptions.authentication.InvalidRefreshTokenException;
+import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredException;
 import com.example.Homebank.presentation.ApiPaths;
 import com.example.Homebank.presentation.dto.auth.AccessAndRefreshTokenDTO;
 import com.example.Homebank.presentation.dto.auth.AuthenticationDTO;
@@ -210,7 +214,7 @@ public class AuthService {
 
         UserEntity userEntity = userRepository.findByRefreshToken(hashedRefreshToken).orElseThrow(() -> {
             logger.error("Invalid refresh token.");
-            return new IllegalArgumentException("Invalid refresh token");
+            return new InvalidRefreshTokenException();
         });
 
         if (userEntity.getNextRefreshTokenExpirationDate() == null || userEntity.getNextRefreshTokenExpirationDate().isBefore(LocalDateTime.now())) {
@@ -220,7 +224,7 @@ public class AuthService {
             userEntity.setNextRefreshTokenExpirationDate(LocalDateTime.MIN);
             userRepository.save(userEntity);
 
-            throw new IllegalArgumentException("Refresh token has expired");
+            throw new RefreshTokenExpiredException();
         }
 
         if (userEntity.getStatus() != UserStatus.ACTIVE) {
@@ -257,7 +261,7 @@ public class AuthService {
 
         UserEntity userEntity = userRepository.findByRefreshToken(hashedRefreshToken).orElseThrow(() -> {
             logger.error("Invalid refresh token provided for sign out.");
-            return new IllegalArgumentException("Invalid refresh token");
+            return new InvalidRefreshTokenException();
         });
 
         String email = userEntity.getEmail();
@@ -284,17 +288,17 @@ public class AuthService {
 
         UserEntity userEntity = userRepository.findByActivationToken(hashedToken).orElseThrow(() -> {
             logger.error("Invalid activation token.");
-            return new IllegalArgumentException("Invalid activation token");
+            return new InvalidActivationTokenException();
         });
 
         LocalDateTime activationTokenExpiryDate = userEntity.getActivationTokenExpirationDate();
         if (activationTokenExpiryDate == null) {
             logger.error("Activation token expiration is missing for user: {}", userEntity.getEmail());
-            throw new IllegalArgumentException("Invalid activation token");
+            throw new InvalidActivationTokenException();
         }
         if (LocalDateTime.now().isAfter(activationTokenExpiryDate)) {
             logger.error("Activation token has expired for user: {}", userEntity.getEmail());
-            throw new IllegalArgumentException("Activation token has expired");
+            throw new ActivationTokenExpiredException();
         }
 
         userEntity.setStatus(UserStatus.ACTIVE);

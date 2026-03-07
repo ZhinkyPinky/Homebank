@@ -2,6 +2,11 @@ package com.example.Homebank.presentation.controllers;
 
 import com.example.Homebank.exceptions.authentication.AccountNotActivatedException;
 import com.example.Homebank.exceptions.authentication.ActivationTokenExpiredException;
+import com.example.Homebank.exceptions.authentication.InvalidActivationTokenException;
+import com.example.Homebank.exceptions.authentication.InvalidRecoveryTokenException;
+import com.example.Homebank.exceptions.authentication.InvalidRefreshTokenException;
+import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredException;
+import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
 import com.example.Homebank.presentation.dto.ApiError;
 import com.example.Homebank.presentation.dto.ValidationErrorDetail;
 import jakarta.servlet.http.HttpServletRequest;
@@ -73,6 +78,51 @@ public class GlobalExceptionHandler {
 
         String message = "Your activation token has expired. Please request a new activation email.";
         return buildErrorResponse(HttpStatus.FORBIDDEN, "ACTIVATION_TOKEN_EXPIRED", message, request, null);
+    }
+
+    /**
+     * Handles invalid refresh token errors.
+     */
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidRefreshTokenException(InvalidRefreshTokenException e, HttpServletRequest request) {
+        logger.info("Handling invalid refresh token exception: {}", e.getMessage());
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN", "Invalid refresh token.", request, null);
+    }
+
+    /**
+     * Handles expired refresh token errors.
+     */
+    @ExceptionHandler(RefreshTokenExpiredException.class)
+    public ResponseEntity<ApiError> handleRefreshTokenExpiredException(RefreshTokenExpiredException e, HttpServletRequest request) {
+        logger.info("Handling refresh token expired exception: {}", e.getMessage());
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "REFRESH_TOKEN_EXPIRED", "Refresh token has expired.", request, null);
+    }
+
+    /**
+     * Handles invalid recovery token errors.
+     */
+    @ExceptionHandler(InvalidRecoveryTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidRecoveryTokenException(InvalidRecoveryTokenException e, HttpServletRequest request) {
+        logger.info("Handling invalid recovery token exception: {}", e.getMessage());
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "INVALID_RECOVERY_TOKEN", "Invalid recovery token.", request, null);
+    }
+
+    /**
+     * Handles invalid activation token errors.
+     */
+    @ExceptionHandler(InvalidActivationTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidActivationTokenException(InvalidActivationTokenException e, HttpServletRequest request) {
+        logger.info("Handling invalid activation token exception: {}", e.getMessage());
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "INVALID_ACTIVATION_TOKEN", "Invalid activation token.", request, null);
+    }
+
+    /**
+     * Handles password confirmation mismatch validation errors.
+     */
+    @ExceptionHandler(PasswordConfirmationMismatchException.class)
+    public ResponseEntity<ApiError> handlePasswordConfirmationMismatchException(PasswordConfirmationMismatchException e, HttpServletRequest request) {
+        logger.info("Handling password confirmation mismatch exception: {}", e.getMessage());
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "PASSWORD_CONFIRMATION_MISMATCH", "Passwords do not match.", request, null);
     }
 
     /**
