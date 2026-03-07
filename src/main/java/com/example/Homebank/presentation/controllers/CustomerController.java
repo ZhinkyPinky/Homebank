@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Controller responsible for customer endpoints and customer-transaction composite reads.
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(ApiPaths.CUSTOMERS)
@@ -53,6 +56,12 @@ public class CustomerController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Handles requests to delete a customer.
+     *
+     * @param customerId ID of the customer to delete.
+     * @return {@code 501 Not Implemented} until deletion is implemented.
+     */
     @DeleteMapping(ApiPaths.CUSTOMER)
     public ResponseEntity<String> deleteCustomer(@PathVariable int customerId) {
         logger.info("Request to delete customer with ID: {} received.", customerId);

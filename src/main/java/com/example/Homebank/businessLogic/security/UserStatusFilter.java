@@ -4,6 +4,7 @@ import com.example.Homebank.businessLogic.services.UserService;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.entities.UserStatus;
 import com.example.Homebank.presentation.ApiPaths;
+import com.example.Homebank.presentation.dto.ApiError;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,7 +20,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.util.Map;
+import java.time.Instant;
 import java.util.Set;
 
 /**
@@ -39,6 +40,15 @@ public class UserStatusFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final UserService userService;
 
+    /**
+     * Blocks activated-only endpoints for users whose status is {@code ACTIVATION_PENDING}.
+     *
+     * @param request     Incoming HTTP request.
+     * @param response    Outgoing HTTP response.
+     * @param filterChain Remaining filter chain.
+     * @throws ServletException If filter processing fails.
+     * @throws IOException      If writing the response fails.
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -52,10 +62,17 @@ public class UserStatusFilter extends OncePerRequestFilter {
                 response.setStatus(HttpStatus.FORBIDDEN.value());
                 response.setContentType("application/json");
 
-                objectMapper.writeValue(response.getWriter(), Map.of(
-                        "error", "ACCOUNT_NOT_ACTIVATED",
-                        "message", "Please activate your account first."
-                ));
+                ApiError error = new ApiError(
+                        Instant.now(),
+                        HttpStatus.FORBIDDEN.value(),
+                        HttpStatus.FORBIDDEN.getReasonPhrase(),
+                        "ACCOUNT_NOT_ACTIVATED",
+                        "Please activate your account first.",
+                        requestPath,
+                        null
+                );
+
+                objectMapper.writeValue(response.getWriter(), error);
 
                 response.getWriter().flush();
                 return;

@@ -22,6 +22,10 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
 
+/**
+ * Service responsible for account recovery:
+ * recovery password generation, recovery authentication, and password reset.
+ */
 @Service
 @RequiredArgsConstructor
 public class AccountRecoveryService {
@@ -41,7 +45,7 @@ public class AccountRecoveryService {
      * Loads a user based on their e-mail.
      *
      * @param email E-mail of user to load.
-     * @return A UserDetail implementation.
+     * @return The matching {@link UserEntity}.
      */
     @Transactional(readOnly = true)
     public UserEntity loadUserByEmail(String email) throws UsernameNotFoundException {

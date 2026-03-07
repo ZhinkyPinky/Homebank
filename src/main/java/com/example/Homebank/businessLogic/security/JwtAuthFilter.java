@@ -1,6 +1,7 @@
 package com.example.Homebank.businessLogic.security;
 
 import com.example.Homebank.businessLogic.services.UserService;
+import com.example.Homebank.presentation.dto.ApiError;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -16,13 +17,15 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.time.Instant;
 
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
 /**
- * Filter to pass requests for end-points requiring JWT authentication through.
+ * Authenticates requests using the access JWT from the {@code Authorization} header.
  */
 @Component
 @RequiredArgsConstructor
@@ -31,6 +34,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final AccessJwtUtil jwtUtil;
     private final UserService userDetailsService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * Authenticates a user based on a provided JWT.
@@ -55,17 +59,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 logger.debug("Extracted JWT for username: {}", username);
             } catch (ExpiredJwtException e) {
                 logger.error("JWT expired: {}", e.getMessage());
-
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Token expired.");
-                response.getWriter().flush();
+                writeErrorResponse(
+                        response,
+                        request.getRequestURI(),
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "TOKEN_EXPIRED",
+                        "Token expired."
+                );
                 return;
             } catch (JwtException | IllegalArgumentException e) {
                 logger.error("Invalid JWT: {}", e.getMessage(), e);
-
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Invalid token.");
-                response.getWriter().flush();
+                writeErrorResponse(
+                        response,
+                        request.getRequestURI(),
+                        HttpServletResponse.SC_UNAUTHORIZED,
+                        "TOKEN_INVALID",
+                        "Invalid token."
+                );
                 return;
             }
         } else {
@@ -93,5 +103,33 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
         logger.info("JWT authentication completed for request: {}", request.getRequestURI());
+    }
+
+    /**
+     * Writes a standardized JSON error payload for JWT authentication failures.
+     *
+     * @param response Target HTTP response.
+     * @param path     Request path that failed.
+     * @param status   HTTP status code to return.
+     * @param code     Stable machine-readable error code.
+     * @param message  Human-readable message for the client.
+     * @throws IOException If writing the response body fails.
+     */
+    private void writeErrorResponse(HttpServletResponse response, String path, int status, String code, String message) throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json");
+
+        ApiError apiError = new ApiError(
+                Instant.now(),
+                status,
+                "Unauthorized",
+                code,
+                message,
+                path,
+                null
+        );
+
+        objectMapper.writeValue(response.getWriter(), apiError);
+        response.getWriter().flush();
     }
 }

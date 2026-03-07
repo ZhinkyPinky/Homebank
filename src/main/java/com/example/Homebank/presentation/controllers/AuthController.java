@@ -67,10 +67,10 @@ public class AuthController {
     }
 
     /**
-     * Handles requests to refresh JWTs.
+     * Handles requests to refresh authentication tokens.
      *
      * @param refreshTokenDTO Request body containing a refresh token.
-     * @return the new access and refresh tokens.
+     * @return The new access and refresh tokens.
      */
     @PostMapping(ApiPaths.REFRESH)
     public ResponseEntity<AccessAndRefreshTokenDTO> refresh(@Valid @RequestBody RefreshTokenDTO refreshTokenDTO) {
@@ -95,7 +95,7 @@ public class AuthController {
      * Handles requests to resend the activation e-mail.
      *
      * @param authentication Authenticated user details.
-     * @return a response indicating whether the request was successful.
+     * @return A response indicating whether the request was successful.
      */
     @PostMapping(ApiPaths.RESEND_ACTIVATION)
     public ResponseEntity<String> resendActivationEmail(Authentication authentication) {

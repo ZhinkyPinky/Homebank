@@ -6,10 +6,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 
 import java.util.Properties;
 
+/**
+ * Spring configuration for SMTP mail sender settings.
+ */
 @Configuration
 public class EmailConfiguration {
     @Value("${email.host}")
@@ -27,7 +29,7 @@ public class EmailConfiguration {
     /**
      * Creates and configures a JavaMailSender implementation used for sending e-mails.
      *
-     * @return the JavaMailSender implementation.
+     * @return Configured {@link JavaMailSender} instance.
      */
     @Bean
     public JavaMailSender getJavaMailSender() {

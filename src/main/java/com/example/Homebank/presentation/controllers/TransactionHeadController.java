@@ -10,6 +10,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controller responsible for transaction-head write operations.
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(ApiPaths.TRANSACTION_HEADS)

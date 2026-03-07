@@ -33,7 +33,7 @@ public class UserService implements UserDetailsService {
      * Loads a user based on their email.
      *
      * @param email Email of user to load.
-     * @return A UserDetail implementation.
+     * @return The matching {@link UserDetails} instance.
      */
     @Transactional(readOnly = true)
     @Override

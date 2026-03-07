@@ -9,6 +9,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controller responsible for account recovery actions:
+ * recovery initiation, recovery authentication, and password reset.
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(ApiPaths.ACCOUNT_RECOVERY)
@@ -45,6 +49,12 @@ public class AccountRecoveryController {
         return ResponseEntity.ok(recoveryTokenDTO);
     }
 
+    /**
+     * Handles requests to set a new password using a valid recovery token.
+     *
+     * @param setNewPasswordDTO Recovery token and new password data.
+     * @return A new access/refresh token pair after successful password update.
+     */
     @PostMapping(ApiPaths.SET_NEW_PASSWORD)
     public ResponseEntity<AccessAndRefreshTokenDTO> setNewPassword(@RequestBody SetNewPasswordDTO setNewPasswordDTO) {
         logger.info("Request to set new password received.");
