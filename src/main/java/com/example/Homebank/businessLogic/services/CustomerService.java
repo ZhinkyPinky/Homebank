@@ -6,6 +6,7 @@ import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.CustomerViewRepository;
 import com.example.Homebank.dataAccess.views.CustomerView;
 import com.example.Homebank.dataAccess.repositories.CustomerRepository;
+import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.presentation.dto.composite.*;
 import com.example.Homebank.presentation.dto.customer.*;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
@@ -15,13 +16,13 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -81,7 +82,13 @@ public class CustomerService {
 
         if (!accessibleCustomerIds.contains(transactionHead.lenderId()) && !accessibleCustomerIds.contains(transactionHead.borrowerId())) {
             logger.warn("Access denied to transactionHeadId={} for authenticated user.", transactionHeadId);
-            throw new AccessDeniedException("You do not have permission to access this transaction head.");
+            throw new ResourceAccessDeniedException(
+                    "TRANSACTION_HEAD",
+                    transactionHeadId,
+                    "read",
+                    "You do not have permission to access this transaction head.",
+                    Map.of("lenderId", transactionHead.lenderId(), "borrowerId", transactionHead.borrowerId())
+            );
         }
 
         logger.debug("Retrieved {} customers and transaction head with ID: {}", customers.size(), transactionHeadId);
@@ -116,7 +123,7 @@ public class CustomerService {
      *
      * @param customerEntity    The customer entity to validate access for.
      * @param authenticatedUser The currently authenticated user.
-     * @throws AccessDeniedException if the user does not have access to the customer.
+     * @throws ResourceAccessDeniedException if the user does not have access to the customer.
      */
     private void validateCustomerAccess(CustomerEntity customerEntity, UserEntity authenticatedUser) {
         int authenticatedUserId = authenticatedUser.getId();
@@ -134,7 +141,13 @@ public class CustomerService {
 
         if (!isOwner && !isMember) {
             logger.warn("Customer access denied for userId={} to customerId={}.", authenticatedUserId, customerId);
-            throw new AccessDeniedException("You do not have permission to access this customer.");
+            throw new ResourceAccessDeniedException(
+                    "CUSTOMER",
+                    customerId,
+                    "read",
+                    "You do not have permission to access this customer.",
+                    Map.of("userId", authenticatedUserId)
+            );
         }
 
         logger.debug("Customer access granted for userId={} to customerId={}.", authenticatedUserId, customerId);
@@ -180,10 +193,10 @@ public class CustomerService {
     @Transactional(readOnly = true)
     public CustomerAndTransactionHeadDTO getCustomerAndTransactionHead(int customerId, int transactionHeadId) {
         logger.info("Fetching customer and transaction head for customerId: {} and transactionHeadId: {}", customerId, transactionHeadId);
-        // TODO(security): Validate authenticated user access to both customerId and transactionHeadId.
 
         CustomerDTO customer = getCustomer(customerId);
-        TransactionHeadDTO transactionHead = transactionHeadService.getTransactionHead(transactionHeadId); //TODO: Make sure that customer id match lender/borrower id?
+        TransactionHeadDTO transactionHead = transactionHeadService.getTransactionHead(transactionHeadId);
+        validateTransactionHeadAccess(customerId, transactionHead);
 
         logger.debug("Retrieved customer with ID: {} and transaction head with ID: {}", customerId, transactionHead);
         return new CustomerAndTransactionHeadDTO(customer, transactionHead);
@@ -199,14 +212,16 @@ public class CustomerService {
     @Transactional(readOnly = true)
     public CustomerWithTransactionHeadAndRowsDTO getCustomerTransactionHeadAndRows(int customerId, int transactionHeadId) {
         logger.info("Fetching customer, transaction head, and rows for customerId: {} and transactionHeadId: {}", customerId, transactionHeadId);
-        // TODO(security): Validate authenticated user access to customer, head, and related rows.
 
-        CustomerDTO customer = getCustomer(customerId);
-        TransactionHeadDTO transactionHead = transactionHeadService.getTransactionHead(transactionHeadId); //TODO: Make sure that customer id match lender/borrower id?
+        CustomerAndTransactionHeadDTO customerAndTransactionHead = getCustomerAndTransactionHead(customerId, transactionHeadId);
         List<TransactionRowDTO> transactionRows = transactionRowService.getAllByTransactionHeadId(transactionHeadId);
 
         logger.debug("Retrieved customer with ID: {}, transaction head with ID: {}, and {} transaction rows", customerId, transactionHeadId, transactionRows.size());
-        return new CustomerWithTransactionHeadAndRowsDTO(customer, transactionHead, transactionRows);
+        return new CustomerWithTransactionHeadAndRowsDTO(
+                customerAndTransactionHead.customer(),
+                customerAndTransactionHead.transactionHead(),
+                transactionRows
+        );
     }
 
     /**
@@ -220,14 +235,17 @@ public class CustomerService {
     @Transactional(readOnly = true)
     public CustomerWithTransactionHeadAndRowDTO getCustomerAndTransactionHeadAndTransactionRow(int customerId, int transactionHeadId, int transactionRowId) {
         logger.info("Fetching customer, transaction head, and row for customerId: {}, transactionHeadId: {}, and transactionRowId: {}", customerId, transactionHeadId, transactionRowId);
-        // TODO(security): Validate authenticated user access to customer/head/row to prevent IDOR.
 
-        CustomerDTO customer = getCustomer(customerId);
-        TransactionHeadDTO transactionHead = transactionHeadService.getTransactionHead(transactionHeadId); //TODO: Make sure that customer id match lender/borrower id?
+        CustomerAndTransactionHeadDTO customerAndTransactionHead = getCustomerAndTransactionHead(customerId, transactionHeadId);
         TransactionRowDTO transactionRow = transactionRowService.getTransactionRowById(transactionRowId);
+        validateTransactionRowAccess(transactionHeadId, transactionRowId, transactionRow);
 
         logger.debug("Retrieved customer with ID: {}, transaction head with ID: {}, and transaction row with ID: {}", customerId, transactionHeadId, transactionRowId);
-        return new CustomerWithTransactionHeadAndRowDTO(customer, transactionHead, transactionRow);
+        return new CustomerWithTransactionHeadAndRowDTO(
+                customerAndTransactionHead.customer(),
+                customerAndTransactionHead.transactionHead(),
+                transactionRow
+        );
     }
 
     /**
@@ -271,7 +289,13 @@ public class CustomerService {
         int authenticatedUserId = authenticatedUser.getId();
         if (ownerId != authenticatedUserId) {
             logger.error("User with ID: {} is not the owner of customer with ID: {}.", authenticatedUserId, customerId);
-            throw new AccessDeniedException("You do not have permission to update this customer.");
+            throw new ResourceAccessDeniedException(
+                    "CUSTOMER",
+                    customerId,
+                    "update",
+                    "You do not have permission to update this customer.",
+                    Map.of("ownerId", ownerId, "userId", authenticatedUserId)
+            );
         }
 
         LocalDateTime providedRowVersion = customer.rowVersion();
@@ -297,5 +321,62 @@ public class CustomerService {
         customerRepository.save(customerEntity);
 
         logger.debug("Customer with ID: {} updated successfully.", customerId);
+    }
+
+    private void validateTransactionHeadAccess(int customerId, TransactionHeadDTO transactionHead) {
+        int transactionHeadId = transactionHead.id();
+        boolean linkedToCustomer = transactionHead.lenderId() == customerId || transactionHead.borrowerId() == customerId;
+
+        if (!linkedToCustomer) {
+            logger.warn(
+                    "Transaction head access denied because transactionHeadId={} is not linked to customerId={}.",
+                    transactionHeadId,
+                    customerId
+            );
+            throw new ResourceAccessDeniedException(
+                    "TRANSACTION_HEAD",
+                    transactionHeadId,
+                    "read",
+                    "You do not have permission to access this transaction head for the specified customer.",
+                    Map.of("customerId", customerId, "reason", "NOT_LINKED_TO_CUSTOMER")
+            );
+        }
+
+        UserEntity authenticatedUser = authenticatedUserProvider.getAuthenticatedUser();
+        List<Integer> accessibleCustomerIds = customerRepository.findAccessibleCustomerIds(authenticatedUser.getId());
+        boolean hasHeadAccess = accessibleCustomerIds.contains(transactionHead.lenderId())
+                || accessibleCustomerIds.contains(transactionHead.borrowerId());
+
+        if (!hasHeadAccess) {
+            logger.warn(
+                    "Transaction head access denied for userId={} to transactionHeadId={}.",
+                    authenticatedUser.getId(),
+                    transactionHeadId
+            );
+            throw new ResourceAccessDeniedException(
+                    "TRANSACTION_HEAD",
+                    transactionHeadId,
+                    "read",
+                    "You do not have permission to access this transaction head.",
+                    Map.of("lenderId", transactionHead.lenderId(), "borrowerId", transactionHead.borrowerId())
+            );
+        }
+    }
+
+    private void validateTransactionRowAccess(int transactionHeadId, int transactionRowId, TransactionRowDTO transactionRow) {
+        if (transactionRow.transactionHeadId() != transactionHeadId) {
+            logger.warn(
+                    "Transaction row access denied because transactionRowId={} does not belong to transactionHeadId={}.",
+                    transactionRowId,
+                    transactionHeadId
+            );
+            throw new ResourceAccessDeniedException(
+                    "TRANSACTION_ROW",
+                    transactionRowId,
+                    "read",
+                    "You do not have permission to access this transaction row for the specified transaction head.",
+                    Map.of("transactionHeadId", transactionHeadId, "actualTransactionHeadId", transactionRow.transactionHeadId())
+            );
+        }
     }
 }

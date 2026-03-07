@@ -6,6 +6,7 @@ import com.example.Homebank.exceptions.authentication.InvalidActivationTokenExce
 import com.example.Homebank.exceptions.authentication.InvalidRecoveryTokenException;
 import com.example.Homebank.exceptions.authentication.InvalidRefreshTokenException;
 import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredException;
+import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
 import com.example.Homebank.presentation.dto.ApiError;
 import com.example.Homebank.presentation.dto.ValidationErrorDetail;
@@ -26,7 +27,9 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -176,8 +179,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request) {
         logger.info("Handling access denied exception: {}", e.getMessage());
 
+        Object details = null;
+        String code = "ACCESS_DENIED";
         String message = e.getMessage() != null ? e.getMessage() : "You do not have permission to perform this action.";
-        return buildErrorResponse(HttpStatus.FORBIDDEN, "ACCESS_DENIED", message, request, null);
+        if (e instanceof ResourceAccessDeniedException resourceException) {
+            code = "RESOURCE_ACCESS_DENIED";
+            Map<String, Object> resourceDetails = new LinkedHashMap<>();
+            resourceDetails.put("resourceType", resourceException.getResourceType());
+            resourceDetails.put("resourceId", resourceException.getResourceId());
+            resourceDetails.put("action", resourceException.getAction());
+            if (!resourceException.getMetadata().isEmpty()) {
+                resourceDetails.put("metadata", resourceException.getMetadata());
+            }
+            details = resourceDetails;
+        }
+
+        return buildErrorResponse(HttpStatus.FORBIDDEN, code, message, request, details);
     }
 
     /**

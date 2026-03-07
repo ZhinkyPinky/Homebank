@@ -6,6 +6,7 @@ import com.example.Homebank.exceptions.authentication.InvalidActivationTokenExce
 import com.example.Homebank.exceptions.authentication.InvalidRecoveryTokenException;
 import com.example.Homebank.exceptions.authentication.InvalidRefreshTokenException;
 import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredException;
+import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
 import com.example.Homebank.presentation.dto.ApiError;
 import jakarta.persistence.EntityExistsException;
@@ -19,6 +20,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
+
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -40,6 +43,30 @@ class GlobalExceptionHandlerTests {
         assertEquals("ACCESS_DENIED", response.getBody().code());
         assertEquals("/customers/123", response.getBody().path());
         assertEquals(403, response.getBody().status());
+    }
+
+    @Test
+    void handleResourceAccessDeniedExceptionShouldIncludeResourceDetails() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/customers/1/transactionHeads/2");
+
+        ResponseEntity<ApiError> response = globalExceptionHandler.handleAccessDeniedException(
+                new ResourceAccessDeniedException(
+                        "TRANSACTION_HEAD",
+                        2,
+                        "read",
+                        "Denied",
+                        Map.of("customerId", 1)
+                ),
+                request
+        );
+
+        assertApiError(response, HttpStatus.FORBIDDEN, "RESOURCE_ACCESS_DENIED", "/customers/1/transactionHeads/2");
+        assertNotNull(response.getBody());
+        assertInstanceOf(Map.class, response.getBody().details());
+        Map<?, ?> details = (Map<?, ?>) response.getBody().details();
+        assertEquals("TRANSACTION_HEAD", details.get("resourceType"));
+        assertEquals(2, details.get("resourceId"));
+        assertEquals("read", details.get("action"));
     }
 
     @Test
