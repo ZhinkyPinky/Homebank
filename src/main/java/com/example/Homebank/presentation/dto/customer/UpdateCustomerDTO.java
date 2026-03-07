@@ -1,6 +1,7 @@
 package com.example.Homebank.presentation.dto.customer;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
 
@@ -9,10 +10,11 @@ import java.time.LocalDateTime;
  *
  * @param name        Name of the customer. Must not be blank.
  * @param description Optional description of the customer.
+ * @param rowVersion  Current row version used for optimistic locking.
  */
 public record UpdateCustomerDTO(
         @NotBlank(message = "Name is missing") String name,
         String description,
-        @NotBlank(message = "Row version is missing") LocalDateTime rowVersion
+        @NotNull(message = "Row version is missing") LocalDateTime rowVersion
 ) {
 }

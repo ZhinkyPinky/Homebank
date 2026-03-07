@@ -7,6 +7,22 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * Transaction-head data used in request/response payloads.
+ *
+ * @param id              Transaction head identifier.
+ * @param lenderId        Lender customer identifier.
+ * @param borrowerId      Borrower customer identifier.
+ * @param transactionName Transaction name.
+ * @param description     Optional description.
+ * @param startDate       Transaction start date.
+ * @param prelEndDate     Optional preliminary end date.
+ * @param endDate         Optional final end date.
+ * @param amount          Optional aggregated amount.
+ * @param borrower        Optional borrower display name.
+ * @param lender          Optional lender display name.
+ * @param rowVersion      Concurrency/version timestamp.
+ */
 public record TransactionHeadDTO(
         @NotNull(message = "Id is missing") Integer id,
         @NotNull(message = "Lender id is missing") Integer lenderId,

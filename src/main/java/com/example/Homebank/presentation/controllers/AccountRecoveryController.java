@@ -3,6 +3,7 @@ package com.example.Homebank.presentation.controllers;
 import com.example.Homebank.businessLogic.services.AccountRecoveryService;
 import com.example.Homebank.presentation.ApiPaths;
 import com.example.Homebank.presentation.dto.auth.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,7 @@ public class AccountRecoveryController {
      * @return Response indicating whether the request was successful or not.
      */
     @PostMapping(ApiPaths.INITIATE_RECOVERY)
-    public ResponseEntity<String> initiateUserAccountRecovery(@RequestBody EmailDTO emailDTO) {
+    public ResponseEntity<String> initiateUserAccountRecovery(@Valid @RequestBody EmailDTO emailDTO) {
         logger.info("Request to initiate recovery for user account with e-mail: {} received.", emailDTO.email());
 
         accountRecoveryService.initiateAccountRecovery(emailDTO);
@@ -56,7 +57,7 @@ public class AccountRecoveryController {
      * @return A new access/refresh token pair after successful password update.
      */
     @PostMapping(ApiPaths.SET_NEW_PASSWORD)
-    public ResponseEntity<AccessAndRefreshTokenDTO> setNewPassword(@RequestBody SetNewPasswordDTO setNewPasswordDTO) {
+    public ResponseEntity<AccessAndRefreshTokenDTO> setNewPassword(@Valid @RequestBody SetNewPasswordDTO setNewPasswordDTO) {
         logger.info("Request to set new password received.");
 
         AccessAndRefreshTokenDTO accessAndRefreshTokenDTO = accountRecoveryService.setNewPassword(setNewPasswordDTO);

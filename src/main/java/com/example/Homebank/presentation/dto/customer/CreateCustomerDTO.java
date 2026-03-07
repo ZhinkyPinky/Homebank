@@ -3,7 +3,7 @@ package com.example.Homebank.presentation.dto.customer;
 import jakarta.validation.constraints.NotBlank;
 
 /**
- * Data transfer object for updating a customer.
+ * Data transfer object for creating a customer.
  *
  * @param name        Name of the customer. Must not be blank.
  * @param description Optional description of the customer.

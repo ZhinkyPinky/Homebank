@@ -6,6 +6,12 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
+/**
+ * Composite response containing one customer and all related transaction heads.
+ *
+ * @param customer         Customer details.
+ * @param transactionHeads Transaction heads related to the customer.
+ */
 public record CustomerAndTransactionHeadsDTO(
         @NotNull(message = "Customer is missing") CustomerDTO customer,
         List<TransactionHeadDTO> transactionHeads) {
