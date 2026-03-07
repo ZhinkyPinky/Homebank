@@ -38,11 +38,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("ACCESS_DENIED", response.getBody().code());
-        assertEquals("/customers/123", response.getBody().path());
-        assertEquals(403, response.getBody().status());
+        assertApiError(response, HttpStatus.FORBIDDEN, "ACCESS_DENIED", "/customers/123");
     }
 
     @Test
@@ -78,11 +74,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("INTERNAL_SERVER_ERROR", response.getBody().code());
-        assertEquals("/customers", response.getBody().path());
-        assertEquals(500, response.getBody().status());
+        assertApiError(response, HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "/customers");
     }
 
     @Test
@@ -94,11 +86,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("INVALID_REFRESH_TOKEN", response.getBody().code());
-        assertEquals("/auth/refresh", response.getBody().path());
-        assertEquals(401, response.getBody().status());
+        assertApiError(response, HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN", "/auth/refresh");
     }
 
     @Test
@@ -110,11 +98,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("PASSWORD_CONFIRMATION_MISMATCH", response.getBody().code());
-        assertEquals("/users/changePassword", response.getBody().path());
-        assertEquals(400, response.getBody().status());
+        assertApiError(response, HttpStatus.BAD_REQUEST, "PASSWORD_CONFIRMATION_MISMATCH", "/users/changePassword");
     }
 
     @Test

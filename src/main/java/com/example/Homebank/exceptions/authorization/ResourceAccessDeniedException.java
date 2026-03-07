@@ -1,5 +1,6 @@
 package com.example.Homebank.exceptions.authorization;
 
+import lombok.Getter;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.util.Map;
@@ -7,6 +8,7 @@ import java.util.Map;
 /**
  * Access-denied exception that carries resource metadata for client-side handling.
  */
+@Getter
 public class ResourceAccessDeniedException extends AccessDeniedException {
     private final String resourceType;
     private final Integer resourceId;
@@ -29,21 +31,5 @@ public class ResourceAccessDeniedException extends AccessDeniedException {
         this.resourceId = resourceId;
         this.action = action;
         this.metadata = metadata == null ? Map.of() : metadata;
-    }
-
-    public String getResourceType() {
-        return resourceType;
-    }
-
-    public Integer getResourceId() {
-        return resourceId;
-    }
-
-    public String getAction() {
-        return action;
-    }
-
-    public Map<String, Object> getMetadata() {
-        return metadata;
     }
 }
