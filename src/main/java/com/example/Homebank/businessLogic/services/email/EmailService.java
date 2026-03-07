@@ -8,6 +8,9 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service for sending e-mails.
+ */
 @Service
 @RequiredArgsConstructor
 public class EmailService {
@@ -15,7 +18,6 @@ public class EmailService {
 
     @Value("${email.app.username}")
     private String appUsername;
-
 
     private final JavaMailSender emailSender;
 

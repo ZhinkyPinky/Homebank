@@ -1,4 +1,4 @@
-package com.example.Homebank.presentation.dto;
+package com.example.Homebank.presentation.dto.customer;
 
 import com.example.Homebank.dataAccess.views.CustomerView;
 import jakarta.validation.constraints.NotBlank;

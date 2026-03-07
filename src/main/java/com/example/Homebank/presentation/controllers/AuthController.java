@@ -2,7 +2,10 @@ package com.example.Homebank.presentation.controllers;
 
 import com.example.Homebank.businessLogic.services.AuthService;
 import com.example.Homebank.presentation.ApiPaths;
-import com.example.Homebank.presentation.dto.*;
+import com.example.Homebank.presentation.dto.auth.AccessAndRefreshTokenDTO;
+import com.example.Homebank.presentation.dto.auth.AuthenticationDTO;
+import com.example.Homebank.presentation.dto.auth.RefreshTokenDTO;
+import com.example.Homebank.presentation.dto.auth.RegistrationDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

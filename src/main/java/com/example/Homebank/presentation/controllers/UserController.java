@@ -1,9 +1,8 @@
 package com.example.Homebank.presentation.controllers;
 
-import com.example.Homebank.businessLogic.services.AccountRecoveryService;
 import com.example.Homebank.businessLogic.services.UserService;
 import com.example.Homebank.presentation.ApiPaths;
-import com.example.Homebank.presentation.dto.ChangePasswordDTO;
+import com.example.Homebank.presentation.dto.auth.ChangePasswordDTO;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

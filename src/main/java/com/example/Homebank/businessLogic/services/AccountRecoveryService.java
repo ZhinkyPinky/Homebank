@@ -7,7 +7,7 @@ import com.example.Homebank.businessLogic.security.RecoveryJwtUtil;
 import com.example.Homebank.businessLogic.security.TokenHasher;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
-import com.example.Homebank.presentation.dto.*;
+import com.example.Homebank.presentation.dto.auth.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

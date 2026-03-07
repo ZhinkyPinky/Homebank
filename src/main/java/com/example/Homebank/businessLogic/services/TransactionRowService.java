@@ -2,7 +2,7 @@ package com.example.Homebank.businessLogic.services;
 
 import com.example.Homebank.dataAccess.views.TransactionRowView;
 import com.example.Homebank.dataAccess.repositories.TransactionRowRepository;
-import com.example.Homebank.presentation.dto.TransactionRowDTO;
+import com.example.Homebank.presentation.dto.transactionhead.TransactionRowDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

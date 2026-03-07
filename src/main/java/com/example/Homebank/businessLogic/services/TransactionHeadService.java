@@ -3,7 +3,7 @@ package com.example.Homebank.businessLogic.services;
 import com.example.Homebank.businessLogic.security.SecurityContextUtility;
 import com.example.Homebank.dataAccess.views.TransactionHeadView;
 import com.example.Homebank.dataAccess.repositories.TransactionHeadRepository;
-import com.example.Homebank.presentation.dto.TransactionHeadDTO;
+import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -14,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Service for managing transaction heads.
+ */
 @Service
 @RequiredArgsConstructor
 public class TransactionHeadService {

@@ -1,7 +1,7 @@
 package com.example.Homebank;
 
 import com.example.Homebank.dataAccess.views.TransactionRowView;
-import com.example.Homebank.presentation.dto.TransactionRowDTO;
+import com.example.Homebank.presentation.dto.transactionhead.TransactionRowDTO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;

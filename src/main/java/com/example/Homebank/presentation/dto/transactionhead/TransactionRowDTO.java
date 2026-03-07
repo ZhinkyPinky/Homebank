@@ -1,4 +1,4 @@
-package com.example.Homebank.presentation.dto;
+package com.example.Homebank.presentation.dto.transactionhead;
 
 import com.example.Homebank.dataAccess.views.TransactionRowView;
 import jakarta.validation.constraints.NotBlank;

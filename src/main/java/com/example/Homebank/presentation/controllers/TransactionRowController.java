@@ -2,7 +2,7 @@ package com.example.Homebank.presentation.controllers;
 
 import com.example.Homebank.businessLogic.services.TransactionRowService;
 import com.example.Homebank.presentation.ApiPaths;
-import com.example.Homebank.presentation.dto.TransactionRowDTO;
+import com.example.Homebank.presentation.dto.transactionhead.TransactionRowDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

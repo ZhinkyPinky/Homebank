@@ -9,8 +9,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -108,6 +110,28 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(error, message);
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException e) {
+        logger.info("Handling access denied exception: {}", e.getMessage());
+
+        String error = "FORBIDDEN";
+        String message = e.getMessage() != null ? e.getMessage() : "You do not have permission to perform this action.";
+        ErrorResponse errorResponse = new ErrorResponse(error, message);
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleObjectOptimisticLockingFailureException(ObjectOptimisticLockingFailureException e) {
+        logger.info("Handling optimistic locking failure exception: {}", e.getMessage());
+
+        String error = "CONFLICT";
+        String message = "The resource was modified by another process. Please refresh and try again.";
+        ErrorResponse errorResponse = new ErrorResponse(error, message);
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

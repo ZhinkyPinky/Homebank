@@ -145,6 +145,7 @@
                     <target>21</target>
                 </configuration>
             </plugin>
+
         </plugins>
     </build>
 
@@ -172,5 +173,6 @@
                 <spring.profiles.active>local</spring.profiles.active>
             </properties>
         </profile>
+
     </profiles>
 </project>

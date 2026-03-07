@@ -8,6 +8,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * Represents a view of customer data, including aggregated information such as the total amount associated with the customer.
+ */
 @Entity
 @Data
 @NoArgsConstructor

@@ -1,9 +1,12 @@
 package com.example.Homebank.dataAccess.entities;
 
+import com.example.Homebank.dataAccess.connections.UserCustomer;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.springframework.security.core.CredentialsContainer;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,9 +23,12 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"ownedCustomers", "userCustomers"})
 @Table(name = "[User]", schema = "bank")
 public class UserEntity implements UserDetails, CredentialsContainer {
     @Id
+    @EqualsAndHashCode.Include
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "Id")
     private int id;
@@ -80,14 +86,11 @@ public class UserEntity implements UserDetails, CredentialsContainer {
     @Column(name = "RecoveryPasswordExpiration")
     private LocalDateTime recoveryPasswordExpiration;
 
-    @ManyToMany
-    @JoinTable(
-            name = "User_Customer",
-            schema = "bank",
-            joinColumns = @JoinColumn(name = "UserId"),
-            inverseJoinColumns = @JoinColumn(name = "CustomerId")
-    )
-    private Set<CustomerEntity> customers;
+    @OneToMany(mappedBy = "owner")
+    private Set<CustomerEntity> ownedCustomers;
+
+    @OneToMany(mappedBy = "user")
+    private Set<UserCustomer> userCustomers;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -121,6 +124,7 @@ public class UserEntity implements UserDetails, CredentialsContainer {
 
     @Override
     public void eraseCredentials() {
+        //TODO: Consider if other sensitive fields should also be cleared.
         this.password = null;
     }
 }

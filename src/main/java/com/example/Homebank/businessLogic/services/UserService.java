@@ -3,7 +3,7 @@ package com.example.Homebank.businessLogic.services;
 import com.example.Homebank.businessLogic.security.TokenHasher;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
-import com.example.Homebank.presentation.dto.ChangePasswordDTO;
+import com.example.Homebank.presentation.dto.auth.ChangePasswordDTO;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;

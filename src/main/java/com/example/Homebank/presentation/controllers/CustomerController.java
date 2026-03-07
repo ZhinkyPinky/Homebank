@@ -2,15 +2,14 @@ package com.example.Homebank.presentation.controllers;
 
 import com.example.Homebank.businessLogic.services.CustomerService;
 import com.example.Homebank.presentation.ApiPaths;
-import com.example.Homebank.presentation.dto.*;
+import com.example.Homebank.presentation.dto.composite.*;
+import com.example.Homebank.presentation.dto.customer.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -21,6 +20,49 @@ public class CustomerController {
     private static final Logger logger = LoggerFactory.getLogger(CustomerController.class);
 
     private final CustomerService customerService;
+
+    //TODO: Return created/updated customer and location.
+
+    /**
+     * Handles requests to create a new customer.
+     *
+     * @param customer Customer data.
+     * @return Response indicating whether the customer was successfully created.
+     */
+    @PostMapping
+    public ResponseEntity<String> createCustomer(@Valid @RequestBody CreateCustomerDTO customer) {
+        logger.info("Request to create customer received.");
+        //TODO: Return created customer and location.
+        customerService.createCustomer(customer);
+
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Handles requests to update a customer.
+     *
+     * @param customerId ID of the customer to update.
+     * @param customer   Updated customer data.
+     * @return Response indicating whether the customer was successfully updated.
+     */
+    @PutMapping(ApiPaths.CUSTOMER)
+    public ResponseEntity<String> updateCustomer(@PathVariable int customerId, @Valid @RequestBody UpdateCustomerDTO customer) {
+        logger.info("Request to update customer with ID: {} received.", customerId);
+
+        customerService.updateCustomer(customerId, customer);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping(ApiPaths.CUSTOMER)
+    public ResponseEntity<String> deleteCustomer(@PathVariable int customerId) {
+        logger.info("Request to delete customer with ID: {} received.", customerId);
+
+        //TODO: Implement deleteCustomer method in CustomerService and uncomment the line below.
+        //customerService.deleteCustomer(customerId);
+
+        //Not implemented yet.
+        return ResponseEntity.status(501).body("Deleting customers is not implemented yet.");
+    }
 
     /**
      * Handles requests to retrieve all customers.
@@ -43,7 +85,8 @@ public class CustomerController {
      * @return All customers and the specified transaction head.
      */
     @GetMapping("/transactionHeads/{transactionHeadId}")
-    public ResponseEntity<CustomersAndTransactionHeadDTO> getCustomersAndTransactionHead(@PathVariable final int transactionHeadId) {
+    public ResponseEntity<CustomersAndTransactionHeadDTO> getCustomersAndTransactionHead(
+            @PathVariable final int transactionHeadId) {
         //TODO: Move to TransactionHeadController? Find solution.
         logger.info("Request to get customers and transaction head with transactionHeadId: {} received.", transactionHeadId);
 
@@ -87,7 +130,8 @@ public class CustomerController {
      * @return The customer and transaction head.
      */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD)
-    public ResponseEntity<CustomerAndTransactionHeadDTO> getCustomerAndTransactionHead(@PathVariable final int customerId, @PathVariable final int transactionHeadId) {
+    public ResponseEntity<CustomerAndTransactionHeadDTO> getCustomerAndTransactionHead(
+            @PathVariable final int customerId, @PathVariable final int transactionHeadId) {
         logger.info("Request to get customer with ID: {} and transaction head with ID: {} received.", customerId, transactionHeadId);
 
         CustomerAndTransactionHeadDTO body = customerService.getCustomerAndTransactionHead(customerId, transactionHeadId);
@@ -102,7 +146,8 @@ public class CustomerController {
      * @return The customer, transaction head and all transaction rows related to the transaction head.
      */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD_AND_ROWS)
-    public ResponseEntity<CustomerWithTransactionHeadAndRowsDTO> getCustomerAndTransactionHeadAndRows(@PathVariable final int customerId, @PathVariable final int transactionHeadId) {
+    public ResponseEntity<CustomerWithTransactionHeadAndRowsDTO> getCustomerAndTransactionHeadAndRows(
+            @PathVariable final int customerId, @PathVariable final int transactionHeadId) {
         logger.info("Request to get customer, transaction head, and rows for customerId: {} and transactionHeadId: {} received.", customerId, transactionHeadId);
 
         CustomerWithTransactionHeadAndRowsDTO body = customerService.getCustomerTransactionHeadAndRows(customerId, transactionHeadId);
@@ -118,7 +163,8 @@ public class CustomerController {
      * @return The customer, transaction head and transaction row.
      */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD_AND_ROW)
-    public ResponseEntity<?> getCustomerAndTransactionHeadAndTransactionRow(@PathVariable final int customerId, @PathVariable final int transactionHeadId, @PathVariable final int transactionRowId) {
+    public ResponseEntity<?> getCustomerAndTransactionHeadAndTransactionRow(@PathVariable final int customerId,
+                                                                            @PathVariable final int transactionHeadId, @PathVariable final int transactionRowId) {
         logger.info("Request to get customer, transaction head, and row for customerId: {}, transactionHeadId: {}, and transactionRowId: {} received.", customerId, transactionHeadId, transactionRowId);
 
         CustomerWithTransactionHeadAndRowDTO body = customerService.getCustomerAndTransactionHeadAndTransactionRow(customerId, transactionHeadId, transactionRowId);

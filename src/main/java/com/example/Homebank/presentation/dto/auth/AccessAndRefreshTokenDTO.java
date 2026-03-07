@@ -1,4 +1,4 @@
-package com.example.Homebank.presentation.dto;
+package com.example.Homebank.presentation.dto.auth;
 
 public record AccessAndRefreshTokenDTO(
         String accessToken,

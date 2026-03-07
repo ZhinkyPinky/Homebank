@@ -18,6 +18,7 @@ public class SecurityContextUtility {
         return SecurityContextHolder.getContext().getAuthentication();
     }
 
+
     /**
      * Retrieves the email of the authenticated user from the security context.
      *
@@ -25,9 +26,12 @@ public class SecurityContextUtility {
      */
     public String getAuthenticatedUserEmail() {
         Authentication authentication = getAuthentication();
+
+
         if (authentication != null && authentication.isAuthenticated()) {
             return authentication.getName();
         }
+
         return null;
     }
 }

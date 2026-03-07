@@ -1,4 +1,4 @@
-package com.example.Homebank.presentation.dto;
+package com.example.Homebank.presentation.dto.auth;
 
 import jakarta.validation.constraints.NotBlank;
 
