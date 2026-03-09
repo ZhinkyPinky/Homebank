@@ -9,18 +9,27 @@ import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredExcepti
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
 import com.example.Homebank.presentation.dto.ApiError;
+import com.example.Homebank.presentation.dto.ResourceAccessDeniedDetail;
+import com.example.Homebank.presentation.dto.ValidationErrorDetail;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.core.MethodParameter;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
+import java.lang.reflect.Method;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -58,11 +67,12 @@ class GlobalExceptionHandlerTests {
 
         assertApiError(response, HttpStatus.FORBIDDEN, "RESOURCE_ACCESS_DENIED", "/customers/1/transactionHeads/2");
         assertNotNull(response.getBody());
-        assertInstanceOf(Map.class, response.getBody().details());
-        Map<?, ?> details = (Map<?, ?>) response.getBody().details();
-        assertEquals("TRANSACTION_HEAD", details.get("resourceType"));
-        assertEquals(2, details.get("resourceId"));
-        assertEquals("read", details.get("action"));
+        assertInstanceOf(ResourceAccessDeniedDetail.class, response.getBody().details());
+        ResourceAccessDeniedDetail details = (ResourceAccessDeniedDetail) response.getBody().details();
+        assertEquals("TRANSACTION_HEAD", details.resourceType());
+        assertEquals(2, details.resourceId());
+        assertEquals("read", details.action());
+        assertEquals(Map.of("customerId", 1), details.metadata());
     }
 
     @Test
@@ -245,11 +255,45 @@ class GlobalExceptionHandlerTests {
         assertApiError(response, HttpStatus.CONFLICT, "ROW_VERSION_MISMATCH", "/customers/10");
     }
 
+    @Test
+    void handleMethodArgumentNotValidExceptionShouldIncludeValidationCodes() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/auth/register");
+        Method method = this.getClass().getDeclaredMethod("dummyMethodForValidation", String.class);
+        MethodParameter parameter = new MethodParameter(method, 0);
+
+        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "registrationDTO");
+        bindingResult.addError(new FieldError("registrationDTO", "email", "", false, new String[]{"NotBlank"}, null, "Email is missing"));
+        bindingResult.addError(new FieldError("registrationDTO", "rowVersion", LocalDateTime.now(), false, new String[]{"NotNull"}, null, "Row version is missing"));
+
+        MethodArgumentNotValidException exception = new MethodArgumentNotValidException(parameter, bindingResult);
+        ResponseEntity<ApiError> response = globalExceptionHandler.handleMethodArgumentNotValidException(exception, request);
+
+        assertApiError(response, HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "/auth/register");
+        assertNotNull(response.getBody());
+        assertInstanceOf(List.class, response.getBody().details());
+        List<?> details = (List<?>) response.getBody().details();
+        assertEquals(2, details.size());
+
+        assertInstanceOf(ValidationErrorDetail.class, details.get(0));
+        ValidationErrorDetail first = (ValidationErrorDetail) details.get(0);
+        assertEquals("NOT_BLANK", first.code());
+        assertEquals("email", first.field());
+
+        assertInstanceOf(ValidationErrorDetail.class, details.get(1));
+        ValidationErrorDetail second = (ValidationErrorDetail) details.get(1);
+        assertEquals("NOT_NULL", second.code());
+        assertEquals("rowVersion", second.field());
+    }
+
     private void assertApiError(ResponseEntity<ApiError> response, HttpStatus expectedStatus, String expectedCode, String expectedPath) {
         assertEquals(expectedStatus, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(expectedCode, response.getBody().code());
         assertEquals(expectedPath, response.getBody().path());
         assertEquals(expectedStatus.value(), response.getBody().status());
+    }
+
+    @SuppressWarnings("unused")
+    private void dummyMethodForValidation(String ignored) {
     }
 }

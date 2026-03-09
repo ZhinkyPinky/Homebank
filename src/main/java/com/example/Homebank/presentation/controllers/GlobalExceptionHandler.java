@@ -9,6 +9,7 @@ import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredExcepti
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
 import com.example.Homebank.presentation.dto.ApiError;
+import com.example.Homebank.presentation.dto.ResourceAccessDeniedDetail;
 import com.example.Homebank.presentation.dto.ValidationErrorDetail;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.persistence.EntityExistsException;
@@ -27,9 +28,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -184,14 +183,12 @@ public class GlobalExceptionHandler {
         String message = e.getMessage() != null ? e.getMessage() : "You do not have permission to perform this action.";
         if (e instanceof ResourceAccessDeniedException resourceException) {
             code = "RESOURCE_ACCESS_DENIED";
-            Map<String, Object> resourceDetails = new LinkedHashMap<>();
-            resourceDetails.put("resourceType", resourceException.getResourceType());
-            resourceDetails.put("resourceId", resourceException.getResourceId());
-            resourceDetails.put("action", resourceException.getAction());
-            if (!resourceException.getMetadata().isEmpty()) {
-                resourceDetails.put("metadata", resourceException.getMetadata());
-            }
-            details = resourceDetails;
+            details = new ResourceAccessDeniedDetail(
+                    resourceException.getResourceType(),
+                    resourceException.getResourceId(),
+                    resourceException.getAction(),
+                    resourceException.getMetadata().isEmpty() ? null : resourceException.getMetadata()
+            );
         }
 
         return buildErrorResponse(HttpStatus.FORBIDDEN, code, message, request, details);
@@ -216,7 +213,11 @@ public class GlobalExceptionHandler {
         logger.info("Handling method argument not valid exception: {}", e.getMessage());
 
         List<ValidationErrorDetail> details = e.getBindingResult().getFieldErrors().stream()
-                .map(fieldError -> new ValidationErrorDetail(fieldError.getField(), fieldError.getDefaultMessage()))
+                .map(fieldError -> new ValidationErrorDetail(
+                        toValidationCode(fieldError.getCode()),
+                        fieldError.getField(),
+                        fieldError.getDefaultMessage()
+                ))
                 .collect(Collectors.toList());
 
         return buildErrorResponse(
@@ -264,5 +265,15 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(status).body(errorResponse);
+    }
+
+    private String toValidationCode(String constraintCode) {
+        if (constraintCode == null || constraintCode.isBlank()) {
+            return "VALIDATION_ERROR";
+        }
+
+        return constraintCode
+                .replaceAll("([a-z])([A-Z])", "$1_$2")
+                .toUpperCase();
     }
 }
