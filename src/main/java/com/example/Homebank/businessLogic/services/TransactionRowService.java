@@ -2,8 +2,8 @@ package com.example.Homebank.businessLogic.services;
 
 import com.example.Homebank.dataAccess.views.TransactionRowView;
 import com.example.Homebank.dataAccess.repositories.TransactionRowRepository;
+import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionRowDTO;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +48,7 @@ public class TransactionRowService {
 
         TransactionRowView transactionRowView = transactionRowRepository.findById(transactionRowId).orElseThrow(() -> {
             logger.error("Transaction row with ID: {} not found.", transactionRowId);
-            return new EntityNotFoundException("The transaction row could not be found.");
+            return new ResourceNotFoundException("TRANSACTION_ROW", transactionRowId, "The transaction row could not be found.");
         });
 
         logger.debug("Retrieved transaction row: {}", transactionRowView);

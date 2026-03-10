@@ -2,7 +2,7 @@ package com.example.Homebank.businessLogic.security;
 
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +37,11 @@ public class AuthenticatedUserProvider {
         logger.debug("Authenticated user email: {}", username);
         return userRepository.findByEmail(username).orElseThrow(() -> {
                     logger.error("Authenticated user with email '{}' not found in database.", username);
-                    return new EntityNotFoundException("Authenticated user could not be found.");
+                    return new ResourceNotFoundException(
+                            "USER",
+                            null,
+                            "Authenticated user could not be found."
+                    );
                 }
         );
     }

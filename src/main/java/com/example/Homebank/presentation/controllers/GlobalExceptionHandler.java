@@ -6,10 +6,12 @@ import com.example.Homebank.exceptions.authentication.InvalidActivationTokenExce
 import com.example.Homebank.exceptions.authentication.InvalidRecoveryTokenException;
 import com.example.Homebank.exceptions.authentication.InvalidRefreshTokenException;
 import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredException;
+import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
 import com.example.Homebank.presentation.dto.ApiError;
 import com.example.Homebank.presentation.dto.ResourceAccessDeniedDetail;
+import com.example.Homebank.presentation.dto.ResourceNotFoundDetail;
 import com.example.Homebank.presentation.dto.ValidationErrorDetail;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.persistence.EntityExistsException;
@@ -56,8 +58,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleEntityNotFoundException(EntityNotFoundException e, HttpServletRequest request) {
         logger.info("Handling entity not found exception: {}", e.getMessage());
 
+        Object details = null;
+        if (e instanceof ResourceNotFoundException resourceNotFoundException) {
+            details = new ResourceNotFoundDetail(
+                    resourceNotFoundException.getResourceType(),
+                    resourceNotFoundException.getResourceId(),
+                    resourceNotFoundException.getMetadata().isEmpty() ? null : resourceNotFoundException.getMetadata()
+            );
+        }
+
         String message = e.getMessage() != null ? e.getMessage() : "The requested resource was not found.";
-        return buildErrorResponse(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", message, request, null);
+        return buildErrorResponse(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", message, request, details);
     }
 
     /**

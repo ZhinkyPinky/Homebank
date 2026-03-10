@@ -7,11 +7,11 @@ import com.example.Homebank.dataAccess.repositories.CustomerViewRepository;
 import com.example.Homebank.dataAccess.views.CustomerView;
 import com.example.Homebank.dataAccess.repositories.CustomerRepository;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
+import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
 import com.example.Homebank.presentation.dto.composite.*;
 import com.example.Homebank.presentation.dto.customer.*;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionRowDTO;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +56,9 @@ public class CustomerService {
             return List.of();
         }
 
-        List<CustomerDTO> customers = customerViewRepository.findAllById(accessibleCustomerIds).stream().map(CustomerDTO::fromEntity).toList();
+        // TODO: Temporary for testing on frontend
+        List<CustomerDTO> customers = customerViewRepository.findAll().stream().map(CustomerDTO::fromEntity).toList();
+        //.findAllById(accessibleCustomerIds).stream().map(CustomerDTO::fromEntity).toList();
 
         logger.debug("Retrieved {} customers.", customers.size());
         return customers;
@@ -111,7 +113,7 @@ public class CustomerService {
 
         CustomerView customerView = customerViewRepository.findById(customerId).orElseThrow(() -> {
             logger.error("Customer with ID: {} not found.", customerId);
-            return new EntityNotFoundException("The customer could not be found.");
+            return new ResourceNotFoundException("CUSTOMER", customerId, "The customer could not be found.");
         });
 
         logger.debug("Retrieved customer: {}", customerView);
@@ -158,7 +160,7 @@ public class CustomerService {
 
         CustomerEntity customerEntity = customerRepository.findById(customerId).orElseThrow(() -> {
             logger.error("Customer with ID: {} not found.", customerId);
-            return new EntityNotFoundException("The customer could not be found.");
+            return new ResourceNotFoundException("CUSTOMER", customerId, "The customer could not be found.");
         });
 
         logger.debug("Retrieved customer entity: {}", customerEntity);

@@ -6,10 +6,12 @@ import com.example.Homebank.exceptions.authentication.InvalidActivationTokenExce
 import com.example.Homebank.exceptions.authentication.InvalidRecoveryTokenException;
 import com.example.Homebank.exceptions.authentication.InvalidRefreshTokenException;
 import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredException;
+import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
 import com.example.Homebank.presentation.dto.ApiError;
 import com.example.Homebank.presentation.dto.ResourceAccessDeniedDetail;
+import com.example.Homebank.presentation.dto.ResourceNotFoundDetail;
 import com.example.Homebank.presentation.dto.ValidationErrorDetail;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
@@ -181,6 +183,29 @@ class GlobalExceptionHandlerTests {
         );
 
         assertApiError(response, HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "/customers/999");
+    }
+
+    @Test
+    void handleResourceNotFoundExceptionShouldIncludeResourceDetails() {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/customers/1/transactionHeads/2/rows/999");
+
+        ResponseEntity<ApiError> response = globalExceptionHandler.handleEntityNotFoundException(
+                new ResourceNotFoundException(
+                        "TRANSACTION_ROW",
+                        999,
+                        "The transaction row could not be found.",
+                        Map.of("customerId", 1, "transactionHeadId", 2)
+                ),
+                request
+        );
+
+        assertApiError(response, HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "/customers/1/transactionHeads/2/rows/999");
+        assertNotNull(response.getBody());
+        assertInstanceOf(ResourceNotFoundDetail.class, response.getBody().details());
+        ResourceNotFoundDetail details = (ResourceNotFoundDetail) response.getBody().details();
+        assertEquals("TRANSACTION_ROW", details.resourceType());
+        assertEquals(999, details.resourceId());
+        assertEquals(Map.of("customerId", 1, "transactionHeadId", 2), details.metadata());
     }
 
     @Test

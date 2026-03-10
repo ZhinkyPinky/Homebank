@@ -3,8 +3,8 @@ package com.example.Homebank.businessLogic.services;
 import com.example.Homebank.businessLogic.security.SecurityContextUtility;
 import com.example.Homebank.dataAccess.views.TransactionHeadView;
 import com.example.Homebank.dataAccess.repositories.TransactionHeadRepository;
+import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +37,7 @@ public class TransactionHeadService {
 
         TransactionHeadView transactionHeadView = transactionHeadRepository.findById(transactionHeadId).orElseThrow(() -> {
             logger.error("Transaction head with ID: {} not found.", transactionHeadId);
-            return new EntityNotFoundException("Transaction head could not be found.");
+            return new ResourceNotFoundException("TRANSACTION_HEAD", transactionHeadId, "Transaction head could not be found.");
         });
 
         logger.debug("Retrieved transaction head: {}", transactionHeadView);
