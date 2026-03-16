@@ -3,8 +3,9 @@ package com.example.Homebank.businessLogic.security;
 import com.example.Homebank.businessLogic.services.UserService;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.entities.UserStatus;
+import com.example.Homebank.error.ApiErrorCode;
 import com.example.Homebank.presentation.ApiPaths;
-import com.example.Homebank.presentation.dto.ApiError;
+import com.example.Homebank.presentation.dto.error.ApiError;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -55,30 +57,57 @@ public class UserStatusFilter extends OncePerRequestFilter {
         String requestPath = request.getRequestURI();
 
         if (authentication != null && authentication.isAuthenticated() && authentication.getPrincipal() instanceof String email) {
-            UserEntity userEntity = (UserEntity) userService.loadUserByUsername(email);
+            UserEntity userEntity;
+            try {
+                userEntity = (UserEntity) userService.loadUserByUsername(email);
+            } catch (AuthenticationException e) {
+                writeErrorResponse(
+                        response,
+                        requestPath,
+                        HttpStatus.UNAUTHORIZED,
+                        ApiErrorCode.AUTHENTICATION_FAILED,
+                        "Authentication failed."
+                );
+                return;
+            }
 
             if (userEntity.getStatus() == UserStatus.ACTIVATION_PENDING
                     && !ALLOWED_PENDING_ACTIVATION_ENDPOINTS.contains(requestPath)) {
-                response.setStatus(HttpStatus.FORBIDDEN.value());
-                response.setContentType("application/json");
-
-                ApiError error = new ApiError(
-                        Instant.now(),
-                        HttpStatus.FORBIDDEN.value(),
-                        HttpStatus.FORBIDDEN.getReasonPhrase(),
-                        "ACCOUNT_NOT_ACTIVATED",
-                        "Please activate your account first.",
+                writeErrorResponse(
+                        response,
                         requestPath,
-                        null
+                        HttpStatus.FORBIDDEN,
+                        ApiErrorCode.ACCOUNT_NOT_ACTIVATED,
+                        "Please activate your account first."
                 );
-
-                objectMapper.writeValue(response.getWriter(), error);
-
-                response.getWriter().flush();
                 return;
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void writeErrorResponse(
+            HttpServletResponse response,
+            String path,
+            HttpStatus status,
+            ApiErrorCode code,
+            String message
+    ) throws IOException {
+        response.setStatus(status.value());
+        response.setContentType("application/json");
+
+        ApiError error = new ApiError(
+                Instant.now(),
+                status.value(),
+                status.getReasonPhrase(),
+                code,
+                message,
+                path,
+                null
+        );
+
+        objectMapper.writeValue(response.getWriter(), error);
+        response.getWriter().flush();
     }
 }

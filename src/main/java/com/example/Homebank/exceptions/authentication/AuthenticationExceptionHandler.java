@@ -1,5 +1,6 @@
 package com.example.Homebank.exceptions.authentication;
 
+import com.example.Homebank.error.ApiErrorCode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,15 +32,15 @@ public class AuthenticationExceptionHandler implements AuthenticationFailureHand
      */
     @Override
     public void onAuthenticationFailure(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
-        String code = switch (exception) {
-            case AccountNotActivatedException e -> "ACCOUNT_NOT_ACTIVATED";
-            case ActivationTokenExpiredException e -> "ACTIVATION_TOKEN_EXPIRED";
-            case BadCredentialsException e -> "BAD_CREDENTIALS";
-            default -> "AUTHENTICATION_FAILED";
+        ApiErrorCode code = switch (exception) {
+            case AccountNotActivatedException e -> ApiErrorCode.ACCOUNT_NOT_ACTIVATED;
+            case ActivationTokenExpiredException e -> ApiErrorCode.TOKEN_EXPIRED;
+            case BadCredentialsException e -> ApiErrorCode.BAD_CREDENTIALS;
+            default -> ApiErrorCode.AUTHENTICATION_FAILED;
         };
 
         objectMapper.writeValue(response.getWriter(), Map.of(
-                "error", code,
+                "error", code.name(),
                 "message", "Authentication failed."
         ));
     }

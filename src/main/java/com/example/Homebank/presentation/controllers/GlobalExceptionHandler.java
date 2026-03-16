@@ -1,18 +1,16 @@
 package com.example.Homebank.presentation.controllers;
 
+import com.example.Homebank.error.ApiErrorCode;
 import com.example.Homebank.exceptions.authentication.AccountNotActivatedException;
-import com.example.Homebank.exceptions.authentication.ActivationTokenExpiredException;
-import com.example.Homebank.exceptions.authentication.InvalidActivationTokenException;
-import com.example.Homebank.exceptions.authentication.InvalidRecoveryTokenException;
-import com.example.Homebank.exceptions.authentication.InvalidRefreshTokenException;
-import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredException;
+import com.example.Homebank.exceptions.authentication.TokenException;
 import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
-import com.example.Homebank.presentation.dto.ApiError;
-import com.example.Homebank.presentation.dto.ResourceAccessDeniedDetail;
-import com.example.Homebank.presentation.dto.ResourceNotFoundDetail;
-import com.example.Homebank.presentation.dto.ValidationErrorDetail;
+import com.example.Homebank.presentation.dto.error.ApiError;
+import com.example.Homebank.presentation.dto.error.ResourceAccessDeniedDetail;
+import com.example.Homebank.presentation.dto.error.ResourceNotFoundDetail;
+import com.example.Homebank.presentation.dto.error.TokenErrorDetail;
+import com.example.Homebank.presentation.dto.error.ValidationErrorDetail;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
@@ -48,7 +46,7 @@ public class GlobalExceptionHandler {
         logger.info("Handling entity exists exception: {}", e.getMessage());
 
         String message = e.getMessage() != null ? e.getMessage() : "The resource already exists.";
-        return buildErrorResponse(HttpStatus.CONFLICT, "ENTITY_ALREADY_EXISTS", message, request, null);
+        return buildErrorResponse(HttpStatus.CONFLICT, ApiErrorCode.ENTITY_ALREADY_EXISTS, message, request, null);
     }
 
     /**
@@ -68,7 +66,7 @@ public class GlobalExceptionHandler {
         }
 
         String message = e.getMessage() != null ? e.getMessage() : "The requested resource was not found.";
-        return buildErrorResponse(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", message, request, details);
+        return buildErrorResponse(HttpStatus.NOT_FOUND, ApiErrorCode.RESOURCE_NOT_FOUND, message, request, details);
     }
 
     /**
@@ -79,54 +77,18 @@ public class GlobalExceptionHandler {
         logger.info("Handling account not activated exception: {}", e.getMessage());
 
         String message = "Your account is not activated. Please check your email for the activation link.";
-        return buildErrorResponse(HttpStatus.FORBIDDEN, "ACCOUNT_NOT_ACTIVATED", message, request, null);
+        return buildErrorResponse(HttpStatus.FORBIDDEN, ApiErrorCode.ACCOUNT_NOT_ACTIVATED, message, request, null);
     }
 
     /**
-     * Handles activation links or tokens that are no longer valid.
+     * Handles token-related failures and includes token-type details for client parsing.
      */
-    @ExceptionHandler(ActivationTokenExpiredException.class)
-    public ResponseEntity<ApiError> handleActivationTokenExpiredException(ActivationTokenExpiredException e, HttpServletRequest request) {
-        logger.info("Handling activation token expired exception: {}", e.getMessage());
+    @ExceptionHandler(TokenException.class)
+    public ResponseEntity<ApiError> handleTokenException(TokenException e, HttpServletRequest request) {
+        logger.info("Handling token exception: {} ({})", e.getCode(), e.getTokenType());
 
-        String message = "Your activation token has expired. Please request a new activation email.";
-        return buildErrorResponse(HttpStatus.FORBIDDEN, "ACTIVATION_TOKEN_EXPIRED", message, request, null);
-    }
-
-    /**
-     * Handles invalid refresh token errors.
-     */
-    @ExceptionHandler(InvalidRefreshTokenException.class)
-    public ResponseEntity<ApiError> handleInvalidRefreshTokenException(InvalidRefreshTokenException e, HttpServletRequest request) {
-        logger.info("Handling invalid refresh token exception: {}", e.getMessage());
-        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN", "Invalid refresh token.", request, null);
-    }
-
-    /**
-     * Handles expired refresh token errors.
-     */
-    @ExceptionHandler(RefreshTokenExpiredException.class)
-    public ResponseEntity<ApiError> handleRefreshTokenExpiredException(RefreshTokenExpiredException e, HttpServletRequest request) {
-        logger.info("Handling refresh token expired exception: {}", e.getMessage());
-        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "REFRESH_TOKEN_EXPIRED", "Refresh token has expired.", request, null);
-    }
-
-    /**
-     * Handles invalid recovery token errors.
-     */
-    @ExceptionHandler(InvalidRecoveryTokenException.class)
-    public ResponseEntity<ApiError> handleInvalidRecoveryTokenException(InvalidRecoveryTokenException e, HttpServletRequest request) {
-        logger.info("Handling invalid recovery token exception: {}", e.getMessage());
-        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "INVALID_RECOVERY_TOKEN", "Invalid recovery token.", request, null);
-    }
-
-    /**
-     * Handles invalid activation token errors.
-     */
-    @ExceptionHandler(InvalidActivationTokenException.class)
-    public ResponseEntity<ApiError> handleInvalidActivationTokenException(InvalidActivationTokenException e, HttpServletRequest request) {
-        logger.info("Handling invalid activation token exception: {}", e.getMessage());
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, "INVALID_ACTIVATION_TOKEN", "Invalid activation token.", request, null);
+        TokenErrorDetail details = new TokenErrorDetail(e.getTokenType().name());
+        return buildErrorResponse(e.getStatus(), e.getCode(), e.getClientMessage(), request, details);
     }
 
     /**
@@ -135,7 +97,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PasswordConfirmationMismatchException.class)
     public ResponseEntity<ApiError> handlePasswordConfirmationMismatchException(PasswordConfirmationMismatchException e, HttpServletRequest request) {
         logger.info("Handling password confirmation mismatch exception: {}", e.getMessage());
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, "PASSWORD_CONFIRMATION_MISMATCH", "Passwords do not match.", request, null);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ApiErrorCode.PASSWORD_CONFIRMATION_MISMATCH, "Passwords do not match.", request, null);
     }
 
     /**
@@ -146,7 +108,7 @@ public class GlobalExceptionHandler {
         logger.info("Handling bad credentials exception: {}", e.getMessage());
 
         String message = "Invalid email or password.";
-        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "BAD_CREDENTIALS", message, request, null);
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, ApiErrorCode.BAD_CREDENTIALS, message, request, null);
     }
 
     /**
@@ -157,7 +119,7 @@ public class GlobalExceptionHandler {
         logger.info("Handling disabled account exception: {}", e.getMessage());
 
         String message = "Your account has been disabled.";
-        return buildErrorResponse(HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED", message, request, null);
+        return buildErrorResponse(HttpStatus.FORBIDDEN, ApiErrorCode.ACCOUNT_DISABLED, message, request, null);
     }
 
     /**
@@ -168,7 +130,7 @@ public class GlobalExceptionHandler {
         logger.info("Handling authentication exception: {}", e.getMessage());
 
         String message = "Authentication failed.";
-        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_FAILED", message, request, null);
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, ApiErrorCode.AUTHENTICATION_FAILED, message, request, null);
     }
 
     /**
@@ -179,7 +141,7 @@ public class GlobalExceptionHandler {
         logger.info("Handling illegal argument exception: {}", e.getMessage());
 
         String message = e.getMessage() != null ? e.getMessage() : "Invalid request parameters.";
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, "BAD_REQUEST", message, request, null);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ApiErrorCode.BAD_REQUEST, message, request, null);
     }
 
     /**
@@ -190,10 +152,10 @@ public class GlobalExceptionHandler {
         logger.info("Handling access denied exception: {}", e.getMessage());
 
         Object details = null;
-        String code = "ACCESS_DENIED";
+        ApiErrorCode code = ApiErrorCode.ACCESS_DENIED;
         String message = e.getMessage() != null ? e.getMessage() : "You do not have permission to perform this action.";
         if (e instanceof ResourceAccessDeniedException resourceException) {
-            code = "RESOURCE_ACCESS_DENIED";
+            code = ApiErrorCode.RESOURCE_ACCESS_DENIED;
             details = new ResourceAccessDeniedDetail(
                     resourceException.getResourceType(),
                     resourceException.getResourceId(),
@@ -213,7 +175,7 @@ public class GlobalExceptionHandler {
         logger.info("Handling optimistic locking failure exception: {}", e.getMessage());
 
         String message = "The resource was modified by another process. Please refresh and try again.";
-        return buildErrorResponse(HttpStatus.CONFLICT, "ROW_VERSION_MISMATCH", message, request, null);
+        return buildErrorResponse(HttpStatus.CONFLICT, ApiErrorCode.ROW_VERSION_MISMATCH, message, request, null);
     }
 
     /**
@@ -233,7 +195,7 @@ public class GlobalExceptionHandler {
 
         return buildErrorResponse(
                 HttpStatus.BAD_REQUEST,
-                "VALIDATION_FAILED",
+                ApiErrorCode.VALIDATION_FAILED,
                 "Validation failed for one or more fields.",
                 request,
                 details
@@ -248,7 +210,7 @@ public class GlobalExceptionHandler {
         logger.error("Handling unhandled exception: {}", e.getMessage(), e);
         return buildErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "INTERNAL_SERVER_ERROR",
+                ApiErrorCode.INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred.",
                 request,
                 null
@@ -260,7 +222,7 @@ public class GlobalExceptionHandler {
      */
     private ResponseEntity<ApiError> buildErrorResponse(
             HttpStatus status,
-            String code,
+            ApiErrorCode code,
             String message,
             HttpServletRequest request,
             Object details

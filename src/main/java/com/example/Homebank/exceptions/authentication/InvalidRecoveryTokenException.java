@@ -1,12 +1,18 @@
 package com.example.Homebank.exceptions.authentication;
 
-import org.springframework.security.core.AuthenticationException;
+import com.example.Homebank.error.ApiErrorCode;
+import org.springframework.http.HttpStatus;
 
 /**
  * Thrown when the provided recovery token is invalid.
  */
-public class InvalidRecoveryTokenException extends AuthenticationException {
+public class InvalidRecoveryTokenException extends InvalidTokenException {
     public InvalidRecoveryTokenException() {
-        super("INVALID_RECOVERY_TOKEN");
+        super(
+                TokenType.RECOVERY,
+                HttpStatus.UNAUTHORIZED,
+                ApiErrorCode.TOKEN_INVALID,
+                "Invalid recovery token."
+        );
     }
 }

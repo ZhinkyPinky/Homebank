@@ -1,5 +1,6 @@
 package com.example.Homebank.presentation.controllers;
 
+import com.example.Homebank.error.ApiErrorCode;
 import com.example.Homebank.exceptions.authentication.AccountNotActivatedException;
 import com.example.Homebank.exceptions.authentication.ActivationTokenExpiredException;
 import com.example.Homebank.exceptions.authentication.InvalidActivationTokenException;
@@ -9,10 +10,11 @@ import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredExcepti
 import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
-import com.example.Homebank.presentation.dto.ApiError;
-import com.example.Homebank.presentation.dto.ResourceAccessDeniedDetail;
-import com.example.Homebank.presentation.dto.ResourceNotFoundDetail;
-import com.example.Homebank.presentation.dto.ValidationErrorDetail;
+import com.example.Homebank.presentation.dto.error.ApiError;
+import com.example.Homebank.presentation.dto.error.ResourceAccessDeniedDetail;
+import com.example.Homebank.presentation.dto.error.ResourceNotFoundDetail;
+import com.example.Homebank.presentation.dto.error.TokenErrorDetail;
+import com.example.Homebank.presentation.dto.error.ValidationErrorDetail;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -49,7 +51,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertApiError(response, HttpStatus.FORBIDDEN, "ACCESS_DENIED", "/customers/123");
+        assertApiError(response, HttpStatus.FORBIDDEN, ApiErrorCode.ACCESS_DENIED, "/customers/123");
     }
 
     @Test
@@ -67,7 +69,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertApiError(response, HttpStatus.FORBIDDEN, "RESOURCE_ACCESS_DENIED", "/customers/1/transactionHeads/2");
+        assertApiError(response, HttpStatus.FORBIDDEN, ApiErrorCode.RESOURCE_ACCESS_DENIED, "/customers/1/transactionHeads/2");
         assertNotNull(response.getBody());
         assertInstanceOf(ResourceAccessDeniedDetail.class, response.getBody().details());
         ResourceAccessDeniedDetail details = (ResourceAccessDeniedDetail) response.getBody().details();
@@ -86,19 +88,20 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertApiError(response, HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "/customers");
+        assertApiError(response, HttpStatus.INTERNAL_SERVER_ERROR, ApiErrorCode.INTERNAL_SERVER_ERROR, "/customers");
     }
 
     @Test
     void handleInvalidRefreshTokenExceptionShouldReturnUnauthorizedApiError() {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/auth/refresh");
 
-        ResponseEntity<ApiError> response = globalExceptionHandler.handleInvalidRefreshTokenException(
+        ResponseEntity<ApiError> response = globalExceptionHandler.handleTokenException(
                 new InvalidRefreshTokenException(),
                 request
         );
 
-        assertApiError(response, HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN", "/auth/refresh");
+        assertApiError(response, HttpStatus.UNAUTHORIZED, ApiErrorCode.TOKEN_INVALID, "/auth/refresh");
+        assertTokenType(response, "REFRESH");
     }
 
     @Test
@@ -110,55 +113,59 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertApiError(response, HttpStatus.BAD_REQUEST, "PASSWORD_CONFIRMATION_MISMATCH", "/users/changePassword");
+        assertApiError(response, HttpStatus.BAD_REQUEST, ApiErrorCode.PASSWORD_CONFIRMATION_MISMATCH, "/users/changePassword");
     }
 
     @Test
     void handleRefreshTokenExpiredExceptionShouldReturnUnauthorizedApiError() {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/auth/refresh");
 
-        ResponseEntity<ApiError> response = globalExceptionHandler.handleRefreshTokenExpiredException(
+        ResponseEntity<ApiError> response = globalExceptionHandler.handleTokenException(
                 new RefreshTokenExpiredException(),
                 request
         );
 
-        assertApiError(response, HttpStatus.UNAUTHORIZED, "REFRESH_TOKEN_EXPIRED", "/auth/refresh");
+        assertApiError(response, HttpStatus.UNAUTHORIZED, ApiErrorCode.TOKEN_EXPIRED, "/auth/refresh");
+        assertTokenType(response, "REFRESH");
     }
 
     @Test
     void handleInvalidRecoveryTokenExceptionShouldReturnUnauthorizedApiError() {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/account-recovery/set-new-password");
 
-        ResponseEntity<ApiError> response = globalExceptionHandler.handleInvalidRecoveryTokenException(
+        ResponseEntity<ApiError> response = globalExceptionHandler.handleTokenException(
                 new InvalidRecoveryTokenException(),
                 request
         );
 
-        assertApiError(response, HttpStatus.UNAUTHORIZED, "INVALID_RECOVERY_TOKEN", "/account-recovery/set-new-password");
+        assertApiError(response, HttpStatus.UNAUTHORIZED, ApiErrorCode.TOKEN_INVALID, "/account-recovery/set-new-password");
+        assertTokenType(response, "RECOVERY");
     }
 
     @Test
     void handleInvalidActivationTokenExceptionShouldReturnBadRequestApiError() {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/auth/activate");
 
-        ResponseEntity<ApiError> response = globalExceptionHandler.handleInvalidActivationTokenException(
+        ResponseEntity<ApiError> response = globalExceptionHandler.handleTokenException(
                 new InvalidActivationTokenException(),
                 request
         );
 
-        assertApiError(response, HttpStatus.BAD_REQUEST, "INVALID_ACTIVATION_TOKEN", "/auth/activate");
+        assertApiError(response, HttpStatus.BAD_REQUEST, ApiErrorCode.TOKEN_INVALID, "/auth/activate");
+        assertTokenType(response, "ACTIVATION");
     }
 
     @Test
     void handleActivationTokenExpiredExceptionShouldReturnForbiddenApiError() {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/auth/activate");
 
-        ResponseEntity<ApiError> response = globalExceptionHandler.handleActivationTokenExpiredException(
+        ResponseEntity<ApiError> response = globalExceptionHandler.handleTokenException(
                 new ActivationTokenExpiredException(),
                 request
         );
 
-        assertApiError(response, HttpStatus.FORBIDDEN, "ACTIVATION_TOKEN_EXPIRED", "/auth/activate");
+        assertApiError(response, HttpStatus.FORBIDDEN, ApiErrorCode.TOKEN_EXPIRED, "/auth/activate");
+        assertTokenType(response, "ACTIVATION");
     }
 
     @Test
@@ -170,7 +177,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertApiError(response, HttpStatus.FORBIDDEN, "ACCOUNT_NOT_ACTIVATED", "/auth/refresh");
+        assertApiError(response, HttpStatus.FORBIDDEN, ApiErrorCode.ACCOUNT_NOT_ACTIVATED, "/auth/refresh");
     }
 
     @Test
@@ -182,7 +189,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertApiError(response, HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "/customers/999");
+        assertApiError(response, HttpStatus.NOT_FOUND, ApiErrorCode.RESOURCE_NOT_FOUND, "/customers/999");
     }
 
     @Test
@@ -199,7 +206,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertApiError(response, HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", "/customers/1/transactionHeads/2/rows/999");
+        assertApiError(response, HttpStatus.NOT_FOUND, ApiErrorCode.RESOURCE_NOT_FOUND, "/customers/1/transactionHeads/2/rows/999");
         assertNotNull(response.getBody());
         assertInstanceOf(ResourceNotFoundDetail.class, response.getBody().details());
         ResourceNotFoundDetail details = (ResourceNotFoundDetail) response.getBody().details();
@@ -217,7 +224,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertApiError(response, HttpStatus.CONFLICT, "ENTITY_ALREADY_EXISTS", "/auth/register");
+        assertApiError(response, HttpStatus.CONFLICT, ApiErrorCode.ENTITY_ALREADY_EXISTS, "/auth/register");
     }
 
     @Test
@@ -229,7 +236,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertApiError(response, HttpStatus.UNAUTHORIZED, "BAD_CREDENTIALS", "/auth/login");
+        assertApiError(response, HttpStatus.UNAUTHORIZED, ApiErrorCode.BAD_CREDENTIALS, "/auth/login");
     }
 
     @Test
@@ -241,7 +248,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertApiError(response, HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED", "/auth/login");
+        assertApiError(response, HttpStatus.FORBIDDEN, ApiErrorCode.ACCOUNT_DISABLED, "/auth/login");
     }
 
     @Test
@@ -253,7 +260,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertApiError(response, HttpStatus.UNAUTHORIZED, "AUTHENTICATION_FAILED", "/auth/login");
+        assertApiError(response, HttpStatus.UNAUTHORIZED, ApiErrorCode.AUTHENTICATION_FAILED, "/auth/login");
     }
 
     @Test
@@ -265,7 +272,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertApiError(response, HttpStatus.BAD_REQUEST, "BAD_REQUEST", "/users/changePassword");
+        assertApiError(response, HttpStatus.BAD_REQUEST, ApiErrorCode.BAD_REQUEST, "/users/changePassword");
     }
 
     @Test
@@ -277,7 +284,7 @@ class GlobalExceptionHandlerTests {
                 request
         );
 
-        assertApiError(response, HttpStatus.CONFLICT, "ROW_VERSION_MISMATCH", "/customers/10");
+        assertApiError(response, HttpStatus.CONFLICT, ApiErrorCode.ROW_VERSION_MISMATCH, "/customers/10");
     }
 
     @Test
@@ -293,7 +300,7 @@ class GlobalExceptionHandlerTests {
         MethodArgumentNotValidException exception = new MethodArgumentNotValidException(parameter, bindingResult);
         ResponseEntity<ApiError> response = globalExceptionHandler.handleMethodArgumentNotValidException(exception, request);
 
-        assertApiError(response, HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "/auth/register");
+        assertApiError(response, HttpStatus.BAD_REQUEST, ApiErrorCode.VALIDATION_FAILED, "/auth/register");
         assertNotNull(response.getBody());
         assertInstanceOf(List.class, response.getBody().details());
         List<?> details = (List<?>) response.getBody().details();
@@ -310,12 +317,19 @@ class GlobalExceptionHandlerTests {
         assertEquals("rowVersion", second.field());
     }
 
-    private void assertApiError(ResponseEntity<ApiError> response, HttpStatus expectedStatus, String expectedCode, String expectedPath) {
+    private void assertApiError(ResponseEntity<ApiError> response, HttpStatus expectedStatus, ApiErrorCode expectedCode, String expectedPath) {
         assertEquals(expectedStatus, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(expectedCode, response.getBody().code());
         assertEquals(expectedPath, response.getBody().path());
         assertEquals(expectedStatus.value(), response.getBody().status());
+    }
+
+    private void assertTokenType(ResponseEntity<ApiError> response, String expectedTokenType) {
+        assertNotNull(response.getBody());
+        assertInstanceOf(TokenErrorDetail.class, response.getBody().details());
+        TokenErrorDetail details = (TokenErrorDetail) response.getBody().details();
+        assertEquals(expectedTokenType, details.tokenType());
     }
 
     @SuppressWarnings("unused")

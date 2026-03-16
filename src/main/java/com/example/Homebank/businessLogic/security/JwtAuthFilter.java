@@ -1,7 +1,10 @@
 package com.example.Homebank.businessLogic.security;
 
 import com.example.Homebank.businessLogic.services.UserService;
-import com.example.Homebank.presentation.dto.ApiError;
+import com.example.Homebank.error.ApiErrorCode;
+import com.example.Homebank.exceptions.authentication.TokenType;
+import com.example.Homebank.presentation.dto.error.ApiError;
+import com.example.Homebank.presentation.dto.error.TokenErrorDetail;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -11,7 +14,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -62,8 +67,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 writeErrorResponse(
                         response,
                         request.getRequestURI(),
-                        HttpServletResponse.SC_UNAUTHORIZED,
-                        "TOKEN_EXPIRED",
+                        HttpStatus.UNAUTHORIZED,
+                        ApiErrorCode.TOKEN_EXPIRED,
                         "Token expired."
                 );
                 return;
@@ -72,8 +77,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 writeErrorResponse(
                         response,
                         request.getRequestURI(),
-                        HttpServletResponse.SC_UNAUTHORIZED,
-                        "TOKEN_INVALID",
+                        HttpStatus.UNAUTHORIZED,
+                        ApiErrorCode.TOKEN_INVALID,
                         "Invalid token."
                 );
                 return;
@@ -86,7 +91,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             logger.debug("Loading user details for username: {}", username);
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            UserDetails userDetails;
+            try {
+                userDetails = userDetailsService.loadUserByUsername(username);
+            } catch (AuthenticationException e) {
+                logger.warn("JWT subject is invalid or no longer exists: {}", username);
+                writeErrorResponse(
+                        response,
+                        request.getRequestURI(),
+                        HttpStatus.UNAUTHORIZED,
+                        ApiErrorCode.TOKEN_INVALID,
+                        "Invalid token."
+                );
+                return;
+            }
 
             if (jwtUtil.isTokenValid(jwt, userDetails.getUsername())) {
                 logger.debug("JWT is valid for username: {}", username);
@@ -98,6 +116,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 logger.info("Authenticated user: {}", username);
             } else {
                 logger.warn("Invalid JWT for username: {}", username);
+                writeErrorResponse(
+                        response,
+                        request.getRequestURI(),
+                        HttpStatus.UNAUTHORIZED,
+                        ApiErrorCode.TOKEN_INVALID,
+                        "Invalid token."
+                );
+                return;
             }
         }
 
@@ -110,23 +136,29 @@ public class JwtAuthFilter extends OncePerRequestFilter {
      *
      * @param response Target HTTP response.
      * @param path     Request path that failed.
-     * @param status   HTTP status code to return.
+     * @param status   HTTP status to return.
      * @param code     Stable machine-readable error code.
      * @param message  Human-readable message for the client.
      * @throws IOException If writing the response body fails.
      */
-    private void writeErrorResponse(HttpServletResponse response, String path, int status, String code, String message) throws IOException {
-        response.setStatus(status);
+    private void writeErrorResponse(
+            HttpServletResponse response,
+            String path,
+            HttpStatus status,
+            ApiErrorCode code,
+            String message
+    ) throws IOException {
+        response.setStatus(status.value());
         response.setContentType("application/json");
 
         ApiError apiError = new ApiError(
                 Instant.now(),
-                status,
-                "Unauthorized",
+                status.value(),
+                status.getReasonPhrase(),
                 code,
                 message,
                 path,
-                null
+                new TokenErrorDetail(TokenType.ACCESS.name())
         );
 
         objectMapper.writeValue(response.getWriter(), apiError);

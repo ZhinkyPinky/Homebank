@@ -1,4 +1,4 @@
-package com.example.Homebank.presentation.dto;
+package com.example.Homebank.presentation.dto.error;
 
 /**
  * Validation issue for a specific request field.

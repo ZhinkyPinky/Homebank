@@ -1,4 +1,6 @@
-package com.example.Homebank.presentation.dto;
+package com.example.Homebank.presentation.dto.error;
+
+import com.example.Homebank.error.ApiErrorCode;
 
 import java.time.Instant;
 
@@ -17,7 +19,7 @@ public record ApiError(
         Instant timestamp,
         int status,
         String error,
-        String code,
+        ApiErrorCode code,
         String message,
         String path,
         Object details

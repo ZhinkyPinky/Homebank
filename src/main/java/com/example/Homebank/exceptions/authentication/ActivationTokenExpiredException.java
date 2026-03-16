@@ -1,9 +1,15 @@
 package com.example.Homebank.exceptions.authentication;
 
-import org.springframework.security.core.AuthenticationException;
+import com.example.Homebank.error.ApiErrorCode;
+import org.springframework.http.HttpStatus;
 
-public class ActivationTokenExpiredException extends AuthenticationException {
+public class ActivationTokenExpiredException extends ExpiredTokenException {
     public ActivationTokenExpiredException() {
-        super("ACTIVATION_TOKEN_EXPIRED");
+        super(
+                TokenType.ACTIVATION,
+                HttpStatus.FORBIDDEN,
+                ApiErrorCode.TOKEN_EXPIRED,
+                "Your activation token has expired. Please request a new activation email."
+        );
     }
 }

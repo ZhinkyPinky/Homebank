@@ -1,0 +1,22 @@
+package com.example.Homebank.error;
+
+/**
+ * Stable machine-readable API error codes returned to clients.
+ */
+public enum ApiErrorCode {
+    ENTITY_ALREADY_EXISTS,
+    RESOURCE_NOT_FOUND,
+    ACCOUNT_NOT_ACTIVATED,
+    TOKEN_INVALID,
+    TOKEN_EXPIRED,
+    PASSWORD_CONFIRMATION_MISMATCH,
+    BAD_CREDENTIALS,
+    ACCOUNT_DISABLED,
+    AUTHENTICATION_FAILED,
+    BAD_REQUEST,
+    ACCESS_DENIED,
+    RESOURCE_ACCESS_DENIED,
+    ROW_VERSION_MISMATCH,
+    VALIDATION_FAILED,
+    INTERNAL_SERVER_ERROR
+}
