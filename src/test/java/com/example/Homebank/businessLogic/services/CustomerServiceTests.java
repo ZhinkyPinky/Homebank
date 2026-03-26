@@ -1,10 +1,12 @@
 package com.example.Homebank.businessLogic.services;
 
 import com.example.Homebank.businessLogic.security.AuthenticatedUserProvider;
+import com.example.Homebank.dataAccess.entities.CustomerEntity;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.CustomerRepository;
 import com.example.Homebank.dataAccess.repositories.CustomerViewRepository;
 import com.example.Homebank.dataAccess.views.CustomerView;
+import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.presentation.dto.composite.CustomersAndTransactionHeadDTO;
 import com.example.Homebank.presentation.dto.customer.CustomerDTO;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
@@ -18,6 +20,7 @@ import org.springframework.security.access.AccessDeniedException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -118,6 +121,34 @@ class CustomerServiceTests {
         assertEquals(10, result.transactionHead().id());
     }
 
+    @Test
+    void deleteCustomer_ownerDeletesSuccessfully() {
+        int customerId = 12;
+        UserEntity authenticatedUser = user(7);
+        CustomerEntity customer = customerEntity(customerId, user(7));
+
+        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
+        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+
+        customerService.deleteCustomer(customerId);
+
+        verify(customerRepository).deleteById(customerId);
+    }
+
+    @Test
+    void deleteCustomer_nonOwnerThrowsAccessDeniedAndDoesNotDelete() {
+        int customerId = 12;
+        UserEntity authenticatedUser = user(7);
+        CustomerEntity customer = customerEntity(customerId, user(99));
+
+        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
+        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+
+        assertThrows(ResourceAccessDeniedException.class, () -> customerService.deleteCustomer(customerId));
+
+        verify(customerRepository, never()).deleteById(customerId);
+    }
+
     private CustomerView customerView(int id, String name) {
         return new CustomerView(
                 id,
@@ -144,5 +175,18 @@ class CustomerServiceTests {
                 "Lender",
                 LocalDateTime.parse("2026-01-01T00:00:00")
         );
+    }
+
+    private UserEntity user(int id) {
+        UserEntity user = new UserEntity();
+        user.setId(id);
+        return user;
+    }
+
+    private CustomerEntity customerEntity(int customerId, UserEntity owner) {
+        CustomerEntity customerEntity = new CustomerEntity();
+        customerEntity.setId(customerId);
+        customerEntity.setOwner(owner);
+        return customerEntity;
     }
 }

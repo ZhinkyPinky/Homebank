@@ -57,8 +57,7 @@ public class CustomerService {
         }
 
         // TODO: Temporary for testing on frontend
-        List<CustomerDTO> customers = customerViewRepository.findAll().stream().map(CustomerDTO::fromEntity).toList();
-        //.findAllById(accessibleCustomerIds).stream().map(CustomerDTO::fromEntity).toList();
+        List<CustomerDTO> customers = customerViewRepository.findAllById(accessibleCustomerIds).stream().map(CustomerDTO::fromEntity).toList();
 
         logger.debug("Retrieved {} customers.", customers.size());
         return customers;
@@ -120,40 +119,6 @@ public class CustomerService {
         return CustomerDTO.fromEntity(customerView);
     }
 
-    /**
-     * Validates that the authenticated user has access to the specified customer.
-     *
-     * @param customerEntity    The customer entity to validate access for.
-     * @param authenticatedUser The currently authenticated user.
-     * @throws ResourceAccessDeniedException if the user does not have access to the customer.
-     */
-    private void validateCustomerAccess(CustomerEntity customerEntity, UserEntity authenticatedUser) {
-        int authenticatedUserId = authenticatedUser.getId();
-        int customerId = customerEntity.getId();
-        boolean isOwner = customerEntity.getOwner() != null && customerEntity.getOwner().getId() == authenticatedUserId;
-        boolean isMember = customerEntity.getUserCustomers() != null
-                && customerEntity.getUserCustomers().stream().anyMatch(link ->
-                link.getUser() != null && link.getUser().getId() == authenticatedUserId
-        );
-
-        logger.debug(
-                "Customer access validation for userId={} and customerId={}: isOwner={}, isMember={}",
-                authenticatedUserId, customerId, isOwner, isMember
-        );
-
-        if (!isOwner && !isMember) {
-            logger.warn("Customer access denied for userId={} to customerId={}.", authenticatedUserId, customerId);
-            throw new ResourceAccessDeniedException(
-                    "CUSTOMER",
-                    customerId,
-                    "read",
-                    "You do not have permission to access this customer.",
-                    Map.of("userId", authenticatedUserId)
-            );
-        }
-
-        logger.debug("Customer access granted for userId={} to customerId={}.", authenticatedUserId, customerId);
-    }
 
     private CustomerEntity getCustomerEntity(int customerId) {
         logger.info("Fetching customer entity with ID: {}", customerId);
@@ -286,19 +251,12 @@ public class CustomerService {
 
         UserEntity authenticatedUser = authenticatedUserProvider.getAuthenticatedUser();
         CustomerEntity customerEntity = getCustomerEntity(customerId);
-
-        int ownerId = customerEntity.getOwner().getId();
-        int authenticatedUserId = authenticatedUser.getId();
-        if (ownerId != authenticatedUserId) {
-            logger.error("User with ID: {} is not the owner of customer with ID: {}.", authenticatedUserId, customerId);
-            throw new ResourceAccessDeniedException(
-                    "CUSTOMER",
-                    customerId,
-                    "update",
-                    "You do not have permission to update this customer.",
-                    Map.of("ownerId", ownerId, "userId", authenticatedUserId)
-            );
-        }
+        validateCustomerOwnership(
+                customerEntity,
+                authenticatedUser,
+                "update",
+                "You do not have permission to update this customer."
+        );
 
         LocalDateTime providedRowVersion = customer.rowVersion();
         LocalDateTime currentRowVersion = customerEntity.getRowVersion();
@@ -325,6 +283,97 @@ public class CustomerService {
         logger.debug("Customer with ID: {} updated successfully.", customerId);
     }
 
+    /**
+     * Deletes the specified customer from the DB. Only the owner of the customer can delete it.
+     *
+     * @param customerId ID of the customer to delete.
+     */
+    @Transactional
+    public void deleteCustomer(int customerId) {
+        logger.info("Deleting customer with ID: {}", customerId);
+        UserEntity authenticatedUser = authenticatedUserProvider.getAuthenticatedUser();
+        CustomerEntity customerEntity = getCustomerEntity(customerId);
+        validateCustomerOwnership(
+                customerEntity,
+                authenticatedUser,
+                "delete",
+                "You do not have permission to delete this customer."
+        );
+
+        customerRepository.deleteById(customerId);
+    }
+
+    /**
+     * Validates that the authenticated user is the owner of the specified customer.
+     *
+     * @param customerEntity    The customer entity to validate ownership for.
+     * @param authenticatedUser The currently authenticated user.
+     * @param action            Resource action for error context.
+     * @param message           Error message returned on access denial.
+     * @throws ResourceAccessDeniedException if the user is not the owner of the customer.
+     */
+    private void validateCustomerOwnership(CustomerEntity customerEntity,
+                                           UserEntity authenticatedUser,
+                                           String action,
+                                           String message) {
+        int ownerId = customerEntity.getOwner().getId();
+        int authenticatedUserId = authenticatedUser.getId();
+
+        if (ownerId != authenticatedUserId) {
+            logger.error("User with ID: {} is not the owner of customer with ID: {}.", authenticatedUserId, customerEntity.getId());
+            throw new ResourceAccessDeniedException(
+                    "CUSTOMER",
+                    customerEntity.getId(),
+                    action,
+                    message,
+                    Map.of("ownerId", ownerId, "userId", authenticatedUserId)
+            );
+        }
+    }
+
+    /**
+     * Validates that the authenticated user has access to the specified customer.
+     *
+     * @param customerEntity    The customer entity to validate access for.
+     * @param authenticatedUser The currently authenticated user.
+     * @throws ResourceAccessDeniedException if the user does not have access to the customer.
+     */
+    private void validateCustomerAccess(CustomerEntity customerEntity, UserEntity authenticatedUser) {
+        int authenticatedUserId = authenticatedUser.getId();
+        int customerId = customerEntity.getId();
+        boolean isOwner = customerEntity.getOwner() != null && customerEntity.getOwner().getId() == authenticatedUserId;
+        boolean isMember = customerEntity.getUserCustomers() != null
+                && customerEntity.getUserCustomers().stream().anyMatch(link ->
+                link.getUser() != null && link.getUser().getId() == authenticatedUserId
+        );
+
+        logger.debug(
+                "Customer access validation for userId={} and customerId={}: isOwner={}, isMember={}",
+                authenticatedUserId, customerId, isOwner, isMember
+        );
+
+        if (!isOwner && !isMember) {
+            logger.warn("Customer access denied for userId={} to customerId={}.", authenticatedUserId, customerId);
+            throw new ResourceAccessDeniedException(
+                    "CUSTOMER",
+                    customerId,
+                    "read",
+                    "You do not have permission to access this customer.",
+                    Map.of("userId", authenticatedUserId)
+            );
+        }
+
+        logger.debug("Customer access granted for userId={} to customerId={}.", authenticatedUserId, customerId);
+    }
+
+
+    /**
+     * Validates that the authenticated user has access to the specified transaction head for the specified customer.
+     *
+     * @param customerId      ID of the customer.
+     * @param transactionHead The transaction head to validate access for.
+     * @throws ResourceAccessDeniedException if the user does not have access to the transaction head for the specified customer.
+     */
     private void validateTransactionHeadAccess(int customerId, TransactionHeadDTO transactionHead) {
         int transactionHeadId = transactionHead.id();
         boolean linkedToCustomer = transactionHead.lenderId() == customerId || transactionHead.borrowerId() == customerId;
@@ -365,6 +414,15 @@ public class CustomerService {
         }
     }
 
+
+    /**
+     * Validates that the transaction row belongs to the specified transaction head.
+     *
+     * @param transactionHeadId ID of the transaction head.
+     * @param transactionRowId  ID of the transaction row.
+     * @param transactionRow    The transaction row to validate.
+     * @throws ResourceAccessDeniedException if the transaction row does not belong to the specified transaction head.
+     */
     private void validateTransactionRowAccess(int transactionHeadId, int transactionRowId, TransactionRowDTO transactionRow) {
         if (transactionRow.transactionHeadId() != transactionHeadId) {
             logger.warn(

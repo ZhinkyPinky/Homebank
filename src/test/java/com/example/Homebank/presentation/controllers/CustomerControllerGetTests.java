@@ -24,6 +24,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -149,6 +150,14 @@ class CustomerControllerGetTests {
                 .andExpect(jsonPath("$.transactionRow.id").value(700));
 
         verify(customerService).getCustomerAndTransactionHeadAndTransactionRow(7, 70, 700);
+    }
+
+    @Test
+    void deleteCustomer_returnsNoContentAndCallsService() throws Exception {
+        mockMvc.perform(delete("/customers/9"))
+                .andExpect(status().isNoContent());
+
+        verify(customerService).deleteCustomer(9);
     }
 
     private CustomerDTO customerDto(int id) {

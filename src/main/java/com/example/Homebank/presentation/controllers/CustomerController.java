@@ -60,17 +60,15 @@ public class CustomerController {
      * Handles requests to delete a customer.
      *
      * @param customerId ID of the customer to delete.
-     * @return {@code 501 Not Implemented} until deletion is implemented.
+     * @return {@code 204 No Content} when deletion succeeds.
      */
     @DeleteMapping(ApiPaths.CUSTOMER)
-    public ResponseEntity<String> deleteCustomer(@PathVariable int customerId) {
+    public ResponseEntity<Void> deleteCustomer(@PathVariable int customerId) {
         logger.info("Request to delete customer with ID: {} received.", customerId);
 
-        //TODO: Implement deleteCustomer method in CustomerService and uncomment the line below.
-        //customerService.deleteCustomer(customerId);
+        customerService.deleteCustomer(customerId);
 
-        //Not implemented yet.
-        return ResponseEntity.status(501).body("Deleting customers is not implemented yet.");
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -96,7 +94,6 @@ public class CustomerController {
     @GetMapping("/transactionHeads/{transactionHeadId}")
     public ResponseEntity<CustomersAndTransactionHeadDTO> getCustomersAndTransactionHead(
             @PathVariable final int transactionHeadId) {
-        //TODO: Move to TransactionHeadController? Find solution.
         logger.info("Request to get customers and transaction head with transactionHeadId: {} received.", transactionHeadId);
 
         CustomersAndTransactionHeadDTO body = customerService.getCustomersAndTransactionHead(transactionHeadId);
