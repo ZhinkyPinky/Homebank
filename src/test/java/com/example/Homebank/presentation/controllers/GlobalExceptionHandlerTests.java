@@ -7,13 +7,17 @@ import com.example.Homebank.exceptions.authentication.InvalidActivationTokenExce
 import com.example.Homebank.exceptions.authentication.InvalidRecoveryTokenException;
 import com.example.Homebank.exceptions.authentication.InvalidRefreshTokenException;
 import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredException;
+import com.example.Homebank.exceptions.authentication.TokenType;
 import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
 import com.example.Homebank.presentation.dto.error.ApiError;
+import com.example.Homebank.presentation.dto.error.ResourceAction;
 import com.example.Homebank.presentation.dto.error.ResourceAccessDeniedDetail;
 import com.example.Homebank.presentation.dto.error.ResourceNotFoundDetail;
+import com.example.Homebank.presentation.dto.error.ResourceType;
 import com.example.Homebank.presentation.dto.error.TokenErrorDetail;
+import com.example.Homebank.presentation.dto.error.ValidationErrorCode;
 import com.example.Homebank.presentation.dto.error.ValidationErrorDetail;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
@@ -73,9 +77,9 @@ class GlobalExceptionHandlerTests {
         assertNotNull(response.getBody());
         assertInstanceOf(ResourceAccessDeniedDetail.class, response.getBody().details());
         ResourceAccessDeniedDetail details = (ResourceAccessDeniedDetail) response.getBody().details();
-        assertEquals("TRANSACTION_HEAD", details.resourceType());
+        assertEquals(ResourceType.TRANSACTION_HEAD, details.resourceType());
         assertEquals(2, details.resourceId());
-        assertEquals("read", details.action());
+        assertEquals(ResourceAction.READ, details.action());
         assertEquals(Map.of("customerId", 1), details.metadata());
     }
 
@@ -101,7 +105,7 @@ class GlobalExceptionHandlerTests {
         );
 
         assertApiError(response, HttpStatus.UNAUTHORIZED, ApiErrorCode.TOKEN_INVALID, "/auth/refresh");
-        assertTokenType(response, "REFRESH");
+        assertTokenType(response, TokenType.REFRESH);
     }
 
     @Test
@@ -126,7 +130,7 @@ class GlobalExceptionHandlerTests {
         );
 
         assertApiError(response, HttpStatus.UNAUTHORIZED, ApiErrorCode.TOKEN_EXPIRED, "/auth/refresh");
-        assertTokenType(response, "REFRESH");
+        assertTokenType(response, TokenType.REFRESH);
     }
 
     @Test
@@ -139,7 +143,7 @@ class GlobalExceptionHandlerTests {
         );
 
         assertApiError(response, HttpStatus.UNAUTHORIZED, ApiErrorCode.TOKEN_INVALID, "/account-recovery/set-new-password");
-        assertTokenType(response, "RECOVERY");
+        assertTokenType(response, TokenType.RECOVERY);
     }
 
     @Test
@@ -152,7 +156,7 @@ class GlobalExceptionHandlerTests {
         );
 
         assertApiError(response, HttpStatus.BAD_REQUEST, ApiErrorCode.TOKEN_INVALID, "/auth/activate");
-        assertTokenType(response, "ACTIVATION");
+        assertTokenType(response, TokenType.ACTIVATION);
     }
 
     @Test
@@ -165,7 +169,7 @@ class GlobalExceptionHandlerTests {
         );
 
         assertApiError(response, HttpStatus.FORBIDDEN, ApiErrorCode.TOKEN_EXPIRED, "/auth/activate");
-        assertTokenType(response, "ACTIVATION");
+        assertTokenType(response, TokenType.ACTIVATION);
     }
 
     @Test
@@ -210,7 +214,7 @@ class GlobalExceptionHandlerTests {
         assertNotNull(response.getBody());
         assertInstanceOf(ResourceNotFoundDetail.class, response.getBody().details());
         ResourceNotFoundDetail details = (ResourceNotFoundDetail) response.getBody().details();
-        assertEquals("TRANSACTION_ROW", details.resourceType());
+        assertEquals(ResourceType.TRANSACTION_ROW, details.resourceType());
         assertEquals(999, details.resourceId());
         assertEquals(Map.of("customerId", 1, "transactionHeadId", 2), details.metadata());
     }
@@ -308,12 +312,12 @@ class GlobalExceptionHandlerTests {
 
         assertInstanceOf(ValidationErrorDetail.class, details.get(0));
         ValidationErrorDetail first = (ValidationErrorDetail) details.get(0);
-        assertEquals("NOT_BLANK", first.code());
+        assertEquals(ValidationErrorCode.NOT_BLANK, first.code());
         assertEquals("email", first.field());
 
         assertInstanceOf(ValidationErrorDetail.class, details.get(1));
         ValidationErrorDetail second = (ValidationErrorDetail) details.get(1);
-        assertEquals("NOT_NULL", second.code());
+        assertEquals(ValidationErrorCode.NOT_NULL, second.code());
         assertEquals("rowVersion", second.field());
     }
 
@@ -325,7 +329,7 @@ class GlobalExceptionHandlerTests {
         assertEquals(expectedStatus.value(), response.getBody().status());
     }
 
-    private void assertTokenType(ResponseEntity<ApiError> response, String expectedTokenType) {
+    private void assertTokenType(ResponseEntity<ApiError> response, TokenType expectedTokenType) {
         assertNotNull(response.getBody());
         assertInstanceOf(TokenErrorDetail.class, response.getBody().details());
         TokenErrorDetail details = (TokenErrorDetail) response.getBody().details();

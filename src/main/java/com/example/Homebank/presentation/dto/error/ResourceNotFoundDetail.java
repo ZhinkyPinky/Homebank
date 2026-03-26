@@ -10,7 +10,7 @@ import java.util.Map;
  * @param metadata     Optional additional context for the lookup that failed.
  */
 public record ResourceNotFoundDetail(
-        String resourceType,
+        ResourceType resourceType,
         Integer resourceId,
         Map<String, Object> metadata
 ) {

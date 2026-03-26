@@ -7,9 +7,12 @@ import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
 import com.example.Homebank.presentation.dto.error.ApiError;
+import com.example.Homebank.presentation.dto.error.ResourceAction;
 import com.example.Homebank.presentation.dto.error.ResourceAccessDeniedDetail;
 import com.example.Homebank.presentation.dto.error.ResourceNotFoundDetail;
+import com.example.Homebank.presentation.dto.error.ResourceType;
 import com.example.Homebank.presentation.dto.error.TokenErrorDetail;
+import com.example.Homebank.presentation.dto.error.ValidationErrorCode;
 import com.example.Homebank.presentation.dto.error.ValidationErrorDetail;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.persistence.EntityExistsException;
@@ -59,7 +62,7 @@ public class GlobalExceptionHandler {
         Object details = null;
         if (e instanceof ResourceNotFoundException resourceNotFoundException) {
             details = new ResourceNotFoundDetail(
-                    resourceNotFoundException.getResourceType(),
+                    toResourceType(resourceNotFoundException.getResourceType()),
                     resourceNotFoundException.getResourceId(),
                     resourceNotFoundException.getMetadata().isEmpty() ? null : resourceNotFoundException.getMetadata()
             );
@@ -87,7 +90,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleTokenException(TokenException e, HttpServletRequest request) {
         logger.info("Handling token exception: {} ({})", e.getCode(), e.getTokenType());
 
-        TokenErrorDetail details = new TokenErrorDetail(e.getTokenType().name());
+        TokenErrorDetail details = new TokenErrorDetail(e.getTokenType());
         return buildErrorResponse(e.getStatus(), e.getCode(), e.getClientMessage(), request, details);
     }
 
@@ -157,9 +160,9 @@ public class GlobalExceptionHandler {
         if (e instanceof ResourceAccessDeniedException resourceException) {
             code = ApiErrorCode.RESOURCE_ACCESS_DENIED;
             details = new ResourceAccessDeniedDetail(
-                    resourceException.getResourceType(),
+                    toResourceType(resourceException.getResourceType()),
                     resourceException.getResourceId(),
-                    resourceException.getAction(),
+                    toResourceAction(resourceException.getAction()),
                     resourceException.getMetadata().isEmpty() ? null : resourceException.getMetadata()
             );
         }
@@ -240,13 +243,43 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(errorResponse);
     }
 
-    private String toValidationCode(String constraintCode) {
+    private ValidationErrorCode toValidationCode(String constraintCode) {
         if (constraintCode == null || constraintCode.isBlank()) {
-            return "VALIDATION_ERROR";
+            return ValidationErrorCode.VALIDATION_ERROR;
         }
 
-        return constraintCode
+        String normalizedCode = constraintCode
                 .replaceAll("([a-z])([A-Z])", "$1_$2")
                 .toUpperCase();
+
+        try {
+            return ValidationErrorCode.valueOf(normalizedCode);
+        } catch (IllegalArgumentException ignored) {
+            return ValidationErrorCode.UNKNOWN;
+        }
+    }
+
+    private ResourceType toResourceType(String resourceType) {
+        if (resourceType == null || resourceType.isBlank()) {
+            return ResourceType.UNKNOWN;
+        }
+
+        try {
+            return ResourceType.valueOf(resourceType);
+        } catch (IllegalArgumentException ignored) {
+            return ResourceType.UNKNOWN;
+        }
+    }
+
+    private ResourceAction toResourceAction(String action) {
+        if (action == null || action.isBlank()) {
+            return ResourceAction.UNKNOWN;
+        }
+
+        try {
+            return ResourceAction.valueOf(action.toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+            return ResourceAction.UNKNOWN;
+        }
     }
 }

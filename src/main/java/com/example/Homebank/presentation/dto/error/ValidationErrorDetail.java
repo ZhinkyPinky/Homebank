@@ -8,7 +8,7 @@ package com.example.Homebank.presentation.dto.error;
  * @param message Validation error message for the field.
  */
 public record ValidationErrorDetail(
-        String code,
+        ValidationErrorCode code,
         String field,
         String message
 ) {

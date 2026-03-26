@@ -11,9 +11,9 @@ import java.util.Map;
  * @param metadata     Optional additional context for the denial decision.
  */
 public record ResourceAccessDeniedDetail(
-        String resourceType,
+        ResourceType resourceType,
         Integer resourceId,
-        String action,
+        ResourceAction action,
         Map<String, Object> metadata
 ) {
 }
