@@ -1,0 +1,1015 @@
+openapi: 3.1.1
+info:
+  title: Homebank API
+  version: 1.0.0
+  description: |
+    Machine-readable API contract for Homebank backend.
+    Human-readable companion docs live in documentation/api/endpoints.md.
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+  - name: Account Recovery
+  - name: Users
+  - name: Customers
+  - name: Transaction Heads
+  - name: Transaction Rows
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticationDTO'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessAndRefreshTokenDTO'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenDTO'
+      responses:
+        '200':
+          description: Logout successful
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationDTO'
+      responses:
+        '200':
+          description: Registration accepted
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access/refresh tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenDTO'
+      responses:
+        '200':
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessAndRefreshTokenDTO'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /auth/activate:
+    get:
+      tags: [Auth]
+      summary: Activate account
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account activated
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /auth/resend-activation:
+    post:
+      tags: [Auth]
+      summary: Resend activation email for authenticated user
+      responses:
+        '200':
+          description: Request processed
+          content:
+            application/json:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /account-recovery/initiate:
+    post:
+      tags: [Account Recovery]
+      summary: Initiate account recovery
+      description: Returns 200 for valid payloads regardless of whether the e-mail exists.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailDTO'
+      responses:
+        '200':
+          description: Recovery request processed
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+
+  /account-recovery/authenticate:
+    post:
+      tags: [Account Recovery]
+      summary: Authenticate account recovery
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticationDTO'
+      responses:
+        '200':
+          description: Recovery token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryTokenDTO'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /account-recovery/set-new-password:
+    post:
+      tags: [Account Recovery]
+      summary: Set new password using recovery token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetNewPasswordDTO'
+      responses:
+        '200':
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessAndRefreshTokenDTO'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /users/changePassword:
+    post:
+      tags: [Users]
+      summary: Change password for authenticated user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordDTO'
+      responses:
+        '200':
+          description: Password changed
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /customers:
+    get:
+      tags: [Customers]
+      summary: Get accessible customers
+      responses:
+        '200':
+          description: Customers returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerDTO'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+    post:
+      tags: [Customers]
+      summary: Create customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerDTO'
+      responses:
+        '200':
+          description: Customer created
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /customers/{customerId}:
+    get:
+      tags: [Customers]
+      summary: Get customer by id
+      parameters:
+        - $ref: '#/components/parameters/customerId'
+      responses:
+        '200':
+          description: Customer returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerDTO'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    put:
+      tags: [Customers]
+      summary: Update customer
+      parameters:
+        - $ref: '#/components/parameters/customerId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomerDTO'
+      responses:
+        '200':
+          description: Customer updated
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+    delete:
+      tags: [Customers]
+      summary: Delete customer (owner only)
+      parameters:
+        - $ref: '#/components/parameters/customerId'
+      responses:
+        '204':
+          description: Customer deleted
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /customers/transactionHeads/{transactionHeadId}:
+    get:
+      tags: [Customers]
+      summary: Get all customers and one transaction head
+      parameters:
+        - $ref: '#/components/parameters/transactionHeadId'
+      responses:
+        '200':
+          description: Composite returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomersAndTransactionHeadDTO'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /customers/{customerId}/transactionHeads:
+    get:
+      tags: [Customers]
+      summary: Get customer and transaction heads
+      parameters:
+        - $ref: '#/components/parameters/customerId'
+      responses:
+        '200':
+          description: Composite returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerAndTransactionHeadsDTO'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /customers/{customerId}/transactionHeads/{transactionHeadId}:
+    get:
+      tags: [Customers]
+      summary: Get customer and transaction head
+      parameters:
+        - $ref: '#/components/parameters/customerId'
+        - $ref: '#/components/parameters/transactionHeadId'
+      responses:
+        '200':
+          description: Composite returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerAndTransactionHeadDTO'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /customers/{customerId}/transactionHeads/{transactionHeadId}/transactionRows:
+    get:
+      tags: [Customers]
+      summary: Get customer, transaction head and all transaction rows
+      parameters:
+        - $ref: '#/components/parameters/customerId'
+        - $ref: '#/components/parameters/transactionHeadId'
+      responses:
+        '200':
+          description: Composite returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerWithTransactionHeadAndRowsDTO'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /customers/{customerId}/transactionHeads/{transactionHeadId}/transactionRows/{transactionRowId}:
+    get:
+      tags: [Customers]
+      summary: Get customer, transaction head and one transaction row
+      parameters:
+        - $ref: '#/components/parameters/customerId'
+        - $ref: '#/components/parameters/transactionHeadId'
+        - $ref: '#/components/parameters/transactionRowId'
+      responses:
+        '200':
+          description: Composite returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerWithTransactionHeadAndRowDTO'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /transactionHeads/save:
+    post:
+      tags: [Transaction Heads]
+      summary: Save transaction head
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionHeadDTO'
+      responses:
+        '200':
+          description: Transaction head saved
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /transactionHeads/delete:
+    post:
+      tags: [Transaction Heads]
+      summary: Mark transaction head as deleted
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionHeadDTO'
+      responses:
+        '200':
+          description: Transaction head deleted
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /transactionRows/{transactionRowId}:
+    get:
+      tags: [Transaction Rows]
+      summary: Get transaction row by id
+      parameters:
+        - $ref: '#/components/parameters/transactionRowId'
+      responses:
+        '200':
+          description: Transaction row returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionRowDTO'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /transactionRows/save:
+    post:
+      tags: [Transaction Rows]
+      summary: Save transaction row
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionRowDTO'
+      responses:
+        '200':
+          description: Transaction row saved
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /transactionRows/delete:
+    post:
+      tags: [Transaction Rows]
+      summary: Mark transaction row as deleted
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionRowDTO'
+      responses:
+        '200':
+          description: Transaction row deleted
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    customerId:
+      name: customerId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+    transactionHeadId:
+      name: transactionHeadId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+    transactionRowId:
+      name: transactionRowId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+
+  responses:
+    BadRequestError:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            validationFailed:
+              summary: Validation failed
+              value:
+                timestamp: "2026-03-14T10:00:00Z"
+                status: 400
+                error: "Bad Request"
+                code: "VALIDATION_FAILED"
+                message: "Validation failed for one or more fields."
+                path: "/auth/register"
+                details:
+                  - code: "NOT_BLANK"
+                    field: "email"
+                    message: "Email is missing"
+    UnauthorizedError:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            tokenInvalid:
+              summary: Invalid access token
+              value:
+                timestamp: "2026-03-14T10:00:00Z"
+                status: 401
+                error: "Unauthorized"
+                code: "TOKEN_INVALID"
+                message: "Invalid token."
+                path: "/customers/1"
+                details:
+                  tokenType: "ACCESS"
+            tokenExpired:
+              summary: Expired access token
+              value:
+                timestamp: "2026-03-14T10:00:00Z"
+                status: 401
+                error: "Unauthorized"
+                code: "TOKEN_EXPIRED"
+                message: "Token expired."
+                path: "/customers/1"
+                details:
+                  tokenType: "ACCESS"
+            authenticationFailed:
+              summary: Authentication context unresolved
+              value:
+                timestamp: "2026-03-14T10:00:00Z"
+                status: 401
+                error: "Unauthorized"
+                code: "AUTHENTICATION_FAILED"
+                message: "Authentication failed."
+                path: "/customers/1"
+                details: null
+    ForbiddenError:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            accountNotActivated:
+              summary: Pending account blocked by UserStatusFilter
+              value:
+                timestamp: "2026-03-14T10:00:00Z"
+                status: 403
+                error: "Forbidden"
+                code: "ACCOUNT_NOT_ACTIVATED"
+                message: "Please activate your account first."
+                path: "/customers/1"
+                details: null
+            resourceAccessDenied:
+              summary: Resource authorization failed
+              value:
+                timestamp: "2026-03-14T10:00:00Z"
+                status: 403
+                error: "Forbidden"
+                code: "RESOURCE_ACCESS_DENIED"
+                message: "You do not have permission to access this customer."
+                path: "/customers/1"
+                details:
+                  resourceType: "CUSTOMER"
+                  resourceId: 1
+                  action: "READ"
+                  metadata:
+                    userId: 42
+    NotFoundError:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            resourceNotFound:
+              summary: Requested resource does not exist
+              value:
+                timestamp: "2026-03-14T10:00:00Z"
+                status: 404
+                error: "Not Found"
+                code: "RESOURCE_NOT_FOUND"
+                message: "The requested resource was not found."
+                path: "/customers/999"
+                details:
+                  resourceType: "CUSTOMER"
+                  resourceId: 999
+                  metadata: null
+    ConflictError:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            rowVersionMismatch:
+              summary: Optimistic lock conflict
+              value:
+                timestamp: "2026-03-14T10:00:00Z"
+                status: 409
+                error: "Conflict"
+                code: "ROW_VERSION_MISMATCH"
+                message: "The resource was modified by another process. Please refresh and try again."
+                path: "/customers/1"
+                details: null
+
+  schemas:
+    ApiError:
+      type: object
+      required: [timestamp, status, error, code, message, path]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          format: int32
+        error:
+          type: string
+        code:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        details:
+          description: Optional structured context. Shape depends on `code`.
+          nullable: true
+
+    ValidationErrorDetailList:
+      type: array
+      items:
+        $ref: '#/components/schemas/ValidationErrorDetail'
+
+    ValidationErrorDetail:
+      type: object
+      required: [code, field, message]
+      properties:
+        code:
+          type: string
+          enum: [NOT_NULL, NOT_BLANK, NOT_EMPTY, SIZE, PATTERN, EMAIL, PAST, PAST_OR_PRESENT, FUTURE, FUTURE_OR_PRESENT, MIN, MAX, POSITIVE, POSITIVE_OR_ZERO, NEGATIVE, NEGATIVE_OR_ZERO, DIGITS, ASSERT_TRUE, ASSERT_FALSE, VALIDATION_ERROR, UNKNOWN]
+        field:
+          type: string
+        message:
+          type: string
+
+    TokenErrorDetail:
+      type: object
+      required: [tokenType]
+      properties:
+        tokenType:
+          type: string
+          enum: [ACCESS, REFRESH, RECOVERY, ACTIVATION]
+
+    ResourceNotFoundDetail:
+      type: object
+      required: [resourceType]
+      properties:
+        resourceType:
+          type: string
+          enum: [USER, CUSTOMER, TRANSACTION_HEAD, TRANSACTION_ROW, UNKNOWN]
+        resourceId:
+          type: integer
+          format: int32
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
+          nullable: true
+
+    ResourceAccessDeniedDetail:
+      type: object
+      required: [resourceType, action]
+      properties:
+        resourceType:
+          type: string
+          enum: [USER, CUSTOMER, TRANSACTION_HEAD, TRANSACTION_ROW, UNKNOWN]
+        resourceId:
+          type: integer
+          format: int32
+          nullable: true
+        action:
+          type: string
+          enum: [CREATE, READ, UPDATE, DELETE, UNKNOWN]
+        metadata:
+          type: object
+          additionalProperties: true
+          nullable: true
+
+    AuthenticationDTO:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    RegistrationDTO:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    RefreshTokenDTO:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    EmailDTO:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    ChangePasswordDTO:
+      type: object
+      required: [refreshToken, oldPassword, newPassword, confirmNewPassword]
+      properties:
+        refreshToken:
+          type: string
+        oldPassword:
+          type: string
+        newPassword:
+          type: string
+        confirmNewPassword:
+          type: string
+
+    SetNewPasswordDTO:
+      type: object
+      required: [recoveryToken, newPassword, confirmNewPassword]
+      properties:
+        recoveryToken:
+          type: string
+        newPassword:
+          type: string
+        confirmNewPassword:
+          type: string
+
+    RecoveryTokenDTO:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+
+    AccessAndRefreshTokenDTO:
+      type: object
+      required: [accessToken, refreshToken, message, accountStatus]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        message:
+          type: string
+        accountStatus:
+          type: string
+
+    CreateCustomerDTO:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    UpdateCustomerDTO:
+      type: object
+      required: [name, rowVersion]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        rowVersion:
+          type: string
+          format: date-time
+
+    CustomerDTO:
+      type: object
+      required: [id, name, typeOfCustomerCode, customerAmount, rowVersion]
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        typeOfCustomerCode:
+          type: string
+        customerAmount:
+          type: integer
+          format: int32
+        rowVersion:
+          type: string
+          format: date-time
+
+    TransactionHeadDTO:
+      type: object
+      required: [id, lenderId, borrowerId, transactionName, startDate]
+      properties:
+        id:
+          type: integer
+          format: int32
+        lenderId:
+          type: integer
+          format: int32
+        borrowerId:
+          type: integer
+          format: int32
+        transactionName:
+          type: string
+        description:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+          format: date
+        prelEndDate:
+          type: string
+          format: date
+          nullable: true
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        amount:
+          type: integer
+          format: int32
+          nullable: true
+        borrower:
+          type: string
+          nullable: true
+        lender:
+          type: string
+          nullable: true
+        rowVersion:
+          type: string
+          format: date-time
+          nullable: true
+
+    TransactionRowDTO:
+      type: object
+      required: [id, transactionHeadId, transactionRowNo, typeOfTransactionCode, name, paymentDate, amount, typeOfTransaction]
+      properties:
+        id:
+          type: integer
+          format: int32
+        transactionHeadId:
+          type: integer
+          format: int32
+        transactionRowNo:
+          type: integer
+          format: int32
+        typeOfTransactionCode:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        paymentDate:
+          type: string
+          format: date
+        amount:
+          type: integer
+          format: int32
+        transactionName:
+          type: string
+          nullable: true
+        typeOfTransaction:
+          type: string
+        rowVersion:
+          type: string
+          format: date-time
+          nullable: true
+
+    CustomersAndTransactionHeadDTO:
+      type: object
+      required: [customers, transactionHead]
+      properties:
+        customers:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerDTO'
+        transactionHead:
+          $ref: '#/components/schemas/TransactionHeadDTO'
+
+    CustomerAndTransactionHeadsDTO:
+      type: object
+      required: [customer, transactionHeads]
+      properties:
+        customer:
+          $ref: '#/components/schemas/CustomerDTO'
+        transactionHeads:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionHeadDTO'
+
+    CustomerAndTransactionHeadDTO:
+      type: object
+      required: [customer, transactionHead]
+      properties:
+        customer:
+          $ref: '#/components/schemas/CustomerDTO'
+        transactionHead:
+          $ref: '#/components/schemas/TransactionHeadDTO'
+
+    CustomerWithTransactionHeadAndRowsDTO:
+      type: object
+      required: [customer, transactionHead, transactionRows]
+      properties:
+        customer:
+          $ref: '#/components/schemas/CustomerDTO'
+        transactionHead:
+          $ref: '#/components/schemas/TransactionHeadDTO'
+        transactionRows:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionRowDTO'
+
+    CustomerWithTransactionHeadAndRowDTO:
+      type: object
+      required: [customer, transactionHead, transactionRow]
+      properties:
+        customer:
+          $ref: '#/components/schemas/CustomerDTO'
+        transactionHead:
+          $ref: '#/components/schemas/TransactionHeadDTO'
+        transactionRow:
+          $ref: '#/components/schemas/TransactionRowDTO'

@@ -26,7 +26,7 @@ public class AccountRecoveryController {
      * Handles requests to initiate the recovery of an account.
      *
      * @param emailDTO E-mail of the user that wants to recover their account.
-     * @return Response indicating whether the request was successful or not.
+     * @return Always {@code 200 OK} for valid input to avoid leaking account existence.
      */
     @PostMapping(ApiPaths.INITIATE_RECOVERY)
     public ResponseEntity<String> initiateUserAccountRecovery(@Valid @RequestBody EmailDTO emailDTO) {
@@ -43,7 +43,7 @@ public class AccountRecoveryController {
      * @return A recovery token if successful.
      */
     @PostMapping(ApiPaths.AUTHENTICATE)
-    public ResponseEntity<RecoveryTokenDTO> authenticate(@RequestBody AuthenticationDTO authenticationDTO) {
+    public ResponseEntity<RecoveryTokenDTO> authenticate(@Valid @RequestBody AuthenticationDTO authenticationDTO) {
         logger.info("Request to authenticate user with e-mail: {} received.", authenticationDTO.email());
 
         RecoveryTokenDTO recoveryTokenDTO = accountRecoveryService.authenticate(authenticationDTO);

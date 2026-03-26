@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,20 +43,6 @@ public class AccountRecoveryService {
     private String refreshTokenDurationDays;
 
     /**
-     * Loads a user based on their e-mail.
-     *
-     * @param email E-mail of user to load.
-     * @return The matching {@link UserEntity}.
-     */
-    @Transactional(readOnly = true)
-    public UserEntity loadUserByEmail(String email) throws UsernameNotFoundException {
-        return userRepository.findByEmail(email.toLowerCase()).orElseThrow(() -> {
-            logger.error("User with e-mail: {} not found.", email);
-            return new UsernameNotFoundException("User not found");
-        });
-    }
-
-    /**
      * If a user with the provided e-mail exists, a recovery password is generated, saved to the DB, and sent to
      * their e-mail address.
      *
@@ -67,9 +52,13 @@ public class AccountRecoveryService {
     public void initiateAccountRecovery(EmailDTO emailDTO) {
         String email = emailDTO.email();
 
-        logger.info("Generating recovery password for user with e-mail: {}", email);
+        logger.info("Processing account recovery initiation request.");
 
-        UserEntity user = loadUserByEmail(email);
+        UserEntity user = userRepository.findByEmail(email.toLowerCase()).orElse(null);
+        if (user == null) {
+            logger.debug("Account recovery initiation processed.");
+            return;
+        }
 
         SecureRandom random = new SecureRandom();
         byte[] tokenBytes = new byte[10];
@@ -84,34 +73,42 @@ public class AccountRecoveryService {
 
         emailService.sendEmail(email, "Homebank - Recovery password", recoveryPassword);
 
-        logger.debug("Recovery password generated for user with e-mail: {}", email);
+        logger.debug("Account recovery initiation processed.");
     }
 
     /**
      * Authenticates a user based on provided recovery details. If authentication is successful, any saved recovery details
      * for the user are deleted, and a recovery token is generated and returned.
+     * Authentication failures are reported as bad credentials.
      *
      * @param authenticationDTO E-mail and recovery password.
      * @return Recovery token.
      */
     @Transactional
     public RecoveryTokenDTO authenticate(AuthenticationDTO authenticationDTO) {
-        logger.info("Attempting to authenticate user: {}", authenticationDTO.email());
+        logger.info("Attempting account recovery authentication.");
 
         String email = authenticationDTO.email();
         String providedRecoveryPassword = authenticationDTO.password();
 
-        UserEntity userEntity = loadUserByEmail(email);
+        UserEntity userEntity = userRepository.findByEmail(email.toLowerCase()).orElse(null);
+        if (userEntity == null) {
+            logger.info("Account recovery authentication failed.");
+            throw new BadCredentialsException("Bad credentials");
+        }
+
         String encodedRecoveryPassword = userEntity.getRecoveryPassword();
         LocalDateTime recoveryPasswordExpirationDate = userEntity.getRecoveryPasswordExpiration();
 
-        if (recoveryPasswordExpirationDate.isBefore(LocalDateTime.now())) {
-            logger.error("Authentication failed due to the recovery password having expired.");
+        if (encodedRecoveryPassword == null
+                || recoveryPasswordExpirationDate == null
+                || recoveryPasswordExpirationDate.isBefore(LocalDateTime.now())) {
+            logger.info("Account recovery authentication failed.");
             throw new BadCredentialsException("Recovery password has expired");
         }
 
         if (!passwordEncoder.matches(providedRecoveryPassword, encodedRecoveryPassword)) {
-            logger.error("Authentication failed due to the provided recovery password not matching the existing one.");
+            logger.info("Account recovery authentication failed.");
             throw new BadCredentialsException("Bad credentials");
         }
 
@@ -121,7 +118,7 @@ public class AccountRecoveryService {
 
         String recoveryToken = recoveryJwtUtil.generateToken(email);
 
-        logger.info("User {} authenticated successfully. Token generated.", userEntity.getUsername());
+        logger.info("Account recovery authentication succeeded.");
 
         return new RecoveryTokenDTO(recoveryToken);
     }
