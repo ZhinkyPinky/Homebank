@@ -3,6 +3,7 @@ package com.example.Homebank.presentation.dto.transactionhead;
 import com.example.Homebank.dataAccess.views.TransactionRowView;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,16 +24,34 @@ import java.time.LocalDateTime;
  * @param rowVersion            Concurrency/version timestamp.
  */
 public record TransactionRowDTO(
-        @NotNull(message = "Id is missing") Integer id,
-        @NotNull(message = "Transaction head id is missing") Integer transactionHeadId,
-        @NotNull(message = "Transaction row number is missing") Integer transactionRowNo,
-        @NotBlank(message = "Transaction code is missing") String typeOfTransactionCode,
-        @NotBlank(message = "Name is missing") String name,
+        @NotNull(message = "Id is missing")
+        Integer id,
+
+        @NotNull(message = "Transaction head id is missing")
+        Integer transactionHeadId,
+
+        @NotNull(message = "Transaction row number is missing")
+        Integer transactionRowNo,
+
+        @NotBlank(message = "Transaction code is missing")
+        String typeOfTransactionCode,
+
+        @NotBlank(message = "Name is missing")
+        String name,
+
         String description,
-        @NotNull(message = "Payment date is missing") LocalDate paymentDate,
-        @NotNull(message = "Amount is missing") Integer amount,
+
+        @NotNull(message = "Payment date is missing")
+        LocalDate paymentDate,
+
+        @NotNull(message = "Amount is missing")
+        @PositiveOrZero(message = "Amount must be zero or positive")
+        Integer amount,
+
         String transactionName,
-        @NotBlank(message = "Type of transaction is missing") String typeOfTransaction,
+
+        @NotBlank(message = "Type of transaction is missing")
+        String typeOfTransaction,
         LocalDateTime rowVersion
 ) {
     public static TransactionRowDTO fromEntity(TransactionRowView entity) {

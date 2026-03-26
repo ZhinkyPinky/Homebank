@@ -440,8 +440,8 @@ Endpoints that can return `400 VALIDATION_FAILED`:
 | `PUT /customers/{customerId}` | `name -> NOT_BLANK`; `rowVersion -> NOT_NULL` |
 | `POST /transactionHeads/save` | `id -> NOT_NULL`; `lenderId -> NOT_NULL`; `borrowerId -> NOT_NULL`; `transactionName -> NOT_BLANK`; `startDate -> NOT_NULL` |
 | `POST /transactionHeads/delete` | `id -> NOT_NULL`; `lenderId -> NOT_NULL`; `borrowerId -> NOT_NULL`; `transactionName -> NOT_BLANK`; `startDate -> NOT_NULL` |
-| `POST /transactionRows/save` | `id -> NOT_NULL`; `transactionHeadId -> NOT_NULL`; `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL`; `typeOfTransaction -> NOT_BLANK` |
-| `POST /transactionRows/delete` | `id -> NOT_NULL`; `transactionHeadId -> NOT_NULL`; `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL`; `typeOfTransaction -> NOT_BLANK` |
+| `POST /transactionRows/save` | `id -> NOT_NULL`; `transactionHeadId -> NOT_NULL`; `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL, POSITIVE_OR_ZERO`; `typeOfTransaction -> NOT_BLANK` |
+| `POST /transactionRows/delete` | `id -> NOT_NULL`; `transactionHeadId -> NOT_NULL`; `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL, POSITIVE_OR_ZERO`; `typeOfTransaction -> NOT_BLANK` |
 
 Endpoints that currently do not emit `VALIDATION_FAILED`:
 - `GET /auth/activate`

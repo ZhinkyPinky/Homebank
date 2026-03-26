@@ -911,6 +911,7 @@ components:
         amount:
           type: integer
           format: int32
+          minimum: 0
           nullable: true
         borrower:
           type: string
