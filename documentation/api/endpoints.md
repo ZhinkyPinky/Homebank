@@ -59,12 +59,13 @@ All other protected endpoints return `403 ACCOUNT_NOT_ACTIVATED`.
 
 These errors are applied by filters/security and are therefore not always repeated on every endpoint line item:
 
-- Any endpoint can return:
+- Protected endpoints can return:
   - `401 TOKEN_INVALID` (malformed/invalid bearer token)
   - `401 TOKEN_EXPIRED` (expired bearer token)
 - Protected endpoints can also return:
   - `401 AUTHENTICATION_FAILED` (authentication context could not be resolved)
   - `403 ACCOUNT_NOT_ACTIVATED` (authenticated user has `ACTIVATION_PENDING`)
+- Public (`permitAll`) endpoints ignore `Authorization` bearer tokens.
 
 ## 3. Endpoint Groups
 
@@ -93,7 +94,7 @@ These errors are applied by filters/security and are therefore not always repeat
 }
 ```
 
-- Errors: `400 VALIDATION_FAILED`, `401 BAD_CREDENTIALS`, `403 ACCOUNT_DISABLED`, plus cross-cutting errors above
+- Errors: `400 VALIDATION_FAILED`, `401 BAD_CREDENTIALS`, `403 ACCOUNT_DISABLED`
 
 ### `POST /auth/logout`
 
@@ -127,7 +128,7 @@ These errors are applied by filters/security and are therefore not always repeat
 "Registration successful. Please check your e-mail to activate your account."
 ```
 
-- Errors: `400 VALIDATION_FAILED`, plus cross-cutting bearer-token errors above
+- Errors: `400 VALIDATION_FAILED`
 
 ### `POST /auth/refresh`
 
@@ -151,7 +152,7 @@ These errors are applied by filters/security and are therefore not always repeat
 }
 ```
 
-- Errors: `400 VALIDATION_FAILED`, `403 ACCOUNT_NOT_ACTIVATED`, plus cross-cutting bearer-token errors above
+- Errors: `400 VALIDATION_FAILED`, `403 ACCOUNT_NOT_ACTIVATED`
 
 ### `GET /auth/activate?token=<token>`
 
@@ -164,7 +165,7 @@ These errors are applied by filters/security and are therefore not always repeat
 "Account activated successfully"
 ```
 
-- Errors: `400 TOKEN_INVALID`, `403 TOKEN_EXPIRED`, plus cross-cutting bearer-token errors above
+- Errors: `400 TOKEN_INVALID`, `403 TOKEN_EXPIRED`
 
 ### `POST /auth/resend-activation`
 
@@ -194,7 +195,7 @@ These errors are applied by filters/security and are therefore not always repeat
 
 - `200` response: empty body
 - Notes: for valid payloads, the endpoint always returns `200` regardless of whether the e-mail exists.
-- Errors: `400 VALIDATION_FAILED`, plus cross-cutting bearer-token errors above
+- Errors: `400 VALIDATION_FAILED`
 
 ### `POST /account-recovery/authenticate`
 
@@ -216,7 +217,7 @@ These errors are applied by filters/security and are therefore not always repeat
 }
 ```
 
-- Errors: `400 VALIDATION_FAILED`, `401 BAD_CREDENTIALS`, plus cross-cutting bearer-token errors above
+- Errors: `400 VALIDATION_FAILED`, `401 BAD_CREDENTIALS`
 
 ### `POST /account-recovery/set-new-password`
 
@@ -242,7 +243,7 @@ These errors are applied by filters/security and are therefore not always repeat
 }
 ```
 
-- Errors: `400 VALIDATION_FAILED`, `400 PASSWORD_CONFIRMATION_MISMATCH`, `401 TOKEN_INVALID`, plus cross-cutting bearer-token errors above
+- Errors: `400 VALIDATION_FAILED`, `400 PASSWORD_CONFIRMATION_MISMATCH`, `401 TOKEN_INVALID`
 
 ## 3.3 Users
 
