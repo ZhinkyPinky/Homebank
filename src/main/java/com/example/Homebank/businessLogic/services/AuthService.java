@@ -17,7 +17,6 @@ import com.example.Homebank.presentation.dto.auth.AccessAndRefreshTokenDTO;
 import com.example.Homebank.presentation.dto.auth.AuthenticationDTO;
 import com.example.Homebank.presentation.dto.auth.RefreshTokenDTO;
 import com.example.Homebank.presentation.dto.auth.RegistrationDTO;
-import jakarta.persistence.EntityExistsException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,9 +71,9 @@ public class AuthService {
      */
     @Transactional
     public AccessAndRefreshTokenDTO authenticate(AuthenticationDTO authenticationDTO) {
-        logger.info("Attempting to authenticate user: {}", authenticationDTO.email());
+        String email = normalizeEmail(authenticationDTO.email());
+        logger.info("Attempting to authenticate user: {}", email);
 
-        String email = authenticationDTO.email();
         String password = authenticationDTO.password();
 
         UsernamePasswordAuthenticationToken authenticationToken = UsernamePasswordAuthenticationToken.unauthenticated(email, password);
@@ -114,14 +113,14 @@ public class AuthService {
      */
     @Transactional
     public void register(RegistrationDTO registrationDTO) {
-        logger.info("Attempting to register new user: {}", registrationDTO.email());
+        String email = normalizeEmail(registrationDTO.email());
+        logger.info("Attempting to register new user: {}", email);
 
-        if (userRepository.findByEmail(registrationDTO.email()).isPresent()) {
-            logger.error("Email {} already exists", registrationDTO.email());
-            throw new EntityExistsException("Email already exists");
+        if (userRepository.findByEmail(email).isPresent()) {
+            logger.info("Registration request completed.");
+            return;
         }
 
-        String email = registrationDTO.email();
         String password = registrationDTO.password();
         String encodedPassword = passwordEncoder.encode(password);
 
@@ -172,7 +171,7 @@ public class AuthService {
      */
     @Transactional
     public void resendActivationEmail(String email) {
-        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+        String normalizedEmail = normalizeEmail(email);
         logger.info("Processing resend activation email request.");
 
         Optional<UserEntity> optionalUserEntity = userRepository.findByEmail(normalizedEmail);
@@ -199,6 +198,10 @@ public class AuthService {
         logger.info("Resend activation email request completed.");
 
         sendActivationEmail(normalizedEmail, activationToken);
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
     }
 
     /**
@@ -296,6 +299,7 @@ public class AuthService {
             logger.error("Activation token expiration is missing for user: {}", userEntity.getEmail());
             throw new InvalidActivationTokenException();
         }
+
         if (LocalDateTime.now().isAfter(activationTokenExpiryDate)) {
             logger.error("Activation token has expired for user: {}", userEntity.getEmail());
             throw new ActivationTokenExpiredException();

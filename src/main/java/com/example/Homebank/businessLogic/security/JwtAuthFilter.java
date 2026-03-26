@@ -3,6 +3,7 @@ package com.example.Homebank.businessLogic.security;
 import com.example.Homebank.businessLogic.services.UserService;
 import com.example.Homebank.error.ApiErrorCode;
 import com.example.Homebank.exceptions.authentication.TokenType;
+import com.example.Homebank.presentation.ApiPaths;
 import com.example.Homebank.presentation.dto.error.ApiError;
 import com.example.Homebank.presentation.dto.error.TokenErrorDetail;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -26,6 +27,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Set;
 
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
@@ -36,10 +38,24 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
+    private static final Set<String> SKIP_TOKEN_VALIDATION_ENDPOINTS = Set.of(
+            ApiPaths.AUTH + ApiPaths.SIGN_IN,
+            ApiPaths.AUTH + ApiPaths.REFRESH,
+            ApiPaths.AUTH + ApiPaths.REGISTER,
+            ApiPaths.AUTH + ApiPaths.ACTIVATE,
+            ApiPaths.ACCOUNT_RECOVERY + ApiPaths.INITIATE_RECOVERY,
+            ApiPaths.ACCOUNT_RECOVERY + ApiPaths.AUTHENTICATE,
+            ApiPaths.ACCOUNT_RECOVERY + ApiPaths.SET_NEW_PASSWORD
+    );
 
     private final AccessJwtUtil jwtUtil;
     private final UserService userDetailsService;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return SKIP_TOKEN_VALIDATION_ENDPOINTS.contains(request.getRequestURI());
+    }
 
     /**
      * Authenticates a user based on a provided JWT.
@@ -158,7 +174,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 code,
                 message,
                 path,
-                new TokenErrorDetail(TokenType.ACCESS.name())
+                new TokenErrorDetail(TokenType.ACCESS)
         );
 
         objectMapper.writeValue(response.getWriter(), apiError);
