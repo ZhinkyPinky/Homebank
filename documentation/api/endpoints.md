@@ -31,6 +31,13 @@
 
 ## 2. Security Model
 
+### Authentication Tokens
+
+- Access tokens are returned in JSON and sent on protected requests as `Authorization: Bearer <access_token>`.
+- Refresh tokens are stored in a `Secure`, `HttpOnly`, `SameSite=Strict` cookie named `refreshToken`.
+- Browser clients must include credentials when calling endpoints that consume the refresh-token cookie.
+- Login, refresh, password recovery, and logout set or delete the refresh-token cookie through `Set-Cookie`.
+
 ### Public Endpoints (`permitAll`)
 
 - `POST /auth/login`
@@ -88,27 +95,23 @@ These errors are applied by filters/security and are therefore not always repeat
 ```json
 {
   "accessToken": "<jwt-access-token>",
-  "refreshToken": "<opaque-refresh-token>",
   "message": "Login successful",
   "accountStatus": "ACTIVE"
 }
 ```
+
+- Sets `refreshToken=<opaque-refresh-token>; Path=/auth; Max-Age=<seconds>; Secure; HttpOnly; SameSite=Strict`.
 
 - Errors: `400 VALIDATION_FAILED`, `401 BAD_CREDENTIALS`, `403 ACCOUNT_DISABLED`
 
 ### `POST /auth/logout`
 
 - Auth: Yes
-- Request body:
-
-```json
-{
-  "refreshToken": "<opaque-refresh-token>"
-}
-```
-
-- `200` response: empty body
-- Errors: `400 VALIDATION_FAILED`, `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `401 AUTHENTICATION_FAILED`
+- Request body: none
+- Refresh-token cookie: optional; when present, its server-side session is revoked.
+- `204` response: empty body
+- Always deletes the browser cookie with `refreshToken=; Path=/auth; Max-Age=0; Secure; HttpOnly; SameSite=Strict`, including when server-side revocation fails after the controller starts processing.
+- Errors: `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `401 AUTHENTICATION_FAILED`, `500 INTERNAL_SERVER_ERROR`
 
 ### `POST /auth/register`
 
@@ -133,26 +136,22 @@ These errors are applied by filters/security and are therefore not always repeat
 ### `POST /auth/refresh`
 
 - Auth: No
-- Request body:
-
-```json
-{
-  "refreshToken": "<opaque-refresh-token>"
-}
-```
+- Request body: none
+- Refresh-token cookie: required
 
 - `200` response:
 
 ```json
 {
   "accessToken": "<new-jwt-access-token>",
-  "refreshToken": "<new-opaque-refresh-token>",
   "message": "Tokens refreshed",
   "accountStatus": "ACTIVE"
 }
 ```
 
-- Errors: `400 VALIDATION_FAILED`, `403 ACCOUNT_NOT_ACTIVATED`
+- Rotates the refresh token and sets the replacement in the `/auth`-scoped `refreshToken` cookie.
+
+- Errors: `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `403 ACCOUNT_NOT_ACTIVATED`
 
 ### `GET /auth/activate?token=<token>`
 
@@ -237,11 +236,12 @@ These errors are applied by filters/security and are therefore not always repeat
 ```json
 {
   "accessToken": "<jwt-access-token>",
-  "refreshToken": "<opaque-refresh-token>",
   "message": "Password changed successfully",
   "accountStatus": "ACTIVE"
 }
 ```
+
+- Sets the new refresh token in the secure, HTTP-only, `/auth`-scoped `refreshToken` cookie.
 
 - Errors: `400 VALIDATION_FAILED`, `400 PASSWORD_CONFIRMATION_MISMATCH`, `401 TOKEN_INVALID`
 
@@ -430,9 +430,7 @@ Endpoints that can return `400 VALIDATION_FAILED`:
 | Endpoint | Field -> Validation Code(s) |
 |---|---|
 | `POST /auth/login` | `email -> NOT_BLANK, EMAIL`; `password -> NOT_BLANK` |
-| `POST /auth/logout` | `refreshToken -> NOT_BLANK` |
 | `POST /auth/register` | `email -> NOT_BLANK, EMAIL`; `password -> NOT_BLANK` |
-| `POST /auth/refresh` | `refreshToken -> NOT_BLANK` |
 | `POST /account-recovery/initiate` | `email -> NOT_BLANK, EMAIL` |
 | `POST /account-recovery/authenticate` | `email -> NOT_BLANK, EMAIL`; `password -> NOT_BLANK` |
 | `POST /account-recovery/set-new-password` | `recoveryToken -> NOT_BLANK`; `newPassword -> NOT_BLANK`; `confirmNewPassword -> NOT_BLANK` |

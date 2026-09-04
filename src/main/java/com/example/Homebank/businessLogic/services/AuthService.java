@@ -30,6 +30,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.Optional;
@@ -94,8 +95,10 @@ public class AuthService {
 
         String accessToken = accessJwtUtil.generateToken(userEntity.getUsername());
         String refreshToken = OpaqueTokenGenerator.generateToken();
+        Duration refreshTokenDuration = Duration.ofDays(Long.parseLong(refreshTokenDurationDays));
         String hashedRefreshToken = TokenHasher.hash(refreshToken);
-        LocalDateTime refreshTokenExpirationDate = LocalDateTime.now().plusDays(Long.parseLong(refreshTokenDurationDays));
+        LocalDateTime refreshTokenExpirationDate = LocalDateTime.now().plus(refreshTokenDuration);
+        //LocalDateTime.now().plusDays(Long.parseLong(refreshTokenDurationDays));
 
         userEntity.setRefreshToken(hashedRefreshToken);
         userEntity.setNextRefreshTokenExpirationDate(refreshTokenExpirationDate);
@@ -103,7 +106,12 @@ public class AuthService {
 
         logger.info("User {} authenticated successfully. Tokens generated.", userEntity.getUsername());
 
-        return new AccessAndRefreshTokenDTO(accessToken, refreshToken, "Login successful", userEntity.getStatus().toString());
+        return new AccessAndRefreshTokenDTO(
+                accessToken,
+                refreshToken,
+                refreshTokenDuration,
+                "Login successful",
+                userEntity.getStatus().toString());
     }
 
     /**
@@ -213,6 +221,12 @@ public class AuthService {
     @Transactional
     public AccessAndRefreshTokenDTO refreshTokens(RefreshTokenDTO refreshTokenDTO) {
         String refreshToken = refreshTokenDTO.refreshToken();
+        if (refreshToken == null) {
+            logger.error("Refresh token missing.");
+            // TODO: Create a new exception for missing refresh token.
+            throw new InvalidRefreshTokenException();
+        }
+
         String hashedRefreshToken = TokenHasher.hash(refreshToken);
 
         UserEntity userEntity = userRepository.findByRefreshToken(hashedRefreshToken).orElseThrow(() -> {
@@ -242,7 +256,9 @@ public class AuthService {
         String newAccessToken = accessJwtUtil.generateToken(email);
         String newRefreshToken = OpaqueTokenGenerator.generateToken();
         String hashedNewRefreshToken = TokenHasher.hash(newRefreshToken);
-        LocalDateTime newRefreshTokenExpirationDate = LocalDateTime.now().plusDays(Long.parseLong(refreshTokenDurationDays));
+        Duration newRefreshTokenDuration = Duration.ofDays(Long.parseLong(refreshTokenDurationDays));
+        LocalDateTime newRefreshTokenExpirationDate = LocalDateTime.now().plus(newRefreshTokenDuration);
+        //LocalDateTime newRefreshTokenExpirationDate = LocalDateTime.now().plusDays(Long.parseLong(refreshTokenDurationDays));
 
         userEntity.setRefreshToken(hashedNewRefreshToken);
         userEntity.setNextRefreshTokenExpirationDate(newRefreshTokenExpirationDate);
@@ -250,7 +266,12 @@ public class AuthService {
 
         logger.info("Tokens refreshed successfully for user: {}", email);
 
-        return new AccessAndRefreshTokenDTO(newAccessToken, newRefreshToken, "Tokens refreshed", userEntity.getStatus().toString());
+        return new AccessAndRefreshTokenDTO(
+                newAccessToken,
+                newRefreshToken,
+                newRefreshTokenDuration,
+                "Tokens refreshed",
+                userEntity.getStatus().toString());
     }
 
     /**
@@ -260,22 +281,17 @@ public class AuthService {
      */
     @Transactional
     public void signOut(String refreshToken) {
-        String hashedRefreshToken = TokenHasher.hash(refreshToken);
+        logger.info("Attempting to sign out user.");
 
-        UserEntity userEntity = userRepository.findByRefreshToken(hashedRefreshToken).orElseThrow(() -> {
-            logger.error("Invalid refresh token provided for sign out.");
-            return new InvalidRefreshTokenException();
+        String hashedRefreshToken = TokenHasher.hash(refreshToken);
+        userRepository.findByRefreshToken(hashedRefreshToken).ifPresent(user -> {
+            user.setRefreshToken(null);
+            user.setNextRefreshTokenExpirationDate(LocalDateTime.MIN);
+            userRepository.save(user);
+            logger.info("User signed out successfully.");
         });
 
-        String email = userEntity.getEmail();
-
-        logger.info("Attempting to sign out user: {}", email);
-
-        userEntity.setRefreshToken(null);
-        userEntity.setNextRefreshTokenExpirationDate(LocalDateTime.MIN);
-        userRepository.save(userEntity);
-
-        logger.info("User {} signed out successfully.", email);
+        logger.info("Sign out request processed.");
     }
 
     /**

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
 
@@ -158,7 +159,8 @@ public class AccountRecoveryService {
         String accessToken = accessJwtUtil.generateToken(userEntity.getUsername());
         String refreshToken = OpaqueTokenGenerator.generateToken();
         String hashedRefreshToken = TokenHasher.hash(refreshToken);
-        LocalDateTime refreshTokenExpirationDate = LocalDateTime.now().plusDays(Long.parseLong(refreshTokenDurationDays));
+        Duration refreshTokenDuration = Duration.ofDays(Long.parseLong(refreshTokenDurationDays));
+        LocalDateTime refreshTokenExpirationDate = LocalDateTime.now().plus(refreshTokenDuration);
 
         userEntity.setPassword(encodedNewPassword);
         userEntity.setRefreshToken(hashedRefreshToken);
@@ -167,7 +169,12 @@ public class AccountRecoveryService {
 
         logger.debug("Password changed successfully for user: {}", email);
 
-        return new AccessAndRefreshTokenDTO(accessToken, refreshToken, "Password changed successfully", userEntity.getStatus().toString());
+        return new AccessAndRefreshTokenDTO(
+                accessToken,
+                refreshToken,
+                refreshTokenDuration,
+                "Password changed successfully",
+                userEntity.getStatus().toString());
     }
 
 }

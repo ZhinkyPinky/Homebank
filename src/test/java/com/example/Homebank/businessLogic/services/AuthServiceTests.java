@@ -1,6 +1,7 @@
 package com.example.Homebank.businessLogic.services;
 
 import com.example.Homebank.businessLogic.security.AccessJwtUtil;
+import com.example.Homebank.businessLogic.security.TokenHasher;
 import com.example.Homebank.businessLogic.services.email.EmailService;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.entities.UserStatus;
@@ -21,10 +22,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -121,5 +124,30 @@ class AuthServiceTests {
         assertEquals("secret", captured.getCredentials());
         assertNotNull(result);
         assertEquals("access-token", result.accessToken());
+    }
+
+    @Test
+    void signOut_existingRefreshToken_invalidatesStoredSession() {
+        String refreshToken = "refresh-token";
+        UserEntity user = new UserEntity();
+        user.setRefreshToken(TokenHasher.hash(refreshToken));
+        user.setNextRefreshTokenExpirationDate(LocalDateTime.now().plusDays(7));
+        when(userRepository.findByRefreshToken(TokenHasher.hash(refreshToken))).thenReturn(Optional.of(user));
+
+        authService.signOut(refreshToken);
+
+        assertNull(user.getRefreshToken());
+        assertEquals(LocalDateTime.MIN, user.getNextRefreshTokenExpirationDate());
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void signOut_unknownRefreshToken_completesWithoutSaving() {
+        String refreshToken = "unknown-refresh-token";
+        when(userRepository.findByRefreshToken(TokenHasher.hash(refreshToken))).thenReturn(Optional.empty());
+
+        authService.signOut(refreshToken);
+
+        verify(userRepository, never()).save(any(UserEntity.class));
     }
 }

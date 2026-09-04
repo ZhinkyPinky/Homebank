@@ -7,6 +7,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -54,13 +56,31 @@ public class AccountRecoveryController {
      * Handles requests to set a new password using a valid recovery token.
      *
      * @param setNewPasswordDTO Recovery token and new password data.
-     * @return A new access/refresh token pair after successful password update.
+     * @return the new access token and a refresh token in a secure, HTTP-only cookie.
      */
     @PostMapping(ApiPaths.SET_NEW_PASSWORD)
-    public ResponseEntity<AccessAndRefreshTokenDTO> setNewPassword(@Valid @RequestBody SetNewPasswordDTO setNewPasswordDTO) {
+    public ResponseEntity<AccessTokenDTO> setNewPassword(@Valid @RequestBody SetNewPasswordDTO setNewPasswordDTO) {
         logger.info("Request to set new password received.");
 
-        AccessAndRefreshTokenDTO accessAndRefreshTokenDTO = accountRecoveryService.setNewPassword(setNewPasswordDTO);
-        return ResponseEntity.ok(accessAndRefreshTokenDTO);
+        AccessAndRefreshTokenDTO tokenDTO = accountRecoveryService.setNewPassword(setNewPasswordDTO);
+
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", tokenDTO.refreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .path(ApiPaths.AUTH)
+                .maxAge(tokenDTO.refreshTokenDuration())
+                .sameSite("Strict")
+                .build();
+
+        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(
+                tokenDTO.accessToken(),
+                tokenDTO.message(),
+                tokenDTO.accountStatus()
+        );
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .body(accessTokenDTO);
+
     }
 }

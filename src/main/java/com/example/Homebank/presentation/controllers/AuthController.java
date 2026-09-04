@@ -2,17 +2,20 @@ package com.example.Homebank.presentation.controllers;
 
 import com.example.Homebank.businessLogic.services.AuthService;
 import com.example.Homebank.presentation.ApiPaths;
-import com.example.Homebank.presentation.dto.auth.AccessAndRefreshTokenDTO;
-import com.example.Homebank.presentation.dto.auth.AuthenticationDTO;
-import com.example.Homebank.presentation.dto.auth.RefreshTokenDTO;
-import com.example.Homebank.presentation.dto.auth.RegistrationDTO;
+import com.example.Homebank.presentation.dto.auth.*;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.WebUtils;
 
 /**
  * Controller responsible for handling authentication-related requests, such as signing in, signing out, registering and refreshing tokens.
@@ -29,28 +32,65 @@ public class AuthController {
      * Handles requests to sign in a user.
      *
      * @param authenticationRequest Request body containing email and password.
-     * @return a response containing access and refresh tokens if successful, otherwise an error response.
+     * @return a response containing the access token and a refresh token in a secure, HTTP-only cookie.
      */
     @PostMapping(ApiPaths.SIGN_IN)
-    public ResponseEntity<AccessAndRefreshTokenDTO> signIn(@Valid @RequestBody AuthenticationDTO authenticationRequest) {
+    public ResponseEntity<AccessTokenDTO> signIn(@Valid @RequestBody AuthenticationDTO authenticationRequest) {
         logger.info("Sign in request received for user: {}", authenticationRequest.email());
-        AccessAndRefreshTokenDTO responseBody = authService.authenticate(authenticationRequest);
+        AccessAndRefreshTokenDTO tokenInformation = authService.authenticate(authenticationRequest);
 
-        return ResponseEntity.ok(responseBody);
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", tokenInformation.refreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .path(ApiPaths.AUTH)
+                .maxAge(tokenInformation.refreshTokenDuration())
+                .sameSite("Strict")
+                .build();
+
+        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(
+                tokenInformation.accessToken(),
+                tokenInformation.message(),
+                tokenInformation.accountStatus()
+        );
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .body(accessTokenDTO);
     }
 
     /**
      * Handles requests to sign out a user.
      *
-     * @param refreshTokenDTO Request body containing a refresh token.
-     * @return a response indicating whether the request was successful.
+     * @return an empty response that deletes the refresh-token cookie.
      */
     @PostMapping(ApiPaths.SIGN_OUT)
-    public ResponseEntity<String> logout(@Valid @RequestBody RefreshTokenDTO refreshTokenDTO) {
+    public ResponseEntity<String> logout(HttpServletResponse response, HttpServletRequest request) {
         logger.info("Sign out request received.");
-        //TODO: Implement.
-        authService.signOut(refreshTokenDTO.refreshToken());
-        return ResponseEntity.ok().build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, deleteRefreshTokenCookie().toString());
+
+        Cookie cookie = WebUtils.getCookie(request, "refreshToken");
+        String refreshToken = cookie != null ? cookie.getValue() : null;
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            authService.signOut(refreshToken);
+        }
+
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Creates a ResponseCookie that deletes the refresh token cookie.
+     *
+     * @return a ResponseCookie that deletes the refresh token cookie.
+     */
+    private ResponseCookie deleteRefreshTokenCookie() {
+        return ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path(ApiPaths.AUTH)
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
     }
 
     /**
@@ -69,13 +109,31 @@ public class AuthController {
     /**
      * Handles requests to refresh authentication tokens.
      *
-     * @param refreshTokenDTO Request body containing a refresh token.
-     * @return The new access and refresh tokens.
+     * @return the new access token and a rotated refresh token in a secure, HTTP-only cookie.
      */
     @PostMapping(ApiPaths.REFRESH)
-    public ResponseEntity<AccessAndRefreshTokenDTO> refresh(@Valid @RequestBody RefreshTokenDTO refreshTokenDTO) {
+    public ResponseEntity<AccessTokenDTO> refresh(HttpServletRequest request) {
         logger.info("Refresh request received.");
-        return ResponseEntity.ok(authService.refreshTokens(refreshTokenDTO));
+        Cookie incomingRefreshTokenCookie = WebUtils.getCookie(request, "refreshToken");
+        RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO(incomingRefreshTokenCookie != null ? incomingRefreshTokenCookie.getValue() : null);
+
+        AccessAndRefreshTokenDTO accessAndRefreshTokenDTO = authService.refreshTokens(refreshTokenDTO);
+
+        ResponseCookie outgoingRefreshTokenCookie = ResponseCookie.from("refreshToken", accessAndRefreshTokenDTO.refreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .path(ApiPaths.AUTH)
+                .maxAge(accessAndRefreshTokenDTO.refreshTokenDuration())
+                .sameSite("Strict")
+                .build();
+
+        AccessTokenDTO accessTokenDTO = new AccessTokenDTO(
+                accessAndRefreshTokenDTO.accessToken(),
+                accessAndRefreshTokenDTO.message(),
+                accessAndRefreshTokenDTO.accountStatus()
+        );
+
+        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, outgoingRefreshTokenCookie.toString()).body(accessTokenDTO);
     }
 
     /**

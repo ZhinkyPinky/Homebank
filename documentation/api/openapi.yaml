@@ -33,10 +33,16 @@ paths:
       responses:
         '200':
           description: Login successful
+          headers:
+            Set-Cookie:
+              description: Secure, HTTP-only refresh-token cookie.
+              schema:
+                type: string
+                example: refreshToken=<opaque-refresh-token>; Path=/auth; Max-Age=604800; Secure; HttpOnly; SameSite=Strict
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccessAndRefreshTokenDTO'
+                $ref: '#/components/schemas/AccessTokenDTO'
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
@@ -48,19 +54,26 @@ paths:
     post:
       tags: [Auth]
       summary: Logout
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RefreshTokenDTO'
+      description: Revokes the refresh token when the cookie is present and always deletes the browser cookie.
+      parameters:
+        - name: refreshToken
+          in: cookie
+          required: false
+          schema:
+            type: string
       responses:
-        '200':
+        '204':
           description: Logout successful
-        '400':
-          $ref: '#/components/responses/BadRequestError'
+          headers:
+            Set-Cookie:
+              description: Deletes the refresh-token cookie.
+              schema:
+                type: string
+                example: refreshToken=; Path=/auth; Max-Age=0; Secure; HttpOnly; SameSite=Strict
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /auth/register:
     post:
@@ -86,23 +99,27 @@ paths:
   /auth/refresh:
     post:
       tags: [Auth]
-      summary: Refresh access/refresh tokens
+      summary: Refresh access token and rotate refresh token
       security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RefreshTokenDTO'
+      parameters:
+        - name: refreshToken
+          in: cookie
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Tokens refreshed
+          headers:
+            Set-Cookie:
+              description: Rotated secure, HTTP-only refresh-token cookie.
+              schema:
+                type: string
+                example: refreshToken=<new-opaque-refresh-token>; Path=/auth; Max-Age=604800; Secure; HttpOnly; SameSite=Strict
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccessAndRefreshTokenDTO'
-        '400':
-          $ref: '#/components/responses/BadRequestError'
+                $ref: '#/components/schemas/AccessTokenDTO'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
@@ -200,10 +217,16 @@ paths:
       responses:
         '200':
           description: Password changed
+          headers:
+            Set-Cookie:
+              description: Secure, HTTP-only refresh-token cookie.
+              schema:
+                type: string
+                example: refreshToken=<opaque-refresh-token>; Path=/auth; Max-Age=604800; Secure; HttpOnly; SameSite=Strict
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccessAndRefreshTokenDTO'
+                $ref: '#/components/schemas/AccessTokenDTO'
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
@@ -672,6 +695,23 @@ components:
                 message: "The resource was modified by another process. Please refresh and try again."
                 path: "/customers/1"
                 details: null
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            internalServerError:
+              summary: Unexpected server failure
+              value:
+                timestamp: "2026-03-14T10:00:00Z"
+                status: 500
+                error: "Internal Server Error"
+                code: "INTERNAL_SERVER_ERROR"
+                message: "An unexpected error occurred."
+                path: "/auth/logout"
+                details: null
 
   schemas:
     ApiError:
@@ -822,13 +862,11 @@ components:
         token:
           type: string
 
-    AccessAndRefreshTokenDTO:
+    AccessTokenDTO:
       type: object
-      required: [accessToken, refreshToken, message, accountStatus]
+      required: [accessToken, message, accountStatus]
       properties:
         accessToken:
-          type: string
-        refreshToken:
           type: string
         message:
           type: string
