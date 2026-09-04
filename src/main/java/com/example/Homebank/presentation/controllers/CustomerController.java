@@ -38,7 +38,7 @@ public class CustomerController {
         //TODO: Return created customer and location.
         customerService.createCustomer(customer);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("Customer created.");
     }
 
     /**
@@ -92,8 +92,7 @@ public class CustomerController {
      * @return All customers and the specified transaction head.
      */
     @GetMapping("/transactionHeads/{transactionHeadId}")
-    public ResponseEntity<CustomersAndTransactionHeadDTO> getCustomersAndTransactionHead(
-            @PathVariable final int transactionHeadId) {
+    public ResponseEntity<CustomersAndTransactionHeadDTO> getCustomersAndTransactionHead(@PathVariable final int transactionHeadId) {
         logger.info("Request to get customers and transaction head with transactionHeadId: {} received.", transactionHeadId);
 
         CustomersAndTransactionHeadDTO body = customerService.getCustomersAndTransactionHead(transactionHeadId);
