@@ -41,7 +41,7 @@ public class CustomerService {
     private final TransactionRowService transactionRowService;
 
     /**
-     * Retrieves all customers from the DB.
+     * Retrieves all customers from the DB that the authenticated user has access to.
      *
      * @return All customers.
      */
@@ -56,18 +56,18 @@ public class CustomerService {
             return List.of();
         }
 
-        // TODO: Temporary for testing on frontend
-        List<CustomerDTO> customers = customerViewRepository.findAllById(accessibleCustomerIds).stream().map(CustomerDTO::fromEntity).toList();
+        List<CustomerDTO> customers = customerViewRepository.findAllById(accessibleCustomerIds).stream().map(CustomerDTO::fromView).toList();
 
         logger.debug("Retrieved {} customers.", customers.size());
         return customers;
     }
 
     /**
-     * Retrieves all customers and the specified transaction head.
+     * Retrieves all customers accessible by the user and the specified transaction head.
      *
      * @param transactionHeadId ID of the transaction head to retrieve.
      * @return All customers and the specified transaction head.
+     * @throws ResourceAccessDeniedException if the authenticated user does not have access to the transaction head.
      */
     @Transactional(readOnly = true)
     public CustomersAndTransactionHeadDTO getCustomersAndTransactionHead(int transactionHeadId) {
@@ -116,10 +116,17 @@ public class CustomerService {
         });
 
         logger.debug("Retrieved customer: {}", customerView);
-        return CustomerDTO.fromEntity(customerView);
+        return CustomerDTO.fromView(customerView);
     }
 
 
+    /**
+     * Retrieves the CustomerEntity for the specified customer ID.
+     *
+     * @param customerId ID of the customer to retrieve.
+     * @return The CustomerEntity for the specified customer ID.
+     * @throws ResourceNotFoundException if the customer with the specified ID does not exist.
+     */
     private CustomerEntity getCustomerEntity(int customerId) {
         logger.info("Fetching customer entity with ID: {}", customerId);
 
@@ -141,8 +148,6 @@ public class CustomerService {
     @Transactional(readOnly = true)
     public CustomerAndTransactionHeadsDTO getCustomerAndTransactionHeads(int customerId) {
         logger.info("Fetching customer and transaction heads for customerId: {}", customerId);
-        // TODO(security): Require ownership/membership authorization for this customer read.
-
         CustomerDTO customer = getCustomer(customerId);
         List<TransactionHeadDTO> transactionHeads = transactionHeadService.getTransactionHeadsByCustomerId(customerId);
 
@@ -244,6 +249,8 @@ public class CustomerService {
      *
      * @param customerId ID of the customer to update.
      * @param customer   Updated customer data.
+     * @throws IllegalArgumentException if the provided row version is null.
+     * @throws ObjectOptimisticLockingFailureException if the row version does not match the current version in the DB, indicating a concurrent modification.
      */
     @Transactional
     public void updateCustomer(int customerId, UpdateCustomerDTO customer) {
@@ -259,8 +266,13 @@ public class CustomerService {
         );
 
         LocalDateTime providedRowVersion = customer.rowVersion();
+        if (providedRowVersion == null) {
+            logger.error("Provided row version is null for customer with ID: {}", customerId);
+            throw new IllegalArgumentException("Row version must be provided for update operations.");
+        }
+
         LocalDateTime currentRowVersion = customerEntity.getRowVersion();
-        if (providedRowVersion == null || currentRowVersion == null || !providedRowVersion.equals(currentRowVersion)) {
+        if (!providedRowVersion.equals(currentRowVersion)) {
             logger.error("Row version mismatch for customer with ID: {}. Provided: {}, Current: {}", customerId, providedRowVersion, currentRowVersion);
             throw new ObjectOptimisticLockingFailureException(
                     CustomerEntity.class,
@@ -269,16 +281,15 @@ public class CustomerService {
             );
         }
 
-        customerEntity.setName(customer.name());
-        customerEntity.setDescription(customer.description());
-
         String methodInfo = this.getClass().getSimpleName() + ": updateCustomer";
         LocalDateTime currentDateTime = LocalDateTime.now();
+
+        customerEntity.setName(customer.name());
+        customerEntity.setDescription(customer.description());
         customerEntity.setRowLastEditBy(methodInfo);
         customerEntity.setRowLastEditDate(currentDateTime);
-        customerEntity.setRowVersion(currentDateTime);
 
-        customerRepository.save(customerEntity);
+        customerRepository.saveAndFlush(customerEntity);
 
         logger.debug("Customer with ID: {} updated successfully.", customerId);
     }
@@ -312,10 +323,7 @@ public class CustomerService {
      * @param message           Error message returned on access denial.
      * @throws ResourceAccessDeniedException if the user is not the owner of the customer.
      */
-    private void validateCustomerOwnership(CustomerEntity customerEntity,
-                                           UserEntity authenticatedUser,
-                                           String action,
-                                           String message) {
+    private void validateCustomerOwnership(CustomerEntity customerEntity, UserEntity authenticatedUser, String action, String message) {
         int ownerId = customerEntity.getOwner().getId();
         int authenticatedUserId = authenticatedUser.getId();
 

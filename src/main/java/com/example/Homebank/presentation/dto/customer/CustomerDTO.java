@@ -24,7 +24,7 @@ public record CustomerDTO(
         @NotNull(message = "Customer amount is missing") Integer customerAmount,
         @NotNull(message = "Row version is missing") LocalDateTime rowVersion
 ) {
-    public static CustomerDTO fromEntity(CustomerView entity) {
+    public static CustomerDTO fromView(CustomerView entity) {
         return new CustomerDTO(
                 entity.getId(),
                 entity.getName(),

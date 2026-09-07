@@ -47,7 +47,7 @@ public class CustomerEntity {
     private String rowCreatedBy;
 
     @Column(name = "RowCreatedDate")
-    private LocalDateTime rowCreateDate = LocalDateTime.now();
+    private LocalDateTime rowCreatedDate = LocalDateTime.now();
 
     @Column(name = "RowLastEditBy")
     private String rowLastEditBy;
@@ -55,8 +55,9 @@ public class CustomerEntity {
     @Column(name = "RowLastEditDate")
     private LocalDateTime rowLastEditDate = LocalDateTime.now();
 
-    @Column(name = "RowVersion")
-    private LocalDateTime rowVersion = LocalDateTime.now();
+    @Version
+    @Column(name = "RowVersion", nullable = false)
+    private LocalDateTime rowVersion;
 
     @OneToMany(mappedBy = "customer")
     private Set<UserCustomer> userCustomers = new HashSet<>();
