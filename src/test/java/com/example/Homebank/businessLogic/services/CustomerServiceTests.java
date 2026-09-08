@@ -1,7 +1,7 @@
 package com.example.Homebank.businessLogic.services;
 
 import com.example.Homebank.businessLogic.security.AuthenticatedUserProvider;
-import com.example.Homebank.dataAccess.connections.UserCustomer;
+import com.example.Homebank.businessLogic.security.authorization.CustomerAccessPolicy;
 import com.example.Homebank.dataAccess.entities.CustomerEntity;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.CustomerRepository;
@@ -9,6 +9,8 @@ import com.example.Homebank.dataAccess.repositories.CustomerViewRepository;
 import com.example.Homebank.dataAccess.views.CustomerView;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
+import com.example.Homebank.presentation.dto.composite.CustomerAndTransactionHeadDTO;
+import com.example.Homebank.presentation.dto.composite.CustomerAndTransactionHeadsDTO;
 import com.example.Homebank.presentation.dto.composite.CustomersAndTransactionHeadDTO;
 import com.example.Homebank.presentation.dto.customer.CustomerDTO;
 import com.example.Homebank.presentation.dto.customer.UpdateCustomerDTO;
@@ -31,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,6 +43,9 @@ class CustomerServiceTests {
 
     @Mock
     private AuthenticatedUserProvider authenticatedUserProvider;
+
+    @Mock
+    private CustomerAccessPolicy customerAccessPolicy;
 
     @Mock
     private CustomerRepository customerRepository;
@@ -104,7 +110,12 @@ class CustomerServiceTests {
                 customerView(1, "C1"),
                 customerView(2, "C2")
         ));
-        when(transactionHeadService.getTransactionHead(10)).thenReturn(transactionHead(10, 99, 100));
+        when(transactionHeadService.getTransactionHead(10)).thenThrow(new ResourceAccessDeniedException(
+                "TRANSACTION_HEAD",
+                10,
+                "read",
+                "You do not have permission to access this transaction head."
+        ));
 
         assertThrows(AccessDeniedException.class, () -> customerService.getCustomersAndTransactionHead(10));
     }
@@ -131,83 +142,42 @@ class CustomerServiceTests {
     @Test
     void getCustomer_nonExistentCustomerThrowsResourceNotFoundException() {
         int customerId = 12;
-        UserEntity authenticatedUser = user(7);
 
-        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
-        when(customerRepository.findById(customerId)).thenReturn(Optional.empty());
+        when(customerViewRepository.findById(customerId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> customerService.getCustomer(customerId));
 
-        verify(customerViewRepository, never()).findById(customerId);
+        verify(customerAccessPolicy, never()).requireReadAccess(customerId);
     }
 
     @Test
-    void getCustomer_ownerReturnsCustomer() {
+    void getCustomer_returnsCustomerWhenAccessPolicyAllows() {
         int customerId = 12;
-        UserEntity authenticatedUser = user(7);
-        CustomerEntity customer = customerEntity(customerId, user(7));
         CustomerView customerView = customerView(customerId, "Customer");
 
-        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
-        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
         when(customerViewRepository.findById(customerId)).thenReturn(Optional.of(customerView));
 
         CustomerDTO result = customerService.getCustomer(customerId);
 
         assertEquals(customerId, result.id());
         assertEquals("Customer", result.name());
+        verify(customerAccessPolicy).requireReadAccess(customerId);
         verify(customerViewRepository).findById(customerId);
-    }
-
-    @Test
-    void getCustomer_memberReturnsCustomer() {
-        int customerId = 12;
-        UserEntity authenticatedUser = user(7);
-        CustomerEntity customer = customerEntity(customerId, user(99));
-        UserCustomer membership = new UserCustomer();
-        membership.setUser(authenticatedUser);
-        membership.setCustomer(customer);
-        customer.getUserCustomers().add(membership);
-        CustomerView customerView = customerView(customerId, "Shared Customer");
-
-        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
-        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
-        when(customerViewRepository.findById(customerId)).thenReturn(Optional.of(customerView));
-
-        CustomerDTO result = customerService.getCustomer(customerId);
-
-        assertEquals(customerId, result.id());
-        assertEquals("Shared Customer", result.name());
-        verify(customerViewRepository).findById(customerId);
-    }
-
-    @Test
-    void getCustomer_missingCustomerViewThrowsResourceNotFoundException() {
-        int customerId = 12;
-        UserEntity authenticatedUser = user(7);
-        CustomerEntity customer = customerEntity(customerId, user(7));
-
-        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
-        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
-        when(customerViewRepository.findById(customerId)).thenReturn(Optional.empty());
-
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> customerService.getCustomer(customerId)
-        );
-
-        assertEquals("CUSTOMER", exception.getResourceType());
-        assertEquals(customerId, exception.getResourceId());
     }
 
     @Test
     void getCustomer_nonAccessibleCustomerThrowsAccessDeniedException() {
         int customerId = 12;
-        UserEntity authenticatedUser = user(7);
-        CustomerEntity customer = customerEntity(customerId, user(99));
 
-        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
-        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+        when(customerViewRepository.findById(customerId)).thenReturn(Optional.of(customerView(customerId, "Customer")));
+        ResourceAccessDeniedException denied = new ResourceAccessDeniedException(
+                "CUSTOMER",
+                customerId,
+                "read",
+                "You do not have permission to access this customer.",
+                Map.of("userId", 7)
+        );
+        doThrow(denied).when(customerAccessPolicy).requireReadAccess(customerId);
 
         ResourceAccessDeniedException exception = assertThrows(
                 ResourceAccessDeniedException.class,
@@ -218,7 +188,41 @@ class CustomerServiceTests {
         assertEquals(customerId, exception.getResourceId());
         assertEquals("read", exception.getAction());
         assertEquals(Map.of("userId", 7), exception.getMetadata());
-        verify(customerViewRepository, never()).findById(customerId);
+        verify(customerAccessPolicy).requireReadAccess(customerId);
+        verify(customerViewRepository).findById(customerId);
+    }
+
+    @Test
+    void getCustomerAndTransactionHead_usesAlreadyAuthorizedCustomerLookup() {
+        int customerId = 12;
+        int transactionHeadId = 30;
+        TransactionHeadDTO transactionHead = transactionHead(transactionHeadId, customerId, 20);
+
+        when(customerViewRepository.findById(customerId)).thenReturn(Optional.of(customerView(customerId, "Customer")));
+        when(transactionHeadService.getTransactionHeadForAccessibleCustomer(customerId, transactionHeadId)).thenReturn(transactionHead);
+
+        CustomerAndTransactionHeadDTO result = customerService.getCustomerAndTransactionHead(customerId, transactionHeadId);
+
+        assertEquals(customerId, result.customer().id());
+        assertEquals(transactionHeadId, result.transactionHead().id());
+        verify(customerAccessPolicy).requireReadAccess(customerId);
+        verify(transactionHeadService).getTransactionHeadForAccessibleCustomer(customerId, transactionHeadId);
+    }
+
+    @Test
+    void getCustomerAndTransactionHeads_usesAlreadyAuthorizedCustomerLookup() {
+        int customerId = 12;
+        List<TransactionHeadDTO> transactionHeads = List.of(transactionHead(30, customerId, 20));
+
+        when(customerViewRepository.findById(customerId)).thenReturn(Optional.of(customerView(customerId, "Customer")));
+        when(transactionHeadService.getTransactionHeadsForAccessibleCustomer(customerId)).thenReturn(transactionHeads);
+
+        CustomerAndTransactionHeadsDTO result = customerService.getCustomerAndTransactionHeads(customerId);
+
+        assertEquals(customerId, result.customer().id());
+        assertEquals(transactionHeads, result.transactionHeads());
+        verify(customerAccessPolicy).requireReadAccess(customerId);
+        verify(transactionHeadService).getTransactionHeadsForAccessibleCustomer(customerId);
     }
 
 
@@ -226,13 +230,11 @@ class CustomerServiceTests {
     void updateCustomer_ownerUpdatesSuccessfully() {
         int customerId = 12;
         LocalDateTime rowVersion = LocalDateTime.parse("2026-01-01T00:00:00");
-        UserEntity authenticatedUser = user(7);
         CustomerEntity customer = customerEntity(customerId, user(7));
         customer.setRowVersion(rowVersion);
         customer.setRowLastEditDate(LocalDateTime.parse("2025-01-01T00:00:00"));
         UpdateCustomerDTO updatedCustomer = new UpdateCustomerDTO("Updated Name", "Updated Description", rowVersion);
 
-        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
         when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
 
         customerService.updateCustomer(customerId, updatedCustomer);
@@ -242,6 +244,11 @@ class CustomerServiceTests {
         assertEquals("CustomerService: updateCustomer", customer.getRowLastEditBy());
         assertTrue(customer.getRowLastEditDate().isAfter(LocalDateTime.parse("2025-01-01T00:00:00")));
         assertEquals(rowVersion, customer.getRowVersion());
+        verify(customerAccessPolicy).requireOwnership(
+                customer,
+                "update",
+                "You do not have permission to update this customer."
+        );
         verify(customerRepository).saveAndFlush(customer);
     }
 
@@ -249,13 +256,21 @@ class CustomerServiceTests {
     void updateCustomer_nonOwnerThrowsAccessDeniedAndDoesNotUpdate() {
         int customerId = 12;
         LocalDateTime rowVersion = LocalDateTime.parse("2026-01-01T00:00:00");
-        UserEntity authenticatedUser = user(7);
         CustomerEntity customer = customerEntity(customerId, user(99));
         customer.setRowVersion(rowVersion);
         UpdateCustomerDTO updatedCustomer = new UpdateCustomerDTO("Updated Name", "Updated Description", rowVersion);
 
-        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
         when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+        doThrow(new ResourceAccessDeniedException(
+                "CUSTOMER",
+                customerId,
+                "update",
+                "You do not have permission to update this customer."
+        )).when(customerAccessPolicy).requireOwnership(
+                customer,
+                "update",
+                "You do not have permission to update this customer."
+        );
 
         assertThrows(ResourceAccessDeniedException.class, () -> customerService.updateCustomer(customerId, updatedCustomer));
 
@@ -277,11 +292,9 @@ class CustomerServiceTests {
     @Test
     void updateCustomer_missingRowVersionThrowsIllegalArgumentException() {
         int customerId = 12;
-        UserEntity authenticatedUser = user(7);
         CustomerEntity customer = customerEntity(customerId, user(7));
         UpdateCustomerDTO updatedCustomer = new UpdateCustomerDTO("Updated Name", "Updated Description", null);
 
-        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
         when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
 
         assertThrows(IllegalArgumentException.class, () -> customerService.updateCustomer(customerId, updatedCustomer));
@@ -293,12 +306,10 @@ class CustomerServiceTests {
     void updateCustomer_rowVersionMismatchThrowsObjectOptimisticLockingFailureException() {
         int customerId = 12;
         LocalDateTime rowVersion = LocalDateTime.parse("2026-01-01T00:00:00");
-        UserEntity authenticatedUser = user(7);
         CustomerEntity customer = customerEntity(customerId, user(7));
         customer.setRowVersion(rowVersion);
         UpdateCustomerDTO updatedCustomer = new UpdateCustomerDTO("Updated Name", "Updated Description", LocalDateTime.parse("2025-01-01T00:00:00"));
 
-        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
         when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
 
         assertThrows(ObjectOptimisticLockingFailureException.class, () -> customerService.updateCustomer(customerId, updatedCustomer));
@@ -310,12 +321,10 @@ class CustomerServiceTests {
     void updateCustomer_concurrentUpdatePropagatesOptimisticLockException() {
         int customerId = 12;
         LocalDateTime rowVersion = LocalDateTime.parse("2026-01-01T00:00:00");
-        UserEntity authenticatedUser = user(7);
         CustomerEntity customer = customerEntity(customerId, user(7));
         customer.setRowVersion(rowVersion);
         UpdateCustomerDTO updatedCustomer = new UpdateCustomerDTO("Updated Name", "Updated Description", rowVersion);
 
-        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
         when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
         when(customerRepository.saveAndFlush(customer)).thenThrow(new ObjectOptimisticLockingFailureException(CustomerEntity.class, customerId));
 
@@ -325,25 +334,36 @@ class CustomerServiceTests {
     @Test
     void deleteCustomer_ownerDeletesSuccessfully() {
         int customerId = 12;
-        UserEntity authenticatedUser = user(7);
         CustomerEntity customer = customerEntity(customerId, user(7));
 
-        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
         when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
 
         customerService.deleteCustomer(customerId);
 
+        verify(customerAccessPolicy).requireOwnership(
+                customer,
+                "delete",
+                "You do not have permission to delete this customer."
+        );
         verify(customerRepository).deleteById(customerId);
     }
 
     @Test
     void deleteCustomer_nonOwnerThrowsAccessDeniedAndDoesNotDelete() {
         int customerId = 12;
-        UserEntity authenticatedUser = user(7);
         CustomerEntity customer = customerEntity(customerId, user(99));
 
-        when(authenticatedUserProvider.getAuthenticatedUser()).thenReturn(authenticatedUser);
         when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+        doThrow(new ResourceAccessDeniedException(
+                "CUSTOMER",
+                customerId,
+                "delete",
+                "You do not have permission to delete this customer."
+        )).when(customerAccessPolicy).requireOwnership(
+                customer,
+                "delete",
+                "You do not have permission to delete this customer."
+        );
 
         assertThrows(ResourceAccessDeniedException.class, () -> customerService.deleteCustomer(customerId));
 
