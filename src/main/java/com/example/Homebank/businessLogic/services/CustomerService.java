@@ -211,14 +211,15 @@ public class CustomerService {
     public void createCustomer(CreateCustomerDTO customer) {
         logger.info("Creating customer: {}", customer);
 
+        String methodInfo = this.getClass().getSimpleName() + ": createCustomer";
+
         UserEntity authenticatedUser = authenticatedUserProvider.getAuthenticatedUser();
+
         CustomerEntity customerEntity = new CustomerEntity();
         customerEntity.setOwner(authenticatedUser);
         customerEntity.setName(customer.name());
-
-        String methodInfo = this.getClass().getSimpleName() + ": createCustomer";
-        customerEntity.setRowLastEditBy(methodInfo);
         customerEntity.setRowCreatedBy(methodInfo);
+        customerEntity.setRowLastEditBy(methodInfo);
         customerEntity.setDescription(customer.description());
 
         customerRepository.save(customerEntity);
