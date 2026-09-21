@@ -365,22 +365,47 @@ These errors are applied by filters/security and are therefore not always repeat
 
 ## 3.5 Transaction Heads
 
-### `POST /transactionHeads/save`
+### `POST /transactionHeads`
 
-- Auth: Yes
-- Request body: `TransactionHeadDTO`
+- Auth: Yes; read access to both lender and borrower is required. Inaccessible customers return `403 RESOURCE_ACCESS_DENIED`.
+- Request body: `CreateTransactionHeadDTO`: `lenderId`, `borrowerId`, `transactionName`, `description`, `startDate`, `prelEndDate`, `endDate`. No client-supplied ID or row version.
 - `200` response:
 
 ```json
-"Transaction head saved"
+"Transaction head created."
 ```
 
 - Errors: `400 VALIDATION_FAILED`, `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `401 AUTHENTICATION_FAILED`, `403 ACCOUNT_NOT_ACTIVATED`
 
+### `PUT /transactionHeads/{transactionHeadId}`
+
+- Auth: Yes; read access through either stored lender or borrower permits editing.
+- Request body: `UpdateTransactionHeadDTO`: `transactionName`, `description`, `startDate`, `prelEndDate`, `endDate`, `rowVersion`.
+- The path supplies the ID. Lender and borrower are fixed at creation and are not update fields.
+- `200` response: `"Transaction head updated"`.
+- Errors include `400 VALIDATION_FAILED`, `403 RESOURCE_ACCESS_DENIED`, `404 RESOURCE_NOT_FOUND`, and `409` for a stale row version.
+- The legacy `POST /transactionHeads/save` endpoint has been removed. Use POST for creation and PUT for updates.
+
+### `GET /transactionHeads/{transactionHeadId}`
+
+- Auth: Yes; read access through either lender or borrower is required.
+- `200` response: `TransactionHeadDTO`.
+- Returns `403` when inaccessible and `404` when missing.
+
 ### `POST /transactionHeads/delete`
 
-- Auth: Yes
-- Request body: `TransactionHeadDTO`
+- Auth: Yes; access through either stored lender or borrower is required.
+- Returns `403 RESOURCE_ACCESS_DENIED` when inaccessible and `404 RESOURCE_NOT_FOUND` when missing.
+- Request body: `DeleteTransactionHeadDTO` with required, non-null `id` and `rowVersion` fields. Use the row version returned when reading the transaction head.
+
+```json
+{
+  "id": 22,
+  "rowVersion": "2026-01-01T00:00:00"
+}
+```
+
+- Missing or null required fields return `400 VALIDATION_FAILED`; malformed JSON or an invalid timestamp returns `400 BAD_REQUEST`.
 - `200` response:
 
 ```json
@@ -436,8 +461,9 @@ Endpoints that can return `400 VALIDATION_FAILED`:
 | `POST /account-recovery/set-new-password` | `recoveryToken -> NOT_BLANK`; `newPassword -> NOT_BLANK`; `confirmNewPassword -> NOT_BLANK` |
 | `POST /customers` | `name -> NOT_BLANK` |
 | `PUT /customers/{customerId}` | `name -> NOT_BLANK`; `rowVersion -> NOT_NULL` |
-| `POST /transactionHeads/save` | `id -> NOT_NULL`; `lenderId -> NOT_NULL`; `borrowerId -> NOT_NULL`; `transactionName -> NOT_BLANK`; `startDate -> NOT_NULL` |
-| `POST /transactionHeads/delete` | `id -> NOT_NULL`; `lenderId -> NOT_NULL`; `borrowerId -> NOT_NULL`; `transactionName -> NOT_BLANK`; `startDate -> NOT_NULL` |
+| `POST /transactionHeads` | `lenderId -> NOT_NULL`; `borrowerId -> NOT_NULL`; `transactionName -> NOT_BLANK`; `startDate -> NOT_NULL` |
+| `PUT /transactionHeads/{transactionHeadId}` | `transactionName -> NOT_BLANK`; `startDate -> NOT_NULL`; `rowVersion -> NOT_NULL` |
+| `POST /transactionHeads/delete` | `id -> NOT_NULL`; `rowVersion -> NOT_NULL` |
 | `POST /transactionRows/save` | `id -> NOT_NULL`; `transactionHeadId -> NOT_NULL`; `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL, POSITIVE_OR_ZERO`; `typeOfTransaction -> NOT_BLANK` |
 | `POST /transactionRows/delete` | `id -> NOT_NULL`; `transactionHeadId -> NOT_NULL`; `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL, POSITIVE_OR_ZERO`; `typeOfTransaction -> NOT_BLANK` |
 

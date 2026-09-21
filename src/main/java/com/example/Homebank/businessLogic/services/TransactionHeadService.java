@@ -2,17 +2,23 @@ package com.example.Homebank.businessLogic.services;
 
 import com.example.Homebank.businessLogic.security.authorization.CustomerAccessPolicy;
 import com.example.Homebank.businessLogic.security.authorization.TransactionHeadAccessPolicy;
+import com.example.Homebank.dataAccess.entities.TransactionHeadEntity;
 import com.example.Homebank.dataAccess.views.TransactionHeadView;
-import com.example.Homebank.dataAccess.repositories.TransactionHeadRepository;
+import com.example.Homebank.dataAccess.repositories.TransactionHeadViewRepository;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
+import com.example.Homebank.presentation.dto.transactionhead.DeleteTransactionHeadDTO;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
+import com.example.Homebank.presentation.dto.transactionhead.CreateTransactionHeadDTO;
+import com.example.Homebank.presentation.dto.transactionhead.UpdateTransactionHeadDTO;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -24,9 +30,10 @@ import java.util.Map;
 public class TransactionHeadService {
     private static final Logger logger = LoggerFactory.getLogger(TransactionHeadService.class);
 
+
     private final CustomerAccessPolicy customerAccessPolicy;
     private final TransactionHeadAccessPolicy transactionHeadAccessPolicy;
-    private final TransactionHeadRepository transactionHeadRepository;
+    private final TransactionHeadViewRepository transactionHeadViewRepository;
 
     /**
      * Retrieves the specified transaction head.
@@ -41,7 +48,7 @@ public class TransactionHeadService {
         logger.info("Fetching transaction head with ID: {}", transactionHeadId);
 
         TransactionHeadDTO transactionHead = loadTransactionHead(transactionHeadId);
-        transactionHeadAccessPolicy.requireReadAccess(transactionHead);
+        transactionHeadAccessPolicy.requireAccess(transactionHead);
 
         logger.debug("Retrieved transaction head: {}", transactionHead);
         return transactionHead;
@@ -94,7 +101,7 @@ public class TransactionHeadService {
      * Loads transaction heads for a customer whose access has already been authorized by the caller.
      */
     List<TransactionHeadDTO> getTransactionHeadsForAccessibleCustomer(int customerId) {
-        List<TransactionHeadDTO> transactionHeads = transactionHeadRepository.findAllByLenderIdOrBorrowerId(customerId).stream().map(TransactionHeadDTO::fromEntity).toList();
+        List<TransactionHeadDTO> transactionHeads = transactionHeadViewRepository.findAllByLenderIdOrBorrowerId(customerId).stream().map(TransactionHeadDTO::fromView).toList();
 
         logger.debug("Retrieved {} transaction heads for customer ID: {}", transactionHeads.size(), customerId);
         return transactionHeads;
@@ -109,26 +116,31 @@ public class TransactionHeadService {
      * @throws ResourceNotFoundException if the transaction head does not exist.
      */
     private TransactionHeadDTO loadTransactionHead(int transactionHeadId) {
-        TransactionHeadView transactionHeadView = transactionHeadRepository.findById(transactionHeadId).orElseThrow(() -> {
+        TransactionHeadView transactionHeadView = transactionHeadViewRepository.findById(transactionHeadId).orElseThrow(() -> {
             logger.error("Transaction head with ID: {} not found.", transactionHeadId);
             return new ResourceNotFoundException("TRANSACTION_HEAD", transactionHeadId, "Transaction head could not be found.");
         });
 
-        return TransactionHeadDTO.fromEntity(transactionHeadView);
+        return TransactionHeadDTO.fromView(transactionHeadView);
     }
 
 
     /**
-     * Saves a transaction head to the DB.
+     * Creates a transaction head without accepting a client-supplied ID or version.
+     * Requires access to both participating customers.
      *
-     * @param transactionHead Transaction head to save.
+     * @param transactionHead Initial transaction head fields.
      */
     @Transactional
-    public void saveTransactionHead(TransactionHeadDTO transactionHead) {
-        logger.info("Saving transaction head: {}", transactionHead);
+    public void createTransactionHead(CreateTransactionHeadDTO transactionHead) {
+        logger.info("Creating transaction head: {}", transactionHead);
 
-        Map<String, Object> result = transactionHeadRepository.saveTransactionHead(
-                transactionHead.id(),
+        customerAccessPolicy.requireReadAccess(transactionHead.lenderId());
+        customerAccessPolicy.requireReadAccess(transactionHead.borrowerId());
+
+        // The save procedure inserts when p_Id is -1 (or null).
+        Map<String, Object> result = transactionHeadViewRepository.saveTransactionHead(
+                -1,
                 transactionHead.lenderId(),
                 transactionHead.borrowerId(),
                 transactionHead.transactionName(),
@@ -136,10 +148,53 @@ public class TransactionHeadService {
                 transactionHead.startDate(),
                 transactionHead.prelEndDate(),
                 transactionHead.endDate(),
-                transactionHead.rowVersion()
+                null
         );
 
         logger.debug("Transaction head saved successfully with result: {}", result);
+    }
+
+    /**
+     * Updates an accessible transaction head, preserving its original lender and borrower.
+     *
+     * @param transactionHeadId ID of the transaction head to update.
+     * @param transactionHead   Transaction head data to update.
+     */
+    @Transactional
+    public void updateTransactionHead(int transactionHeadId, UpdateTransactionHeadDTO transactionHead) {
+        logger.info("Updating transaction head with ID: {}", transactionHeadId);
+
+        TransactionHeadView existingTransactionHead = transactionHeadViewRepository.findById(transactionHeadId).orElseThrow(() -> {
+            logger.error("Transaction head with ID: {} not found.", transactionHeadId);
+            return new ResourceNotFoundException("TRANSACTION_HEAD", transactionHeadId, "Transaction head could not be found.");
+        });
+
+        transactionHeadAccessPolicy.requireAccess(TransactionHeadDTO.fromView(existingTransactionHead));
+
+        LocalDateTime providedRowVersion = transactionHead.rowVersion();
+        LocalDateTime currentRowVersion = existingTransactionHead.getRowVersion();
+        if (providedRowVersion == null || !providedRowVersion.equals(currentRowVersion)) {
+            logger.error("Row version mismatch for transaction head with ID: {}. Current: {}, Provided: {}", transactionHeadId, currentRowVersion, transactionHead.rowVersion());
+            throw new ObjectOptimisticLockingFailureException(
+                    TransactionHeadEntity.class,
+                    transactionHeadId,
+                    new IllegalStateException("The transaction head has been modified. Please refresh and try again.")
+            );
+        }
+
+        transactionHeadViewRepository.saveTransactionHead(
+                transactionHeadId,
+                existingTransactionHead.getLenderId(),
+                existingTransactionHead.getBorrowerId(),
+                transactionHead.transactionName(),
+                transactionHead.description(),
+                transactionHead.startDate(),
+                transactionHead.prelEndDate(),
+                transactionHead.endDate(),
+                providedRowVersion
+        );
+
+        logger.debug("Transaction head with ID: {} updated successfully.", transactionHeadId);
     }
 
     /**
@@ -148,12 +203,15 @@ public class TransactionHeadService {
      * @param transactionHead Transaction head to set as deleted.
      */
     @Transactional
-    public void deleteTransactionHead(TransactionHeadDTO transactionHead) {
+    public void deleteTransactionHead(DeleteTransactionHeadDTO transactionHead) {
         logger.info("Deleting transaction head with ID: {}", transactionHead.id());
 
+        //Checks for existence and whether the user has access to the transaction head.
+        TransactionHeadDTO existingTransactionHead = getTransactionHead(transactionHead.id());
+
         try {
-            transactionHeadRepository.deleteTransactionHead(
-                    transactionHead.id(),
+            transactionHeadViewRepository.deleteTransactionHead(
+                    existingTransactionHead.id(),
                     transactionHead.rowVersion()
             );
 

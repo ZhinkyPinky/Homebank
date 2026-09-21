@@ -17,12 +17,13 @@ public class TransactionHeadAccessPolicy {
     private final CustomerAccessPolicy customerAccessPolicy;
 
     /**
-     * Requires the user to have access through either the lender or borrower customer.
+     * Requires read access to either the lender or borrower customer. This permits both reading
+     * and editing the transaction head; its lender and borrower remain fixed after creation.
      *
      * @param transactionHead Transaction head being accessed.
      * @throws ResourceAccessDeniedException if neither participating customer is accessible.
      */
-    public void requireReadAccess(TransactionHeadDTO transactionHead) {
+    public void requireAccess(TransactionHeadDTO transactionHead) {
         int lenderId = transactionHead.lenderId();
         int borrowerId = transactionHead.borrowerId();
 

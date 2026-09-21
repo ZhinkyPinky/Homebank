@@ -37,20 +37,20 @@ public record TransactionHeadDTO(
         String lender,
         LocalDateTime rowVersion
 ) {
-    public static TransactionHeadDTO fromEntity(TransactionHeadView entity) {
+    public static TransactionHeadDTO fromView(TransactionHeadView view) {
         return new TransactionHeadDTO(
-                entity.getId(),
-                entity.getLenderId(),
-                entity.getBorrowerId(),
-                entity.getTransactionName(),
-                entity.getDescription(),
-                entity.getStartDate(),
-                entity.getPrelEndDate(),
-                entity.getEndDate(),
-                entity.getAmount(),
-                entity.getBorrower(),
-                entity.getLender(),
-                entity.getRowVersion()
+                view.getId(),
+                view.getLenderId(),
+                view.getBorrowerId(),
+                view.getTransactionName(),
+                view.getDescription(),
+                view.getStartDate(),
+                view.getPrelEndDate(),
+                view.getEndDate(),
+                view.getAmount(),
+                view.getBorrower(),
+                view.getLender(),
+                view.getRowVersion()
         );
     }
 }

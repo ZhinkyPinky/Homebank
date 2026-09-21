@@ -1,12 +1,17 @@
 package com.example.Homebank.businessLogic.services;
 
+import com.example.Homebank.businessLogic.security.AuthenticatedUserProvider;
 import com.example.Homebank.businessLogic.security.authorization.CustomerAccessPolicy;
 import com.example.Homebank.businessLogic.security.authorization.TransactionHeadAccessPolicy;
-import com.example.Homebank.dataAccess.repositories.TransactionHeadRepository;
+import com.example.Homebank.dataAccess.entities.UserEntity;
+import com.example.Homebank.dataAccess.repositories.TransactionHeadViewRepository;
 import com.example.Homebank.dataAccess.views.TransactionHeadView;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
+import com.example.Homebank.presentation.dto.transactionhead.DeleteTransactionHeadDTO;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
+import com.example.Homebank.presentation.dto.transactionhead.CreateTransactionHeadDTO;
+import com.example.Homebank.presentation.dto.transactionhead.UpdateTransactionHeadDTO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,13 +28,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionHeadServiceTests {
+
+    @Mock
+    private AuthenticatedUserProvider authenticatedUserProvider;
 
     @Mock
     private CustomerAccessPolicy customerAccessPolicy;
@@ -38,7 +43,7 @@ class TransactionHeadServiceTests {
     private TransactionHeadAccessPolicy transactionHeadAccessPolicy;
 
     @Mock
-    private TransactionHeadRepository transactionHeadRepository;
+    private TransactionHeadViewRepository transactionHeadViewRepository;
 
     @InjectMocks
     private TransactionHeadService transactionHeadService;
@@ -46,20 +51,20 @@ class TransactionHeadServiceTests {
     @Test
     void getTransactionHead_returnsMappedDtoWhenFound() {
         TransactionHeadView view = transactionHeadView(10, 1, 2);
-        when(transactionHeadRepository.findById(10)).thenReturn(Optional.of(view));
+        when(transactionHeadViewRepository.findById(10)).thenReturn(Optional.of(view));
 
         TransactionHeadDTO result = transactionHeadService.getTransactionHead(10);
 
         assertEquals(10, result.id());
         assertEquals(1, result.lenderId());
         assertEquals(2, result.borrowerId());
-        verify(transactionHeadAccessPolicy).requireReadAccess(result);
+        verify(transactionHeadAccessPolicy).requireAccess(result);
     }
 
     @Test
     void getTransactionHead_throwsAccessDeniedWhenNeitherCustomerIsAccessible() {
         TransactionHeadView view = transactionHeadView(10, 1, 2);
-        when(transactionHeadRepository.findById(10)).thenReturn(Optional.of(view));
+        when(transactionHeadViewRepository.findById(10)).thenReturn(Optional.of(view));
         ResourceAccessDeniedException denied = new ResourceAccessDeniedException(
                 "TRANSACTION_HEAD",
                 10,
@@ -67,7 +72,7 @@ class TransactionHeadServiceTests {
                 "You do not have permission to access this transaction head.",
                 Map.of("lenderId", 1, "borrowerId", 2)
         );
-        doThrow(denied).when(transactionHeadAccessPolicy).requireReadAccess(
+        doThrow(denied).when(transactionHeadAccessPolicy).requireAccess(
                 any(TransactionHeadDTO.class)
         );
 
@@ -84,7 +89,7 @@ class TransactionHeadServiceTests {
 
     @Test
     void getTransactionHead_throwsResourceNotFoundWhenMissing() {
-        when(transactionHeadRepository.findById(55)).thenReturn(Optional.empty());
+        when(transactionHeadViewRepository.findById(55)).thenReturn(Optional.empty());
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
@@ -98,7 +103,7 @@ class TransactionHeadServiceTests {
 
     @Test
     void getTransactionHeadsByCustomerId_returnsMappedDtos() {
-        when(transactionHeadRepository.findAllByLenderIdOrBorrowerId(3)).thenReturn(List.of(
+        when(transactionHeadViewRepository.findAllByLenderIdOrBorrowerId(3)).thenReturn(List.of(
                 transactionHeadView(30, 3, 7),
                 transactionHeadView(31, 8, 3)
         ));
@@ -121,12 +126,12 @@ class TransactionHeadServiceTests {
                 () -> transactionHeadService.getTransactionHeadsByCustomerId(3)
         );
 
-        verify(transactionHeadRepository, never()).findAllByLenderIdOrBorrowerId(3);
+        verify(transactionHeadViewRepository, never()).findAllByLenderIdOrBorrowerId(3);
     }
 
     @Test
     void getTransactionHeadForCustomer_returnsHeadWhenCustomerIsAccessibleAndLinked() {
-        when(transactionHeadRepository.findById(30)).thenReturn(Optional.of(transactionHeadView(30, 3, 8)));
+        when(transactionHeadViewRepository.findById(30)).thenReturn(Optional.of(transactionHeadView(30, 3, 8)));
 
         TransactionHeadDTO result = transactionHeadService.getTransactionHeadForCustomer(3, 30);
 
@@ -138,7 +143,7 @@ class TransactionHeadServiceTests {
 
     @Test
     void getTransactionHeadForCustomer_throwsAccessDeniedWhenHeadIsNotLinkedToCustomer() {
-        when(transactionHeadRepository.findById(30)).thenReturn(Optional.of(transactionHeadView(30, 1, 2)));
+        when(transactionHeadViewRepository.findById(30)).thenReturn(Optional.of(transactionHeadView(30, 1, 2)));
         ResourceAccessDeniedException denied = new ResourceAccessDeniedException(
                 "TRANSACTION_HEAD",
                 30,
@@ -171,12 +176,12 @@ class TransactionHeadServiceTests {
                 () -> transactionHeadService.getTransactionHeadForCustomer(3, 30)
         );
 
-        verify(transactionHeadRepository, never()).findById(30);
+        verify(transactionHeadViewRepository, never()).findById(30);
     }
 
     @Test
     void getTransactionHeadForAccessibleCustomer_skipsCustomerAccessCheckButValidatesLink() {
-        when(transactionHeadRepository.findById(30)).thenReturn(Optional.of(transactionHeadView(30, 3, 8)));
+        when(transactionHeadViewRepository.findById(30)).thenReturn(Optional.of(transactionHeadView(30, 3, 8)));
 
         TransactionHeadDTO result = transactionHeadService.getTransactionHeadForAccessibleCustomer(3, 30);
 
@@ -186,7 +191,7 @@ class TransactionHeadServiceTests {
 
     @Test
     void getTransactionHeadsForAccessibleCustomer_skipsCustomerAccessCheck() {
-        when(transactionHeadRepository.findAllByLenderIdOrBorrowerId(3)).thenReturn(List.of(
+        when(transactionHeadViewRepository.findAllByLenderIdOrBorrowerId(3)).thenReturn(List.of(
                 transactionHeadView(30, 3, 7)
         ));
 
@@ -197,12 +202,12 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void saveTransactionHead_delegatesToRepository() {
-        TransactionHeadDTO dto = transactionHeadDto(12, 1, 2);
+    void createTransactionHead_passesCreationSentinelAndNoVersion() {
+        CreateTransactionHeadDTO dto = new CreateTransactionHeadDTO(1, 2, "Loan", "desc", LocalDate.parse("2026-01-01"), null, null);
         Map<String, Object> expected = Map.of("p_OUT_Id", 12);
 
-        when(transactionHeadRepository.saveTransactionHead(
-                dto.id(),
+        when(transactionHeadViewRepository.saveTransactionHead(
+                -1,
                 dto.lenderId(),
                 dto.borrowerId(),
                 dto.transactionName(),
@@ -210,13 +215,15 @@ class TransactionHeadServiceTests {
                 dto.startDate(),
                 dto.prelEndDate(),
                 dto.endDate(),
-                dto.rowVersion()
+                null
         )).thenReturn(expected);
 
-        transactionHeadService.saveTransactionHead(dto);
+        transactionHeadService.createTransactionHead(dto);
 
-        verify(transactionHeadRepository).saveTransactionHead(
-                dto.id(),
+        verify(customerAccessPolicy).requireReadAccess(1);
+        verify(customerAccessPolicy).requireReadAccess(2);
+        verify(transactionHeadViewRepository).saveTransactionHead(
+                -1,
                 dto.lenderId(),
                 dto.borrowerId(),
                 dto.transactionName(),
@@ -224,20 +231,116 @@ class TransactionHeadServiceTests {
                 dto.startDate(),
                 dto.prelEndDate(),
                 dto.endDate(),
-                dto.rowVersion()
+                null
         );
     }
 
     @Test
-    void deleteTransactionHead_rethrowsRepositoryException() {
-        TransactionHeadDTO dto = transactionHeadDto(22, 1, 2);
-        RuntimeException boom = new RuntimeException("delete failed");
-        when(transactionHeadRepository.deleteTransactionHead(dto.id(), dto.rowVersion())).thenThrow(boom);
+    void createTransactionHead_inaccessibleLenderDoesNotWrite() {
+        CreateTransactionHeadDTO dto = new CreateTransactionHeadDTO(1, 2, "Loan", null, LocalDate.parse("2026-01-01"), null, null);
+        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("CUSTOMER", 1, "read", "Denied");
+        doThrow(denied).when(customerAccessPolicy).requireReadAccess(1);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> transactionHeadService.deleteTransactionHead(dto));
+        assertSame(denied, assertThrows(ResourceAccessDeniedException.class, () -> transactionHeadService.createTransactionHead(dto)));
+        verifyNoInteractions(transactionHeadViewRepository);
+    }
+
+    @Test
+    void createTransactionHead_inaccessibleBorrowerDoesNotWrite() {
+        CreateTransactionHeadDTO dto = new CreateTransactionHeadDTO(1, 2, "Loan", null, LocalDate.parse("2026-01-01"), null, null);
+        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("CUSTOMER", 2, "read", "Denied");
+        doNothing().when(customerAccessPolicy).requireReadAccess(1);
+        doThrow(denied).when(customerAccessPolicy).requireReadAccess(2);
+
+        assertSame(denied, assertThrows(ResourceAccessDeniedException.class, () -> transactionHeadService.createTransactionHead(dto)));
+        verifyNoInteractions(transactionHeadViewRepository);
+    }
+
+    @Test
+    void updateTransactionHead_preservesParticipantsAndPassesExpectedVersion() {
+        TransactionHeadView existing = transactionHeadView(12, 111, 222);
+        UpdateTransactionHeadDTO dto = new UpdateTransactionHeadDTO("Updated", "new desc", LocalDate.parse("2026-02-01"), null, null, existing.getRowVersion());
+        when(transactionHeadViewRepository.findById(12)).thenReturn(Optional.of(existing));
+
+        transactionHeadService.updateTransactionHead(12, dto);
+
+        verify(transactionHeadAccessPolicy).requireAccess(TransactionHeadDTO.fromView(existing));
+        verify(transactionHeadViewRepository).saveTransactionHead(12, 111, 222, dto.transactionName(), dto.description(), dto.startDate(), null, null, existing.getRowVersion());
+    }
+
+    @Test
+    void updateTransactionHead_deniedAccessDoesNotWrite() {
+        TransactionHeadView existing = transactionHeadView(12, 111, 222);
+        when(transactionHeadViewRepository.findById(12)).thenReturn(Optional.of(existing));
+        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("TRANSACTION_HEAD", 12, "read", "Denied");
+        doThrow(denied).when(transactionHeadAccessPolicy).requireAccess(TransactionHeadDTO.fromView(existing));
+        UpdateTransactionHeadDTO dto = new UpdateTransactionHeadDTO("Updated", null, LocalDate.parse("2026-01-01"), null, null, existing.getRowVersion());
+
+        assertSame(denied, assertThrows(ResourceAccessDeniedException.class, () -> transactionHeadService.updateTransactionHead(12, dto)));
+        verify(transactionHeadViewRepository).findById(12);
+        org.mockito.Mockito.verifyNoMoreInteractions(transactionHeadViewRepository);
+    }
+
+    @Test
+    void updateTransactionHead_staleVersionDoesNotWrite() {
+        when(transactionHeadViewRepository.findById(12)).thenReturn(Optional.of(transactionHeadView(12, 1, 2)));
+        UpdateTransactionHeadDTO dto = new UpdateTransactionHeadDTO("Updated", null, LocalDate.parse("2026-01-01"), null, null, LocalDateTime.parse("2025-01-01T00:00:00"));
+
+        assertThrows(org.springframework.orm.ObjectOptimisticLockingFailureException.class, () -> transactionHeadService.updateTransactionHead(12, dto));
+        verify(transactionHeadViewRepository).findById(12);
+        org.mockito.Mockito.verifyNoMoreInteractions(transactionHeadViewRepository);
+    }
+
+    @Test
+    void deleteTransactionHead_authorizesStoredParticipantsAndUsesClientVersion() {
+        TransactionHeadView existing = transactionHeadView(22, 111, 222);
+        existing.setRowVersion(LocalDateTime.parse("2026-02-01T00:00:00"));
+        DeleteTransactionHeadDTO request = deleteTransactionHeadDto(22);
+        when(transactionHeadViewRepository.findById(22)).thenReturn(Optional.of(existing));
+
+        transactionHeadService.deleteTransactionHead(request);
+
+        verify(transactionHeadAccessPolicy).requireAccess(TransactionHeadDTO.fromView(existing));
+        verify(transactionHeadViewRepository).deleteTransactionHead(22, request.rowVersion());
+    }
+
+    @Test
+    void deleteTransactionHead_deniedStoredHeadDoesNotWrite() {
+        TransactionHeadView existing = transactionHeadView(22, 111, 222);
+        when(transactionHeadViewRepository.findById(22)).thenReturn(Optional.of(existing));
+        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("TRANSACTION_HEAD", 22, "read", "Denied");
+        doThrow(denied).when(transactionHeadAccessPolicy).requireAccess(TransactionHeadDTO.fromView(existing));
+
+        assertSame(denied, assertThrows(ResourceAccessDeniedException.class,
+                () -> transactionHeadService.deleteTransactionHead(deleteTransactionHeadDto(22))));
+        verify(transactionHeadViewRepository).findById(22);
+        org.mockito.Mockito.verifyNoMoreInteractions(transactionHeadViewRepository);
+    }
+
+    @Test
+    void deleteTransactionHead_missingHeadDoesNotWrite() {
+        DeleteTransactionHeadDTO request = deleteTransactionHeadDto(22);
+
+        when(transactionHeadViewRepository.findById(22)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> transactionHeadService.deleteTransactionHead(request));
+        verify(transactionHeadViewRepository).findById(22);
+        org.mockito.Mockito.verifyNoMoreInteractions(transactionHeadViewRepository);
+        org.mockito.Mockito.verifyNoInteractions(transactionHeadAccessPolicy);
+    }
+
+    @Test
+    void deleteTransactionHead_rethrowsRepositoryException() {
+        DeleteTransactionHeadDTO request = deleteTransactionHeadDto(22);
+        RuntimeException boom = new RuntimeException("delete failed");
+
+        when(transactionHeadViewRepository.findById(22)).thenReturn(Optional.of(transactionHeadView(22, 1, 2)));
+        when(transactionHeadViewRepository.deleteTransactionHead(request.id(), request.rowVersion())).thenThrow(boom);
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> transactionHeadService.deleteTransactionHead(request));
 
         assertSame(boom, exception);
-        verify(transactionHeadRepository).deleteTransactionHead(dto.id(), dto.rowVersion());
+        verify(transactionHeadViewRepository).deleteTransactionHead(request.id(), request.rowVersion());
     }
 
     private TransactionHeadView transactionHeadView(int id, int lenderId, int borrowerId) {
@@ -274,4 +377,16 @@ class TransactionHeadServiceTests {
         );
     }
 
+    private DeleteTransactionHeadDTO deleteTransactionHeadDto(int id) {
+        return new DeleteTransactionHeadDTO(
+                id,
+                LocalDateTime.parse("2026-01-01T00:00:00")
+        );
+    }
+
+    private UserEntity user(int id) {
+        UserEntity user = new UserEntity();
+        user.setId(id);
+        return user;
+    }
 }

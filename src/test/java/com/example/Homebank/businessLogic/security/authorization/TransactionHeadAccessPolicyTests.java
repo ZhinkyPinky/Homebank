@@ -28,21 +28,21 @@ class TransactionHeadAccessPolicyTests {
     private TransactionHeadAccessPolicy transactionHeadAccessPolicy;
 
     @Test
-    void requireReadAccess_allowsAccessThroughParticipatingCustomer() {
+    void requireAccess_allowsAccessThroughParticipatingCustomer() {
         TransactionHeadDTO transactionHead = transactionHead(10, 1, 2);
         when(customerAccessPolicy.canReadAny(List.of(1, 2))).thenReturn(true);
 
-        assertDoesNotThrow(() -> transactionHeadAccessPolicy.requireReadAccess(transactionHead));
+        assertDoesNotThrow(() -> transactionHeadAccessPolicy.requireAccess(transactionHead));
     }
 
     @Test
-    void requireReadAccess_rejectsInaccessibleHeadWithResourceDetails() {
+    void requireAccess_rejectsInaccessibleHeadWithResourceDetails() {
         TransactionHeadDTO transactionHead = transactionHead(10, 1, 2);
         when(customerAccessPolicy.canReadAny(List.of(1, 2))).thenReturn(false);
 
         ResourceAccessDeniedException exception = assertThrows(
                 ResourceAccessDeniedException.class,
-                () -> transactionHeadAccessPolicy.requireReadAccess(transactionHead)
+                () -> transactionHeadAccessPolicy.requireAccess(transactionHead)
         );
 
         assertEquals("TRANSACTION_HEAD", exception.getResourceType());

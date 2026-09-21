@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -29,6 +30,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
 import java.util.List;
@@ -144,6 +146,28 @@ public class GlobalExceptionHandler {
         logger.info("Handling illegal argument exception: {}", e.getMessage());
 
         String message = e.getMessage() != null ? e.getMessage() : "Invalid request parameters.";
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ApiErrorCode.BAD_REQUEST, message, request, null);
+    }
+
+    /**
+     * Handles request parameters that cannot be converted to their required type.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e, HttpServletRequest request) {
+        logger.info("Handling type mismatch for request parameter: {}", e.getName());
+
+        String message = "Invalid value for parameter '" + e.getName() + "'.";
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ApiErrorCode.BAD_REQUEST, message, request, null);
+    }
+
+    /**
+     * Handles malformed JSON and request body values that cannot be deserialized.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleHttpMessageNotReadableException(HttpMessageNotReadableException e, HttpServletRequest request) {
+        logger.debug("Handling unreadable request body", e);
+
+        String message = "The request body is missing or contains malformed JSON or invalid field values.";
         return buildErrorResponse(HttpStatus.BAD_REQUEST, ApiErrorCode.BAD_REQUEST, message, request, null);
     }
 
