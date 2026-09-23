@@ -40,7 +40,7 @@ public class UserCustomer {
     private String rowCreatedBy;
 
     @Column(name = "RowCreatedDate")
-    private LocalDateTime rowCreateDate = LocalDateTime.now();
+    private LocalDateTime rowCreatedDate = LocalDateTime.now();
 
     @Column(name = "RowLastEditBy")
     private String rowLastEditBy;

@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -102,7 +103,7 @@ class AuthControllerTests {
                         .content(json))
                 .andExpect(status().isBadRequest());
 
-        verify(authService, never()).authenticate(org.mockito.ArgumentMatchers.any());
+        verify(authService, never()).authenticate(any());
     }
 
     @Test
@@ -144,7 +145,7 @@ class AuthControllerTests {
                 .andReturn();
 
         assertRefreshCookie(result, "", "Max-Age=0");
-        verify(authService, never()).signOut(org.mockito.ArgumentMatchers.anyString());
+        verify(authService, never()).signOut(anyString());
     }
 
     @Test

@@ -30,7 +30,6 @@ import java.util.Map;
 public class TransactionHeadService {
     private static final Logger logger = LoggerFactory.getLogger(TransactionHeadService.class);
 
-
     private final CustomerAccessPolicy customerAccessPolicy;
     private final TransactionHeadAccessPolicy transactionHeadAccessPolicy;
     private final TransactionHeadViewRepository transactionHeadViewRepository;
