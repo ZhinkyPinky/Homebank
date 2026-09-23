@@ -2,13 +2,18 @@ package com.example.Homebank.presentation.controllers;
 
 import com.example.Homebank.businessLogic.services.TransactionRowService;
 import com.example.Homebank.presentation.ApiPaths;
-import com.example.Homebank.presentation.dto.transactionhead.TransactionRowDTO;
+import com.example.Homebank.presentation.dto.transactionrow.TransactionRowDTO;
+import com.example.Homebank.presentation.dto.transactionrow.CreateTransactionRowDTO;
+import com.example.Homebank.presentation.dto.transactionrow.UpdateTransactionRowDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 /**
  * Controller responsible for handling requests related to transaction rows, such as retrieving, saving and deleting transaction rows.
@@ -29,7 +34,7 @@ public class TransactionRowController {
      */
     @GetMapping(ApiPaths.TRANSACTION_ROW)
     public ResponseEntity<TransactionRowDTO> get(@PathVariable final int transactionRowId) {
-        logger.info("Request to get transaction head with ID: {} received.", transactionRowId);
+        logger.info("Request to get transaction row with ID: {} received.", transactionRowId);
 
         TransactionRowDTO transactionRow = transactionRowService.getTransactionRowById(transactionRowId);
         return ResponseEntity.ok(transactionRow);
@@ -41,25 +46,48 @@ public class TransactionRowController {
      * @param transactionRow The transaction row to save.
      * @return Response indicating whether the transaction row was successfully saved.
      */
-    @PostMapping(ApiPaths.SAVE)
-    public ResponseEntity<String> saveTransactionRow(@Valid @RequestBody final TransactionRowDTO transactionRow) {
-        logger.info("Request to save transaction row with ID: {} received.", transactionRow.id());
+    @PostMapping
+    public ResponseEntity<String> postTransactionRow(@Valid @RequestBody final CreateTransactionRowDTO transactionRow) {
+        logger.info("Request to create transaction row received.");
 
-        transactionRowService.saveTransactionRow(transactionRow);
-        return ResponseEntity.ok().build();
+        transactionRowService.createTransactionRow(transactionRow);
+        return ResponseEntity.ok("Transaction row created.");
     }
+
+    /**
+     * Handles requests to update a transaction row.
+     *
+     * @param transactionRowId The id of the transaction row to be updated.
+     * @param transactionRow   The updated transaction row data.
+     * @return Response indicating whether the transaction row was successfully updated.
+     */
+    @PutMapping(ApiPaths.TRANSACTION_ROW)
+    public ResponseEntity<String> updateTransactionRow(
+            @PathVariable int transactionRowId,
+            @Valid @RequestBody final UpdateTransactionRowDTO transactionRow
+    ) {
+        logger.info("Request to update transaction row with ID: {} received.", transactionRowId);
+
+        transactionRowService.updateTransactionRow(transactionRowId, transactionRow);
+        return ResponseEntity.ok("Transaction row updated.");
+    }
+
 
     /**
      * Handles requests to set a transaction row as deleted.
      *
-     * @param transactionRow The transaction row to set as deleted.
+     * @param transactionRowId The id of the transaction row to be set as deleted.
+     * @param rowVersion       The version of the transaction row to ensure concurrency control.
      * @return Response indicating whether the transaction row was successfully set as deleted.
      */
-    @PostMapping(ApiPaths.DELETE)
-    public ResponseEntity<String> deleteTransactionRow(@Valid @RequestBody final TransactionRowDTO transactionRow) {
-        logger.info("Request to delete transaction row with ID: {} received.", transactionRow.id());
+    @DeleteMapping(ApiPaths.TRANSACTION_ROW)
+    public ResponseEntity<Void> deleteTransactionRow(
+            @PathVariable int transactionRowId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime rowVersion
+    ) {
+        logger.info("Request to delete transaction row with ID: {} received.", transactionRowId);
 
-        transactionRowService.deleteTransactionRow(transactionRow);
+        transactionRowService.deleteTransactionRow(transactionRowId, rowVersion);
         return ResponseEntity.ok().build();
     }
 }

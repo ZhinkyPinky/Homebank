@@ -12,7 +12,7 @@ import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
 import com.example.Homebank.presentation.dto.composite.*;
 import com.example.Homebank.presentation.dto.customer.*;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
-import com.example.Homebank.presentation.dto.transactionhead.TransactionRowDTO;
+import com.example.Homebank.presentation.dto.transactionrow.TransactionRowDTO;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

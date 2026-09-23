@@ -1,7 +1,7 @@
 package com.example.Homebank;
 
 import com.example.Homebank.dataAccess.views.TransactionRowView;
-import com.example.Homebank.presentation.dto.transactionhead.TransactionRowDTO;
+import com.example.Homebank.presentation.dto.transactionrow.TransactionRowDTO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -53,8 +53,6 @@ public class CustomerDTOTests {
         assertEquals(description, result.description());
         assertEquals(paymentDate, result.paymentDate());
         assertEquals(amount, result.amount());
-        assertEquals(transactionName, result.transactionName());
-        assertEquals(typeOfTransaction, result.typeOfTransaction());
         assertEquals(rowVersion, result.rowVersion());
     }
 }

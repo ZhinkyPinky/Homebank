@@ -1,6 +1,9 @@
 package com.example.Homebank.businessLogic.security.authorization;
 
+import com.example.Homebank.dataAccess.repositories.TransactionHeadViewRepository;
+import com.example.Homebank.dataAccess.views.TransactionHeadView;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
+import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -15,6 +18,23 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TransactionHeadAccessPolicy {
     private final CustomerAccessPolicy customerAccessPolicy;
+    private final TransactionHeadViewRepository transactionHeadViewRepository;
+
+    /**
+     * Loads a head and checks access through its stored lender or borrower.
+     *
+     * @param transactionHeadId ID of the transaction head being accessed.
+     * @throws ResourceNotFoundException if the transaction head does not exist.
+     * @throws ResourceAccessDeniedException if neither participating customer is accessible.
+     */
+    public void requireAccess(int transactionHeadId) {
+        TransactionHeadView transactionHead = transactionHeadViewRepository.findById(transactionHeadId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "TRANSACTION_HEAD", transactionHeadId, "Transaction head could not be found."
+                ));
+
+        requireAccess(TransactionHeadDTO.fromView(transactionHead));
+    }
 
     /**
      * Requires read access to either the lender or borrower customer. This permits both reading

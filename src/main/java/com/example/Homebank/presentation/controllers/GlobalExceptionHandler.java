@@ -28,6 +28,8 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -161,6 +163,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles missing required request parameters.
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiError> handleMissingServletRequestParameterException(MissingServletRequestParameterException e, HttpServletRequest request) {
+        String message = "Required parameter '" + e.getParameterName() + "' is missing.";
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ApiErrorCode.BAD_REQUEST, message, request, null);
+    }
+
+    /**
      * Handles malformed JSON and request body values that cannot be deserialized.
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -169,6 +180,25 @@ public class GlobalExceptionHandler {
 
         String message = "The request body is missing or contains malformed JSON or invalid field values.";
         return buildErrorResponse(HttpStatus.BAD_REQUEST, ApiErrorCode.BAD_REQUEST, message, request, null);
+    }
+
+    /**
+     * Handles unsupported HTTP methods and preserves the supported methods in the Allow header.
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
+        logger.info("Handling unsupported HTTP method: {}", e.getMethod());
+
+        ResponseEntity<ApiError> response = buildErrorResponse(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                ApiErrorCode.METHOD_NOT_ALLOWED,
+                "The HTTP method is not supported for this endpoint.",
+                request,
+                null
+        );
+        return ResponseEntity.status(response.getStatusCode())
+                .headers(e.getHeaders())
+                .body(response.getBody());
     }
 
     /**
@@ -267,6 +297,10 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(errorResponse);
     }
 
+    /**
+     * Converts a validation constraint code to a {@link ValidationErrorCode} enum.
+     * If the code is unrecognized, returns {@link ValidationErrorCode#UNKNOWN}.
+     */
     private ValidationErrorCode toValidationCode(String constraintCode) {
         if (constraintCode == null || constraintCode.isBlank()) {
             return ValidationErrorCode.VALIDATION_ERROR;
@@ -283,6 +317,10 @@ public class GlobalExceptionHandler {
         }
     }
 
+    /**
+     * Converts a resource type string to a {@link ResourceType} enum.
+     * If the type is unrecognized, returns {@link ResourceType#UNKNOWN}.
+     */
     private ResourceType toResourceType(String resourceType) {
         if (resourceType == null || resourceType.isBlank()) {
             return ResourceType.UNKNOWN;
@@ -295,6 +333,10 @@ public class GlobalExceptionHandler {
         }
     }
 
+    /**
+     * Converts a resource action string to a {@link ResourceAction} enum.
+     * If the action is unrecognized, returns {@link ResourceAction#UNKNOWN}.
+     */
     private ResourceAction toResourceAction(String action) {
         if (action == null || action.isBlank()) {
             return ResourceAction.UNKNOWN;

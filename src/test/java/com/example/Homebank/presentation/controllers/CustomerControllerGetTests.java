@@ -8,7 +8,7 @@ import com.example.Homebank.presentation.dto.composite.CustomerWithTransactionHe
 import com.example.Homebank.presentation.dto.composite.CustomersAndTransactionHeadDTO;
 import com.example.Homebank.presentation.dto.customer.CustomerDTO;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
-import com.example.Homebank.presentation.dto.transactionhead.TransactionRowDTO;
+import com.example.Homebank.presentation.dto.transactionrow.TransactionRowDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -198,8 +198,6 @@ class CustomerControllerGetTests {
                 "Row desc",
                 LocalDate.parse("2026-01-15"),
                 50,
-                "Txn",
-                "Debit",
                 LocalDateTime.parse("2026-01-01T00:00:00")
         );
     }

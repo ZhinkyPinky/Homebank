@@ -416,25 +416,39 @@ These errors are applied by filters/security and are therefore not always repeat
 
 ## 3.6 Transaction Rows
 
+All row operations require access to the parent transaction head. Existing rows use their stored parent for authorization, and updates cannot change that parent. Inaccessible parents return `403 RESOURCE_ACCESS_DENIED`.
+
 ### `GET /transactionRows/{transactionRowId}`
 
 - Auth: Yes
 - `200` response: `TransactionRowDTO`
-- Errors: `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `401 AUTHENTICATION_FAILED`, `403 ACCOUNT_NOT_ACTIVATED`, `404 RESOURCE_NOT_FOUND`
+- Errors: `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `401 AUTHENTICATION_FAILED`, `403 ACCOUNT_NOT_ACTIVATED`, `403 RESOURCE_ACCESS_DENIED`, `404 RESOURCE_NOT_FOUND`
 
-### `POST /transactionRows/save`
-
-- Auth: Yes
-- Request body: `TransactionRowDTO`
-- `200` response: empty body
-- Errors: `400 VALIDATION_FAILED`, `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `401 AUTHENTICATION_FAILED`, `403 ACCOUNT_NOT_ACTIVATED`
-
-### `POST /transactionRows/delete`
+### `POST /transactionRows`
 
 - Auth: Yes
-- Request body: `TransactionRowDTO`
+- Request body: `CreateTransactionRowDTO`: `transactionHeadId`, `transactionRowNo`, `typeOfTransactionCode`, `name`, optional `description`, `paymentDate`, and `amount`.
+- The database assigns the ID and version. No ID, version, or display-name fields are required in the request.
+- `200` response: `"Transaction row created."`
+- Errors: `400 BAD_REQUEST`, `400 VALIDATION_FAILED`, `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `401 AUTHENTICATION_FAILED`, `403 ACCOUNT_NOT_ACTIVATED`, `403 RESOURCE_ACCESS_DENIED`, `404 RESOURCE_NOT_FOUND`
+
+### `PUT /transactionRows/{transactionRowId}`
+
+- Auth: Yes
+- Request body: `UpdateTransactionRowDTO`: `transactionRowNo`, `typeOfTransactionCode`, `name`, optional `description`, `paymentDate`, `amount`, and required `rowVersion`.
+- The path identifies the row. Its parent is loaded from the database and cannot be changed by the request.
+- `rowVersion` must match the stored version.
+- `200` response: `"Transaction row updated."`
+- Errors include `400 BAD_REQUEST`, `400 VALIDATION_FAILED`, `403 RESOURCE_ACCESS_DENIED`, `404 RESOURCE_NOT_FOUND`, and `409 ROW_VERSION_MISMATCH`.
+- The legacy `POST /transactionRows/save` endpoint has been removed.
+
+### `DELETE /transactionRows/{transactionRowId}`
+
+- Auth: Yes; access to the stored parent is required.
+- Required query parameter: `rowVersion`, using the ISO date-time value returned when reading the row. No request body.
+- Example: `DELETE /transactionRows/90?rowVersion=2026-01-01T00:00:00`. Preserve any fractional seconds. Stale versions return `409 ROW_VERSION_MISMATCH`.
 - `200` response: empty body
-- Errors: `400 VALIDATION_FAILED`, `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `401 AUTHENTICATION_FAILED`, `403 ACCOUNT_NOT_ACTIVATED`
+- Missing or invalid versions return `400 BAD_REQUEST`. Other errors include `403 RESOURCE_ACCESS_DENIED`, `404 RESOURCE_NOT_FOUND`, and `409 ROW_VERSION_MISMATCH`.
 
 ## 4. Error Codes By Status
 
@@ -442,6 +456,7 @@ These errors are applied by filters/security and are therefore not always repeat
 - `401`: `AUTHENTICATION_FAILED`, `BAD_CREDENTIALS`, `TOKEN_INVALID`, `TOKEN_EXPIRED`
 - `403`: `ACCOUNT_DISABLED`, `ACCOUNT_NOT_ACTIVATED`, `ACCESS_DENIED`, `TOKEN_EXPIRED`, `RESOURCE_ACCESS_DENIED`
 - `404`: `RESOURCE_NOT_FOUND`
+- `405`: `METHOD_NOT_ALLOWED` (unsupported HTTP method; the `Allow` header lists supported methods)
 - `409`: `ENTITY_ALREADY_EXISTS`, `ROW_VERSION_MISMATCH`
 - `500`: `INTERNAL_SERVER_ERROR`
 
@@ -464,10 +479,11 @@ Endpoints that can return `400 VALIDATION_FAILED`:
 | `POST /transactionHeads` | `lenderId -> NOT_NULL`; `borrowerId -> NOT_NULL`; `transactionName -> NOT_BLANK`; `startDate -> NOT_NULL` |
 | `PUT /transactionHeads/{transactionHeadId}` | `transactionName -> NOT_BLANK`; `startDate -> NOT_NULL`; `rowVersion -> NOT_NULL` |
 | `POST /transactionHeads/delete` | `id -> NOT_NULL`; `rowVersion -> NOT_NULL` |
-| `POST /transactionRows/save` | `id -> NOT_NULL`; `transactionHeadId -> NOT_NULL`; `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL, POSITIVE_OR_ZERO`; `typeOfTransaction -> NOT_BLANK` |
-| `POST /transactionRows/delete` | `id -> NOT_NULL`; `transactionHeadId -> NOT_NULL`; `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL, POSITIVE_OR_ZERO`; `typeOfTransaction -> NOT_BLANK` |
+| `POST /transactionRows` | `transactionHeadId -> NOT_NULL`; `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL, POSITIVE_OR_ZERO` |
+| `PUT /transactionRows/{transactionRowId}` | `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL, POSITIVE_OR_ZERO`; `rowVersion -> NOT_NULL` |
 
 Endpoints that currently do not emit `VALIDATION_FAILED`:
+- `DELETE /transactionRows/{transactionRowId}`
 - `GET /auth/activate`
 - `POST /auth/resend-activation`
 - `POST /users/changePassword` (no `@Valid` currently applied)

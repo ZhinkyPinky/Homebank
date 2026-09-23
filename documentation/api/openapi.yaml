@@ -534,11 +534,11 @@ paths:
           $ref: '#/components/responses/NotFoundError'
 
   /transactionRows/{transactionRowId}:
+    parameters:
+      - $ref: '#/components/parameters/transactionRowId'
     get:
       tags: [Transaction Rows]
       summary: Get transaction row by id
-      parameters:
-        - $ref: '#/components/parameters/transactionRowId'
       responses:
         '200':
           description: Transaction row returned
@@ -551,34 +551,45 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
-  /transactionRows/save:
-    post:
+    put:
       tags: [Transaction Rows]
-      summary: Save transaction row
+      summary: Update a transaction row
+      description: The path identifies the row. Requires access to the stored parent head, which cannot be changed. Supply the row version returned when reading the row.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TransactionRowDTO'
+              $ref: '#/components/schemas/UpdateTransactionRowDTO'
       responses:
         '200':
-          description: Transaction row saved
+          description: Transaction row updated
+          content:
+            text/plain:
+              schema:
+                type: string
         '400':
           $ref: '#/components/responses/BadRequestError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
 
-  /transactionRows/delete:
-    post:
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+    delete:
       tags: [Transaction Rows]
       summary: Mark transaction row as deleted
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TransactionRowDTO'
+      description: The path identifies the row. Requires access to the stored parent head and a matching client row version.
+      parameters:
+        - name: rowVersion
+          in: query
+          required: true
+          description: The row version returned when reading the row, including any fractional seconds.
+          schema:
+            type: string
+            format: date-time
+          example: '2026-01-01T00:00:00'
       responses:
         '200':
           description: Transaction row deleted
@@ -586,6 +597,37 @@ paths:
           $ref: '#/components/responses/BadRequestError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /transactionRows:
+    post:
+      tags: [Transaction Rows]
+      summary: Create a transaction row
+      description: Requires access to the requested parent head. The database assigns the ID and version; the request contains only creation fields.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRowDTO'
+      responses:
+        '200':
+          description: Transaction row created
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
 components:
   securitySchemes:
@@ -1076,9 +1118,60 @@ components:
           format: date-time
           nullable: true
 
+    CreateTransactionRowDTO:
+      type: object
+      required: [transactionHeadId, transactionRowNo, typeOfTransactionCode, name, paymentDate, amount]
+      properties:
+        transactionHeadId:
+          type: integer
+          format: int32
+        transactionRowNo:
+          type: integer
+          format: int32
+        typeOfTransactionCode:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        paymentDate:
+          type: string
+          format: date
+        amount:
+          type: integer
+          format: int32
+          minimum: 0
+
+    UpdateTransactionRowDTO:
+      type: object
+      required: [transactionRowNo, typeOfTransactionCode, name, paymentDate, amount, rowVersion]
+      properties:
+        transactionRowNo:
+          type: integer
+          format: int32
+        typeOfTransactionCode:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        paymentDate:
+          type: string
+          format: date
+        amount:
+          type: integer
+          format: int32
+          minimum: 0
+        rowVersion:
+          type: string
+          format: date-time
+
+
     TransactionRowDTO:
       type: object
-      required: [id, transactionHeadId, transactionRowNo, typeOfTransactionCode, name, paymentDate, amount, typeOfTransaction]
+      required: [id, transactionHeadId, transactionRowNo, typeOfTransactionCode, name, paymentDate, amount]
       properties:
         id:
           type: integer
@@ -1102,11 +1195,6 @@ components:
         amount:
           type: integer
           format: int32
-        transactionName:
-          type: string
-          nullable: true
-        typeOfTransaction:
-          type: string
         rowVersion:
           type: string
           format: date-time

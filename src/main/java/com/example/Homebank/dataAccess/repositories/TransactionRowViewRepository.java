@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 @Repository
-public interface TransactionRowRepository extends JpaRepository<TransactionRowView, Integer> {
+public interface TransactionRowViewRepository extends JpaRepository<TransactionRowView, Integer> {
 
     @Query(nativeQuery = true, value = "SELECT * FROM bank.vTransactionRow where TransactionHead_Id = :transactionHeadId ORDER BY TransactionRowNo")
     List<TransactionRowView> findAllByTransactionHeadId(int transactionHeadId);
