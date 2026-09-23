@@ -7,11 +7,11 @@
 - Base URL: environment-specific
 - Machine-readable spec: `documentation/api/openapi.yaml`
 - Functionality specs:
-  - `documentation/functionality/template.md`
-  - `documentation/functionality/customer.md`
-  - `documentation/functionality/user.md`
-  - `documentation/functionality/transaction-head.md`
-  - `documentation/functionality/transaction-row.md`
+  - `../private/functionality`
+  - `../private/functionality`
+  - `../private/functionality`
+  - `../private/functionality`
+  - `../private/functionality`
 
 ### Standard Error Schema (`ApiError`)
 
