@@ -1,10 +1,8 @@
 package com.example.Homebank.businessLogic.services;
 
-import com.example.Homebank.businessLogic.security.TokenHasher;
+import com.example.Homebank.businessLogic.security.AuthenticatedUserProvider;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
-import com.example.Homebank.exceptions.authentication.InvalidRefreshTokenException;
-import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredException;
 import com.example.Homebank.exceptions.validation.PasswordConfirmationMismatchException;
 import com.example.Homebank.presentation.dto.auth.ChangePasswordDTO;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +17,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-
 /**
  * Service for handling user-related operations, such as loading user details and changing passwords.
  */
@@ -31,6 +27,7 @@ public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
 
     /**
      * Loads a user based on their email.
@@ -53,31 +50,15 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Change password for a user provided that:
-     * 1. Refresh token is valid.
-     * 2. The old password matches the current one.
-     * 3. The new password matches the confirmation password.
+     * Changes the authenticated user's password when the old password matches and
+     * the new password matches its confirmation.
      *
-     * @param changePasswordDTO Refresh token, old password, new password, new password confirmation.
+     * @param changePasswordDTO Old password, new password, and new password confirmation.
      */
     @Transactional
     public void changePassword(ChangePasswordDTO changePasswordDTO) throws IllegalArgumentException, BadCredentialsException {
         logger.info("Attempting to change password.");
-        String refreshToken = changePasswordDTO.refreshToken();
-        String hashedRefreshToken = TokenHasher.hash(refreshToken);
-
-        UserEntity userEntity = userRepository.findByRefreshToken(hashedRefreshToken).orElseThrow(() -> {
-            logger.error("Changing password failed due to an invalid refresh token: {}", refreshToken);
-            return new InvalidRefreshTokenException();
-        });
-
-        if (userEntity.getNextRefreshTokenExpirationDate() == null || userEntity.getNextRefreshTokenExpirationDate().isBefore(LocalDateTime.now())) {
-            logger.error("Changing password failed due to an expired refresh token for user: {}", userEntity.getEmail());
-            userEntity.setRefreshToken(null);
-            userEntity.setNextRefreshTokenExpirationDate(LocalDateTime.MIN);
-            userRepository.save(userEntity);
-            throw new RefreshTokenExpiredException();
-        }
+        UserEntity userEntity = authenticatedUserProvider.getAuthenticatedUser();
 
         String oldPassword = changePasswordDTO.oldPassword();
         if (!passwordEncoder.matches(oldPassword, userEntity.getPassword())) {

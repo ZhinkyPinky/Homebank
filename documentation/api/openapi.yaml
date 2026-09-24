@@ -236,6 +236,7 @@ paths:
     post:
       tags: [Users]
       summary: Change password for authenticated user
+      description: Changes the authenticated user's password after verifying the old password.
       requestBody:
         required: true
         content:
@@ -934,10 +935,8 @@ components:
 
     ChangePasswordDTO:
       type: object
-      required: [refreshToken, oldPassword, newPassword, confirmNewPassword]
+      required: [oldPassword, newPassword, confirmNewPassword]
       properties:
-        refreshToken:
-          type: string
         oldPassword:
           type: string
         newPassword:

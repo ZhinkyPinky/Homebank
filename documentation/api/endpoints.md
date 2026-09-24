@@ -250,11 +250,11 @@ These errors are applied by filters/security and are therefore not always repeat
 ### `POST /users/changePassword`
 
 - Auth: Yes
+- Changes the authenticated user's password after verifying the old password.
 - Request body:
 
 ```json
 {
-  "refreshToken": "<opaque-refresh-token>",
   "oldPassword": "old-secret",
   "newPassword": "new-secret",
   "confirmNewPassword": "new-secret"
