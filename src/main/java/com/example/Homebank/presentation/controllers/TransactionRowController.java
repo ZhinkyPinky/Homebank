@@ -88,6 +88,6 @@ public class TransactionRowController {
         logger.info("Request to delete transaction row with ID: {} received.", transactionRowId);
 
         transactionRowService.deleteTransactionRow(transactionRowId, rowVersion);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }

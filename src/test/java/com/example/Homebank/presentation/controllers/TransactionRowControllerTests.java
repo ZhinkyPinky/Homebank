@@ -126,9 +126,9 @@ class TransactionRowControllerTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"2026-01-01T00:00:00", "2026-01-01T00:00:00.1234567"})
-    void deleteTransactionRow_validQueryVersion_usesPathIdAndClientVersion(String rowVersion) throws Exception {
+    void deleteTransactionRow_validQueryVersion_returnsNoContentAndUsesClientVersion(String rowVersion) throws Exception {
         mockMvc.perform(delete("/transactionRows/90").param("rowVersion", rowVersion))
-                .andExpect(status().isOk())
+                .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
         verify(transactionRowService).deleteTransactionRow(90,

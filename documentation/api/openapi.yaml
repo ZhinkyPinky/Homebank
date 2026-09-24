@@ -334,15 +334,27 @@ paths:
       summary: Delete customer (owner only)
       parameters:
         - $ref: '#/components/parameters/customerId'
+        - name: rowVersion
+          in: query
+          required: true
+          description: The row version returned when reading the customer, including any fractional seconds.
+          schema:
+            type: string
+            format: date-time
+          example: '2026-01-01T00:00:00'
       responses:
         '204':
           description: Customer deleted
+        '400':
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /customers/transactionHeads/{transactionHeadId}:
     get:
@@ -504,34 +516,30 @@ paths:
         '409':
           $ref: '#/components/responses/ConflictError'
 
-  /transactionHeads/delete:
-    post:
+    delete:
       tags: [Transaction Heads]
       summary: Mark transaction head as deleted
-      description: Requires access through either stored lender or borrower. Supply the transaction head ID and the row version returned when reading it. Missing or null required fields return VALIDATION_FAILED; malformed JSON or an invalid timestamp returns BAD_REQUEST.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DeleteTransactionHeadDTO'
-            example:
-              id: 22
-              rowVersion: '2026-01-01T00:00:00'
+      description: Requires access through either stored lender or borrower. The path identifies the head.
+      parameters:
+        - name: rowVersion
+          in: query
+          required: true
+          description: The row version returned when reading the head, including any fractional seconds.
+          schema:
+            type: string
+            format: date-time
+          example: '2026-01-01T00:00:00'
       responses:
-        '200':
+        '204':
           description: Transaction head deleted
-          content:
-            application/json:
-              schema:
-                type: string
         '400':
           $ref: '#/components/responses/BadRequestError'
         '403':
           $ref: '#/components/responses/ForbiddenError'
-
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 
   /transactionRows/{transactionRowId}:
     parameters:
@@ -591,7 +599,7 @@ paths:
             format: date-time
           example: '2026-01-01T00:00:00'
       responses:
-        '200':
+        '204':
           description: Transaction row deleted
         '400':
           $ref: '#/components/responses/BadRequestError'
@@ -1060,18 +1068,6 @@ components:
         rowVersion:
           type: string
           format: date-time
-
-    DeleteTransactionHeadDTO:
-      type: object
-      required: [id, rowVersion]
-      properties:
-        id:
-          type: integer
-          format: int32
-        rowVersion:
-          type: string
-          format: date-time
-          description: Row version returned when reading the transaction head.
 
     TransactionHeadDTO:
       type: object

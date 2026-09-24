@@ -9,9 +9,6 @@ public class ApiPaths {
     public static final String RESEND_ACTIVATION = "/resend-activation";
     public static final String REFRESH = "/refresh";
 
-    public static final String SAVE = "/save";
-    public static final String DELETE = "/delete";
-
     public static final String TRANSACTION_ROWS = "/transactionRows";
     public static final String TRANSACTION_ROW = "/{transactionRowId}";
 

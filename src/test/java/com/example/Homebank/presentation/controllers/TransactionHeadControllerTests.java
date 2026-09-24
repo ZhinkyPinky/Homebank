@@ -3,7 +3,6 @@ package com.example.Homebank.presentation.controllers;
 import com.example.Homebank.businessLogic.services.TransactionHeadService;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
-import com.example.Homebank.presentation.dto.transactionhead.DeleteTransactionHeadDTO;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
 import com.example.Homebank.presentation.dto.transactionhead.CreateTransactionHeadDTO;
 import com.example.Homebank.presentation.dto.transactionhead.UpdateTransactionHeadDTO;
@@ -36,6 +35,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -412,20 +412,16 @@ class TransactionHeadControllerTests {
                 .andExpect(jsonPath("$.path").value("/transactionHeads/12"));
     }
 
-    @Test
-    void deleteTransactionHead_validPayload_returnsOkAndCallsService() throws Exception {
-        DeleteTransactionHeadDTO request = validDeleteTransactionHeadDto(22);
-        ObjectNode payload = JSON.createObjectNode()
-                .put("id", 22)
-                .put("rowVersion", "2026-01-01T00:00:00");
+    @ParameterizedTest
+    @ValueSource(strings = {"2026-01-01T00:00:00", "2026-01-01T00:00:00.1234567"})
+    void deleteTransactionHead_validQueryVersion_returnsNoContentAndCallsService(String version) throws Exception {
+        LocalDateTime rowVersion = LocalDateTime.parse(version);
 
-        mockMvc.perform(post("/transactionHeads/delete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(JSON.writeValueAsString(payload)))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Transaction head deleted"));
+        mockMvc.perform(delete("/transactionHeads/22").param("rowVersion", rowVersion.toString()))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
 
-        verify(transactionHeadService).deleteTransactionHead(request);
+        verify(transactionHeadService).deleteTransactionHead(22, rowVersion);
     }
 
     @ParameterizedTest(name = "delete returns {1} {2}")
@@ -433,23 +429,18 @@ class TransactionHeadControllerTests {
     void deleteTransactionHead_serviceError_returnsApiError(
             RuntimeException exception, int expectedStatus, String expectedCode
     ) throws Exception {
-        DeleteTransactionHeadDTO request = validDeleteTransactionHeadDto(22);
-        ObjectNode payload = JSON.createObjectNode()
-                .put("id", 22)
-                .put("rowVersion", "2026-01-01T00:00:00");
+        LocalDateTime rowVersion = LocalDateTime.parse("2026-01-01T00:00:00");
 
-        doThrow(exception).when(transactionHeadService).deleteTransactionHead(request);
+        doThrow(exception).when(transactionHeadService).deleteTransactionHead(22, rowVersion);
 
-        mockMvc.perform(post("/transactionHeads/delete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(JSON.writeValueAsString(payload)))
+        mockMvc.perform(delete("/transactionHeads/22").param("rowVersion", rowVersion.toString()))
                 .andExpect(status().is(expectedStatus))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.status").value(expectedStatus))
                 .andExpect(jsonPath("$.code").value(expectedCode))
-                .andExpect(jsonPath("$.path").value("/transactionHeads/delete"));
+                .andExpect(jsonPath("$.path").value("/transactionHeads/22"));
 
-        verify(transactionHeadService).deleteTransactionHead(request);
+        verify(transactionHeadService).deleteTransactionHead(22, rowVersion);
         verifyNoMoreInteractions(transactionHeadService);
     }
 
@@ -467,59 +458,31 @@ class TransactionHeadControllerTests {
         );
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"id", "rowVersion"})
-    void deleteTransactionHead_missingRequiredField_returnsValidationError(String field) throws Exception {
-        ObjectNode payload = JSON.createObjectNode()
-                .put("id", 22)
-                .put("rowVersion", "2026-01-01T00:00:00");
-
-        payload.remove(field);
-
-        mockMvc.perform(post("/transactionHeads/delete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(JSON.writeValueAsString(payload)))
+    @Test
+    void deleteTransactionHead_missingQueryVersion_returnsBadRequest() throws Exception {
+        mockMvc.perform(delete("/transactionHeads/22"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-                .andExpect(jsonPath("$.details.length()").value(1))
-                .andExpect(jsonPath("$.details[0].field").value(field))
-                .andExpect(jsonPath("$.details[0].code").value("NOT_NULL"));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"id", "rowVersion"})
-    void deleteTransactionHead_nullRequiredField_returnsValidationError(String field) throws Exception {
-        ObjectNode payload = JSON.createObjectNode()
-                .put("id", 22)
-                .put("rowVersion", "2026-01-01T00:00:00");
-
-        payload.putNull(field);
-
-        mockMvc.perform(post("/transactionHeads/delete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(JSON.writeValueAsString(payload)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-                .andExpect(jsonPath("$.details.length()").value(1))
-                .andExpect(jsonPath("$.details[0].field").value(field))
-                .andExpect(jsonPath("$.details[0].code").value("NOT_NULL"));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"not-a-timestamp", "null", "2026-01-01T25:00:00"})
-    void deleteTransactionHead_malformedRowVersion_returnsBadRequest(String rowVersion) throws Exception {
-        ObjectNode payload = JSON.createObjectNode()
-                .put("id", 22)
-                .put("rowVersion", rowVersion);
-
-        var result = mockMvc.perform(post("/transactionHeads/delete")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JSON.writeValueAsString(payload)));
-
-        verifyNoInteractions(transactionHeadService);
-        result.andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.path").value("/transactionHeads/delete"));
+                .andExpect(jsonPath("$.path").value("/transactionHeads/22"));
+        verifyNoInteractions(transactionHeadService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   ", "null", "not-a-timestamp", "2026-01-01", "2026-01-01T25:00:00", "2026-02-30T00:00:00"})
+    void deleteTransactionHead_invalidQueryVersion_returnsBadRequest(String rowVersion) throws Exception {
+        mockMvc.perform(delete("/transactionHeads/22").param("rowVersion", rowVersion))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.path").value("/transactionHeads/22"));
+        verifyNoInteractions(transactionHeadService);
+    }
+
+    @Test
+    void deleteTransactionHead_invalidPathId_returnsBadRequest() throws Exception {
+        mockMvc.perform(delete("/transactionHeads/invalid").param("rowVersion", "2026-01-01T00:00:00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+        verifyNoInteractions(transactionHeadService);
     }
 
     private TransactionHeadDTO validTransactionHeadDto(int id) {
@@ -539,10 +502,4 @@ class TransactionHeadControllerTests {
         );
     }
 
-    private DeleteTransactionHeadDTO validDeleteTransactionHeadDto(int id) {
-        return new DeleteTransactionHeadDTO(
-                id,
-                LocalDateTime.parse("2026-01-01T00:00:00")
-        );
-    }
 }

@@ -8,7 +8,6 @@ import com.example.Homebank.dataAccess.repositories.TransactionHeadViewRepositor
 import com.example.Homebank.dataAccess.views.TransactionHeadView;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
-import com.example.Homebank.presentation.dto.transactionhead.DeleteTransactionHeadDTO;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
 import com.example.Homebank.presentation.dto.transactionhead.CreateTransactionHeadDTO;
 import com.example.Homebank.presentation.dto.transactionhead.UpdateTransactionHeadDTO;
@@ -295,13 +294,13 @@ class TransactionHeadServiceTests {
     void deleteTransactionHead_authorizesStoredParticipantsAndUsesClientVersion() {
         TransactionHeadView existing = transactionHeadView(22, 111, 222);
         existing.setRowVersion(LocalDateTime.parse("2026-02-01T00:00:00"));
-        DeleteTransactionHeadDTO request = deleteTransactionHeadDto(22);
+        LocalDateTime rowVersion = LocalDateTime.parse("2026-01-01T00:00:00");
         when(transactionHeadViewRepository.findById(22)).thenReturn(Optional.of(existing));
 
-        transactionHeadService.deleteTransactionHead(request);
+        transactionHeadService.deleteTransactionHead(22, rowVersion);
 
         verify(transactionHeadAccessPolicy).requireAccess(TransactionHeadDTO.fromView(existing));
-        verify(transactionHeadViewRepository).deleteTransactionHead(22, request.rowVersion());
+        verify(transactionHeadViewRepository).deleteTransactionHead(22, rowVersion);
     }
 
     @Test
@@ -312,18 +311,18 @@ class TransactionHeadServiceTests {
         doThrow(denied).when(transactionHeadAccessPolicy).requireAccess(TransactionHeadDTO.fromView(existing));
 
         assertSame(denied, assertThrows(ResourceAccessDeniedException.class,
-                () -> transactionHeadService.deleteTransactionHead(deleteTransactionHeadDto(22))));
+                () -> transactionHeadService.deleteTransactionHead(22, LocalDateTime.parse("2026-01-01T00:00:00"))));
         verify(transactionHeadViewRepository).findById(22);
         org.mockito.Mockito.verifyNoMoreInteractions(transactionHeadViewRepository);
     }
 
     @Test
     void deleteTransactionHead_missingHeadDoesNotWrite() {
-        DeleteTransactionHeadDTO request = deleteTransactionHeadDto(22);
+        LocalDateTime rowVersion = LocalDateTime.parse("2026-01-01T00:00:00");
 
         when(transactionHeadViewRepository.findById(22)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> transactionHeadService.deleteTransactionHead(request));
+        assertThrows(ResourceNotFoundException.class, () -> transactionHeadService.deleteTransactionHead(22, rowVersion));
         verify(transactionHeadViewRepository).findById(22);
         org.mockito.Mockito.verifyNoMoreInteractions(transactionHeadViewRepository);
         org.mockito.Mockito.verifyNoInteractions(transactionHeadAccessPolicy);
@@ -331,16 +330,16 @@ class TransactionHeadServiceTests {
 
     @Test
     void deleteTransactionHead_rethrowsRepositoryException() {
-        DeleteTransactionHeadDTO request = deleteTransactionHeadDto(22);
+        LocalDateTime rowVersion = LocalDateTime.parse("2026-01-01T00:00:00");
         RuntimeException boom = new RuntimeException("delete failed");
 
         when(transactionHeadViewRepository.findById(22)).thenReturn(Optional.of(transactionHeadView(22, 1, 2)));
-        when(transactionHeadViewRepository.deleteTransactionHead(request.id(), request.rowVersion())).thenThrow(boom);
+        when(transactionHeadViewRepository.deleteTransactionHead(22, rowVersion)).thenThrow(boom);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> transactionHeadService.deleteTransactionHead(request));
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> transactionHeadService.deleteTransactionHead(22, rowVersion));
 
         assertSame(boom, exception);
-        verify(transactionHeadViewRepository).deleteTransactionHead(request.id(), request.rowVersion());
+        verify(transactionHeadViewRepository).deleteTransactionHead(22, rowVersion);
     }
 
     private TransactionHeadView transactionHeadView(int id, int lenderId, int borrowerId) {
@@ -373,13 +372,6 @@ class TransactionHeadServiceTests {
                 100,
                 "Borrower",
                 "Lender",
-                LocalDateTime.parse("2026-01-01T00:00:00")
-        );
-    }
-
-    private DeleteTransactionHeadDTO deleteTransactionHeadDto(int id) {
-        return new DeleteTransactionHeadDTO(
-                id,
                 LocalDateTime.parse("2026-01-01T00:00:00")
         );
     }

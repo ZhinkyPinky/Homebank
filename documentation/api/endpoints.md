@@ -301,11 +301,10 @@ These errors are applied by filters/security and are therefore not always repeat
 
 ### `DELETE /customers/{customerId}`
 
-- Auth: Yes
-- Path params:
-  - `customerId` (int)
+- Auth: Yes; only the owner can delete the customer.
+- Required query parameter: `rowVersion`, using the value returned when reading the customer, including any fractional seconds. No request body.
 - `204` response: empty body
-- Errors: `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `401 AUTHENTICATION_FAILED`, `403 ACCOUNT_NOT_ACTIVATED`, `403 RESOURCE_ACCESS_DENIED`, `404 RESOURCE_NOT_FOUND`
+- Errors: `400 BAD_REQUEST`, `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `401 AUTHENTICATION_FAILED`, `403 ACCOUNT_NOT_ACTIVATED`, `403 RESOURCE_ACCESS_DENIED`, `404 RESOURCE_NOT_FOUND`, `409 ROW_VERSION_MISMATCH`
 
 ### `GET /customers`
 
@@ -392,27 +391,13 @@ These errors are applied by filters/security and are therefore not always repeat
 - `200` response: `TransactionHeadDTO`.
 - Returns `403` when inaccessible and `404` when missing.
 
-### `POST /transactionHeads/delete`
+### `DELETE /transactionHeads/{transactionHeadId}`
 
 - Auth: Yes; access through either stored lender or borrower is required.
-- Returns `403 RESOURCE_ACCESS_DENIED` when inaccessible and `404 RESOURCE_NOT_FOUND` when missing.
-- Request body: `DeleteTransactionHeadDTO` with required, non-null `id` and `rowVersion` fields. Use the row version returned when reading the transaction head.
-
-```json
-{
-  "id": 22,
-  "rowVersion": "2026-01-01T00:00:00"
-}
-```
-
-- Missing or null required fields return `400 VALIDATION_FAILED`; malformed JSON or an invalid timestamp returns `400 BAD_REQUEST`.
-- `200` response:
-
-```json
-"Transaction head deleted"
-```
-
-- Errors: `400 VALIDATION_FAILED`, `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `401 AUTHENTICATION_FAILED`, `403 ACCOUNT_NOT_ACTIVATED`
+- Required query parameter: `rowVersion`, using the value returned when reading the head, including any fractional seconds. No request body.
+- Example: `DELETE /transactionHeads/22?rowVersion=2026-01-01T00:00:00`.
+- Missing or invalid versions return `400 BAD_REQUEST`. Other errors include `403 RESOURCE_ACCESS_DENIED`, `404 RESOURCE_NOT_FOUND`, and `409 ROW_VERSION_MISMATCH`.
+- `204` response: empty body
 
 ## 3.6 Transaction Rows
 
@@ -447,7 +432,7 @@ All row operations require access to the parent transaction head. Existing rows 
 - Auth: Yes; access to the stored parent is required.
 - Required query parameter: `rowVersion`, using the ISO date-time value returned when reading the row. No request body.
 - Example: `DELETE /transactionRows/90?rowVersion=2026-01-01T00:00:00`. Preserve any fractional seconds. Stale versions return `409 ROW_VERSION_MISMATCH`.
-- `200` response: empty body
+- `204` response: empty body
 - Missing or invalid versions return `400 BAD_REQUEST`. Other errors include `403 RESOURCE_ACCESS_DENIED`, `404 RESOURCE_NOT_FOUND`, and `409 ROW_VERSION_MISMATCH`.
 
 ## 4. Error Codes By Status
@@ -478,11 +463,11 @@ Endpoints that can return `400 VALIDATION_FAILED`:
 | `PUT /customers/{customerId}` | `name -> NOT_BLANK`; `rowVersion -> NOT_NULL` |
 | `POST /transactionHeads` | `lenderId -> NOT_NULL`; `borrowerId -> NOT_NULL`; `transactionName -> NOT_BLANK`; `startDate -> NOT_NULL` |
 | `PUT /transactionHeads/{transactionHeadId}` | `transactionName -> NOT_BLANK`; `startDate -> NOT_NULL`; `rowVersion -> NOT_NULL` |
-| `POST /transactionHeads/delete` | `id -> NOT_NULL`; `rowVersion -> NOT_NULL` |
 | `POST /transactionRows` | `transactionHeadId -> NOT_NULL`; `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL, POSITIVE_OR_ZERO` |
 | `PUT /transactionRows/{transactionRowId}` | `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL, POSITIVE_OR_ZERO`; `rowVersion -> NOT_NULL` |
 
 Endpoints that currently do not emit `VALIDATION_FAILED`:
+- `DELETE /transactionHeads/{transactionHeadId}`
 - `DELETE /transactionRows/{transactionRowId}`
 - `GET /auth/activate`
 - `POST /auth/resend-activation`

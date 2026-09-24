@@ -11,6 +11,12 @@ import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
 import com.example.Homebank.presentation.dto.transactionrow.TransactionRowDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -42,7 +48,7 @@ class CustomerControllerGetTests {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(customerController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(customerController).setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
     @Test
@@ -152,12 +158,43 @@ class CustomerControllerGetTests {
         verify(customerService).getCustomerAndTransactionHeadAndTransactionRow(7, 70, 700);
     }
 
-    @Test
-    void deleteCustomer_returnsNoContentAndCallsService() throws Exception {
-        mockMvc.perform(delete("/customers/9"))
-                .andExpect(status().isNoContent());
+    @ParameterizedTest
+    @ValueSource(strings = {"2026-01-01T00:00:00", "2026-01-01T00:00:00.1234567"})
+    void deleteCustomer_validQueryVersion_returnsNoContentAndCallsService(String rowVersion) throws Exception {
+        mockMvc.perform(delete("/customers/9").param("rowVersion", rowVersion))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
 
-        verify(customerService).deleteCustomer(9);
+        verify(customerService).deleteCustomer(9, LocalDateTime.parse(rowVersion));
+    }
+
+    @Test
+    void deleteCustomer_missingQueryVersion_returnsBadRequest() throws Exception {
+        mockMvc.perform(delete("/customers/9"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+        verifyNoInteractions(customerService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   ", "null", "not-a-timestamp", "2026-01-01", "2026-01-01T25:00:00", "2026-02-30T00:00:00"})
+    void deleteCustomer_invalidQueryVersion_returnsBadRequest(String rowVersion) throws Exception {
+        mockMvc.perform(delete("/customers/9").param("rowVersion", rowVersion))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+        verifyNoInteractions(customerService);
+    }
+
+    @Test
+    void deleteCustomer_staleVersion_returnsConflict() throws Exception {
+        LocalDateTime rowVersion = LocalDateTime.parse("2026-01-01T00:00:00");
+        doThrow(new ObjectOptimisticLockingFailureException("Customer", 9))
+                .when(customerService).deleteCustomer(9, rowVersion);
+
+        mockMvc.perform(delete("/customers/9").param("rowVersion", rowVersion.toString()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("ROW_VERSION_MISMATCH"));
+        verify(customerService).deleteCustomer(9, rowVersion);
     }
 
     private CustomerDTO customerDto(int id) {

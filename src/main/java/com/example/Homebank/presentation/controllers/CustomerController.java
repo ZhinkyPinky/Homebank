@@ -9,9 +9,11 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 /**
  * Controller responsible for customer endpoints and customer-transaction composite reads.
@@ -63,10 +65,11 @@ public class CustomerController {
      * @return {@code 204 No Content} when deletion succeeds.
      */
     @DeleteMapping(ApiPaths.CUSTOMER)
-    public ResponseEntity<Void> deleteCustomer(@PathVariable int customerId) {
+    public ResponseEntity<Void> deleteCustomer(@PathVariable int customerId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime rowVersion) {
         logger.info("Request to delete customer with ID: {} received.", customerId);
 
-        customerService.deleteCustomer(customerId);
+        customerService.deleteCustomer(customerId, rowVersion);
 
         return ResponseEntity.noContent().build();
     }

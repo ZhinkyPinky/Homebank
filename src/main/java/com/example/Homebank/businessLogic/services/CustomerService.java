@@ -281,7 +281,7 @@ public class CustomerService {
      * @param customerId ID of the customer to delete.
      */
     @Transactional
-    public void deleteCustomer(int customerId) {
+    public void deleteCustomer(int customerId, LocalDateTime rowVersion) {
         logger.info("Deleting customer with ID: {}", customerId);
         CustomerEntity customerEntity = getCustomerEntity(customerId);
         customerAccessPolicy.requireOwnership(
@@ -290,7 +290,11 @@ public class CustomerService {
                 "You do not have permission to delete this customer."
         );
 
-        customerRepository.deleteById(customerId);
+        if (rowVersion == null || !rowVersion.equals(customerEntity.getRowVersion())) {
+            throw new ObjectOptimisticLockingFailureException(CustomerEntity.class, customerId);
+        }
+
+        customerRepository.delete(customerEntity);
     }
 
     /**

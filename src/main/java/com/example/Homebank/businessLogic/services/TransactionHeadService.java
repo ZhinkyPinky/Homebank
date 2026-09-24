@@ -7,7 +7,6 @@ import com.example.Homebank.dataAccess.views.TransactionHeadView;
 import com.example.Homebank.dataAccess.repositories.TransactionHeadViewRepository;
 import com.example.Homebank.exceptions.authorization.ResourceAccessDeniedException;
 import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
-import com.example.Homebank.presentation.dto.transactionhead.DeleteTransactionHeadDTO;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
 import com.example.Homebank.presentation.dto.transactionhead.CreateTransactionHeadDTO;
 import com.example.Homebank.presentation.dto.transactionhead.UpdateTransactionHeadDTO;
@@ -199,24 +198,25 @@ public class TransactionHeadService {
     /**
      * Sets the transaction head as deleted in the DB.
      *
-     * @param transactionHead Transaction head to set as deleted.
+     * @param transactionHeadId ID of the transaction head to set as deleted.
+     * @param rowVersion The client version used by the delete procedure.
      */
     @Transactional
-    public void deleteTransactionHead(DeleteTransactionHeadDTO transactionHead) {
-        logger.info("Deleting transaction head with ID: {}", transactionHead.id());
+    public void deleteTransactionHead(int transactionHeadId, LocalDateTime rowVersion) {
+        logger.info("Deleting transaction head with ID: {}", transactionHeadId);
 
         //Checks for existence and whether the user has access to the transaction head.
-        TransactionHeadDTO existingTransactionHead = getTransactionHead(transactionHead.id());
+        TransactionHeadDTO existingTransactionHead = getTransactionHead(transactionHeadId);
 
         try {
             transactionHeadViewRepository.deleteTransactionHead(
                     existingTransactionHead.id(),
-                    transactionHead.rowVersion()
+                    rowVersion
             );
 
-            logger.debug("Transaction head with ID: {} deleted successfully.", transactionHead.id());
+            logger.debug("Transaction head with ID: {} deleted successfully.", transactionHeadId);
         } catch (Exception e) {
-            logger.error("Failed to delete transaction head with ID: {}. Error: {}", transactionHead.id(), e.getMessage(), e);
+            logger.error("Failed to delete transaction head with ID: {}. Error: {}", transactionHeadId, e.getMessage(), e);
             throw e;
         }
     }

@@ -332,24 +332,25 @@ class CustomerServiceTests {
     }
 
     @Test
-    void deleteCustomer_ownerDeletesSuccessfully() {
+    void deleteCustomer_matchingVersion_deletesSuccessfully() {
         int customerId = 12;
         CustomerEntity customer = customerEntity(customerId, user(7));
+        customer.setRowVersion(LocalDateTime.parse("2026-01-01T00:00:00"));
 
         when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
 
-        customerService.deleteCustomer(customerId);
+        customerService.deleteCustomer(customerId, customer.getRowVersion());
 
         verify(customerAccessPolicy).requireOwnership(
                 customer,
                 "delete",
                 "You do not have permission to delete this customer."
         );
-        verify(customerRepository).deleteById(customerId);
+        verify(customerRepository).delete(customer);
     }
 
     @Test
-    void deleteCustomer_nonOwnerThrowsAccessDeniedAndDoesNotDelete() {
+    void deleteCustomer_nonOwner_throwsAccessDeniedAndDoesNotDelete() {
         int customerId = 12;
         CustomerEntity customer = customerEntity(customerId, user(99));
 
@@ -365,9 +366,54 @@ class CustomerServiceTests {
                 "You do not have permission to delete this customer."
         );
 
-        assertThrows(ResourceAccessDeniedException.class, () -> customerService.deleteCustomer(customerId));
+        assertThrows(ResourceAccessDeniedException.class, () -> customerService.deleteCustomer(customerId, customer.getRowVersion()));
 
-        verify(customerRepository, never()).deleteById(customerId);
+        verify(customerRepository, never()).delete(any(CustomerEntity.class));
+    }
+
+    @Test
+    void deleteCustomer_staleVersion_doesNotDelete() {
+        CustomerEntity customer = customerEntity(12, user(7));
+        customer.setRowVersion(LocalDateTime.parse("2026-02-01T00:00:00"));
+        when(customerRepository.findById(12)).thenReturn(Optional.of(customer));
+
+        assertThrows(ObjectOptimisticLockingFailureException.class,
+                () -> customerService.deleteCustomer(12, LocalDateTime.parse("2026-01-01T00:00:00")));
+
+        verify(customerAccessPolicy).requireOwnership(customer, "delete", "You do not have permission to delete this customer.");
+        verify(customerRepository, never()).delete(any(CustomerEntity.class));
+    }
+
+    @Test
+    void deleteCustomer_nullVersion_doesNotDelete() {
+        CustomerEntity customer = customerEntity(12, user(7));
+        when(customerRepository.findById(12)).thenReturn(Optional.of(customer));
+
+        assertThrows(ObjectOptimisticLockingFailureException.class,
+                () -> customerService.deleteCustomer(12, null));
+        verify(customerRepository, never()).delete(any(CustomerEntity.class));
+    }
+
+    @Test
+    void deleteCustomer_missingCustomer_doesNotDelete() {
+        when(customerRepository.findById(12)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> customerService.deleteCustomer(12, LocalDateTime.parse("2026-01-01T00:00:00")));
+        org.mockito.Mockito.verifyNoInteractions(customerAccessPolicy);
+        verify(customerRepository, never()).delete(any(CustomerEntity.class));
+    }
+
+    @Test
+    void deleteCustomer_repositoryConflict_propagatesOptimisticLockException() {
+        CustomerEntity customer = customerEntity(12, user(7));
+        customer.setRowVersion(LocalDateTime.parse("2026-01-01T00:00:00"));
+        when(customerRepository.findById(12)).thenReturn(Optional.of(customer));
+        doThrow(new ObjectOptimisticLockingFailureException(CustomerEntity.class, 12))
+                .when(customerRepository).delete(customer);
+
+        assertThrows(ObjectOptimisticLockingFailureException.class,
+                () -> customerService.deleteCustomer(12, customer.getRowVersion()));
     }
 
     private CustomerView customerView(int id, String name) {
