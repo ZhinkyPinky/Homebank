@@ -84,7 +84,7 @@ class AccountRecoveryControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("access-token"))
                 .andExpect(jsonPath("$.refreshToken").doesNotExist())
-                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Path=/auth;")));
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Path=/api/auth;")));
 
         verify(accountRecoveryService).setNewPassword(request);
     }

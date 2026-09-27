@@ -38,7 +38,7 @@ paths:
               description: Secure, HTTP-only refresh-token cookie.
               schema:
                 type: string
-                example: refreshToken=<opaque-refresh-token>; Path=/auth; Max-Age=604800; Secure; HttpOnly; SameSite=Strict
+                example: refreshToken=<opaque-refresh-token>; Path=/api/auth; Max-Age=604800; Secure; HttpOnly; SameSite=Strict
           content:
             application/json:
               schema:
@@ -69,7 +69,7 @@ paths:
               description: Deletes the refresh-token cookie.
               schema:
                 type: string
-                example: refreshToken=; Path=/auth; Max-Age=0; Secure; HttpOnly; SameSite=Strict
+                example: refreshToken=; Path=/api/auth; Max-Age=0; Secure; HttpOnly; SameSite=Strict
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -115,7 +115,7 @@ paths:
               description: Rotated secure, HTTP-only refresh-token cookie.
               schema:
                 type: string
-                example: refreshToken=<new-opaque-refresh-token>; Path=/auth; Max-Age=604800; Secure; HttpOnly; SameSite=Strict
+                example: refreshToken=<new-opaque-refresh-token>; Path=/api/auth; Max-Age=604800; Secure; HttpOnly; SameSite=Strict
           content:
             application/json:
               schema:
@@ -222,7 +222,7 @@ paths:
               description: Secure, HTTP-only refresh-token cookie.
               schema:
                 type: string
-                example: refreshToken=<opaque-refresh-token>; Path=/auth; Max-Age=604800; Secure; HttpOnly; SameSite=Strict
+                example: refreshToken=<opaque-refresh-token>; Path=/api/auth; Max-Age=604800; Secure; HttpOnly; SameSite=Strict
           content:
             application/json:
               schema:

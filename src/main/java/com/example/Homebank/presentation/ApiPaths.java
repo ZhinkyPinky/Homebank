@@ -1,7 +1,11 @@
 package com.example.Homebank.presentation;
 
 public class ApiPaths {
+    public static final String API_BASE = "/api";
+
     public static final String AUTH = "/auth";
+    public static final String AUTH_BASE = API_BASE + "/auth";
+
     public static final String SIGN_IN = "/login";
     public static final String SIGN_OUT = "/logout";
     public static final String REGISTER = "/register";

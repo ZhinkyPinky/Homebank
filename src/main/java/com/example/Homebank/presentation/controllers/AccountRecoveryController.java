@@ -67,7 +67,7 @@ public class AccountRecoveryController {
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", tokenDTO.refreshToken())
                 .httpOnly(true)
                 .secure(true)
-                .path(ApiPaths.AUTH)
+                .path(ApiPaths.AUTH_BASE)
                 .maxAge(tokenDTO.refreshTokenDuration())
                 .sameSite("Strict")
                 .build();

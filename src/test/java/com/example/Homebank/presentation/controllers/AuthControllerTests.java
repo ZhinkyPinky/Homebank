@@ -3,6 +3,7 @@ package com.example.Homebank.presentation.controllers;
 import com.example.Homebank.businessLogic.services.AuthService;
 import com.example.Homebank.presentation.dto.auth.AccessAndRefreshTokenDTO;
 import com.example.Homebank.presentation.dto.auth.AuthenticationDTO;
+import com.example.Homebank.presentation.dto.auth.RefreshTokenDTO;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -163,13 +164,38 @@ class AuthControllerTests {
         verify(authService).signOut("refresh-token");
     }
 
+    @Test
+    void refresh_validCookie_returnsAccessTokenAndSecureRotatedRefreshCookie() throws Exception {
+        RefreshTokenDTO request = new RefreshTokenDTO("refresh-token");
+        when(authService.refreshTokens(request)).thenReturn(new AccessAndRefreshTokenDTO(
+                "new-access-token",
+                "new-refresh-token",
+                Duration.ofDays(7),
+                "Token refreshed successfully",
+                "ACTIVE"
+        ));
+
+        MvcResult result = mockMvc.perform(post("/auth/refresh")
+                        .cookie(new Cookie(REFRESH_TOKEN_COOKIE, "refresh-token")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("new-access-token"))
+                .andExpect(jsonPath("$.message").value("Token refreshed successfully"))
+                .andExpect(jsonPath("$.accountStatus").value("ACTIVE"))
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, not(containsString("new-access-token"))))
+                .andReturn();
+
+        assertRefreshCookie(result, "new-refresh-token", "Max-Age=604800");
+        verify(authService).refreshTokens(request);
+    }
+
     private void assertRefreshCookie(MvcResult result, String expectedValue, String expectedMaxAge) {
         String setCookie = result.getResponse().getHeader(HttpHeaders.SET_COOKIE);
 
         assertAll(
                 () -> assertNotNull(setCookie),
                 () -> assertTrue(setCookie.startsWith(REFRESH_TOKEN_COOKIE + "=" + expectedValue + ";")),
-                () -> assertTrue(setCookie.contains("Path=/auth;")),
+                () -> assertTrue(setCookie.contains("Path=/api/auth;")),
                 () -> assertTrue(setCookie.contains(expectedMaxAge)),
                 () -> assertTrue(setCookie.contains("Secure")),
                 () -> assertTrue(setCookie.contains("HttpOnly")),

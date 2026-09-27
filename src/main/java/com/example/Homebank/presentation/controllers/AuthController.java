@@ -42,7 +42,7 @@ public class AuthController {
         ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", tokenInformation.refreshToken())
                 .httpOnly(true)
                 .secure(true)
-                .path("/api/auth")
+                .path(ApiPaths.AUTH_BASE)
                 .maxAge(tokenInformation.refreshTokenDuration())
                 .sameSite("Strict")
                 .build();
@@ -87,7 +87,7 @@ public class AuthController {
         return ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
                 .secure(true)
-                .path(ApiPaths.AUTH)
+                .path(ApiPaths.AUTH_BASE)
                 .maxAge(0)
                 .sameSite("Strict")
                 .build();
@@ -122,7 +122,7 @@ public class AuthController {
         ResponseCookie outgoingRefreshTokenCookie = ResponseCookie.from("refreshToken", accessAndRefreshTokenDTO.refreshToken())
                 .httpOnly(true)
                 .secure(true)
-                .path(ApiPaths.AUTH)
+                .path(ApiPaths.AUTH_BASE)
                 .maxAge(accessAndRefreshTokenDTO.refreshTokenDuration())
                 .sameSite("Strict")
                 .build();

@@ -100,7 +100,7 @@ These errors are applied by filters/security and are therefore not always repeat
 }
 ```
 
-- Sets `refreshToken=<opaque-refresh-token>; Path=/auth; Max-Age=<seconds>; Secure; HttpOnly; SameSite=Strict`.
+- Sets `refreshToken=<opaque-refresh-token>; Path=/api/auth; Max-Age=<seconds>; Secure; HttpOnly; SameSite=Strict`.
 
 - Errors: `400 VALIDATION_FAILED`, `401 BAD_CREDENTIALS`, `403 ACCOUNT_DISABLED`
 
@@ -110,7 +110,7 @@ These errors are applied by filters/security and are therefore not always repeat
 - Request body: none
 - Refresh-token cookie: optional; when present, its server-side session is revoked.
 - `204` response: empty body
-- Always deletes the browser cookie with `refreshToken=; Path=/auth; Max-Age=0; Secure; HttpOnly; SameSite=Strict`, including when server-side revocation fails after the controller starts processing.
+- Always deletes the browser cookie with `refreshToken=; Path=/api/auth; Max-Age=0; Secure; HttpOnly; SameSite=Strict`, including when server-side revocation fails after the controller starts processing.
 - Errors: `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `401 AUTHENTICATION_FAILED`, `500 INTERNAL_SERVER_ERROR`
 
 ### `POST /auth/register`
@@ -149,7 +149,7 @@ These errors are applied by filters/security and are therefore not always repeat
 }
 ```
 
-- Rotates the refresh token and sets the replacement in the `/auth`-scoped `refreshToken` cookie.
+- Rotates the refresh token and sets the replacement in the `/api/auth`-scoped `refreshToken` cookie.
 
 - Errors: `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `403 ACCOUNT_NOT_ACTIVATED`
 
@@ -241,7 +241,7 @@ These errors are applied by filters/security and are therefore not always repeat
 }
 ```
 
-- Sets the new refresh token in the secure, HTTP-only, `/auth`-scoped `refreshToken` cookie.
+- Sets the new refresh token in the secure, HTTP-only, `/api/auth`-scoped `refreshToken` cookie.
 
 - Errors: `400 VALIDATION_FAILED`, `400 PASSWORD_CONFIRMATION_MISMATCH`, `401 TOKEN_INVALID`
 
