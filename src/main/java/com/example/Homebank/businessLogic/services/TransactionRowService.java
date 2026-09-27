@@ -64,7 +64,7 @@ public class TransactionRowService {
     }
 
     /**
-     * Creates a row under an accessible head, with a database-assigned ID and version.
+     * Creates a row under an accessible head, with a database-assigned ID, row number, and version.
      *
      * @param transactionRow The data for the new transaction row.
      */
@@ -75,7 +75,7 @@ public class TransactionRowService {
         Map<String, Object> result = transactionRowViewRepository.saveTransactionRow(
                 -1,
                 transactionRow.transactionHeadId(),
-                transactionRow.transactionRowNo(),
+                -1,
                 transactionRow.typeOfTransactionCode(),
                 transactionRow.name(),
                 transactionRow.description(),

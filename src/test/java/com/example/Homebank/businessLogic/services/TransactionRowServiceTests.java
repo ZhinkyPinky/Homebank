@@ -243,14 +243,14 @@ class TransactionRowServiceTests {
     }
 
     @Test
-    void createTransactionRow_accessibleParent_insertsWithGeneratedIdAndVersion() {
+    void createTransactionRow_accessibleParent_insertsWithGeneratedIdRowNumberAndVersion() {
         CreateTransactionRowDTO dto = createRequest();
 
         transactionRowService.createTransactionRow(dto);
 
         var order = inOrder(transactionHeadAccessPolicy, transactionRowViewRepository);
         order.verify(transactionHeadAccessPolicy).requireAccess(9);
-        order.verify(transactionRowViewRepository).saveTransactionRow(-1, 9, dto.transactionRowNo(),
+        order.verify(transactionRowViewRepository).saveTransactionRow(-1, 9, -1,
                 dto.typeOfTransactionCode(), dto.name(), dto.description(), dto.paymentDate(), dto.amount(), null);
         verifyNoMoreInteractions(transactionRowViewRepository);
     }
@@ -367,7 +367,7 @@ class TransactionRowServiceTests {
     }
 
     private CreateTransactionRowDTO createRequest() {
-        return new CreateTransactionRowDTO(9, 1, "DEBIT", "Payment", "desc", LocalDate.parse("2026-01-15"), 50);
+        return new CreateTransactionRowDTO(9, "DEBIT", "Payment", "desc", LocalDate.parse("2026-01-15"), 50);
     }
 
     private UpdateTransactionRowDTO updateRequest(TransactionRowDTO dto) {

@@ -56,7 +56,7 @@ class TransactionRowControllerTests {
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
     private static final String CREATE_JSON = """
-            {"transactionHeadId":9,"transactionRowNo":1,
+            {"transactionHeadId":9,
              "typeOfTransactionCode":"DEBIT","name":"Payment",
              "paymentDate":"2026-01-15","amount":50}
             """;
@@ -99,7 +99,7 @@ class TransactionRowControllerTests {
                 .andExpect(content().string("Transaction row created."));
 
         verify(transactionRowService).createTransactionRow(new CreateTransactionRowDTO(
-                9, 1, "DEBIT", "Payment", null,
+                9, "DEBIT", "Payment", null,
                 LocalDate.parse("2026-01-15"), 50
         ));
         verifyNoMoreInteractions(transactionRowService);
@@ -137,7 +137,7 @@ class TransactionRowControllerTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"transactionHeadId", "transactionRowNo", "typeOfTransactionCode", "name", "paymentDate", "amount"})
+    @ValueSource(strings = {"transactionHeadId", "typeOfTransactionCode", "name", "paymentDate", "amount"})
     void postTransactionRow_missingRequiredField_returnsValidationError(String field) throws Exception {
         ObjectNode payload = (ObjectNode) JSON.readTree(CREATE_JSON);
         payload.remove(field);
@@ -213,7 +213,7 @@ class TransactionRowControllerTests {
     @Test
     void postTransactionRow_accessDenied_returnsForbidden() throws Exception {
         CreateTransactionRowDTO request = new CreateTransactionRowDTO(
-                9, 1, "DEBIT", "Payment", null, LocalDate.parse("2026-01-15"), 50);
+                9, "DEBIT", "Payment", null, LocalDate.parse("2026-01-15"), 50);
         doThrow(new ResourceAccessDeniedException("TRANSACTION_HEAD", 9, "read", "Denied")).when(transactionRowService).createTransactionRow(request);
 
         assertApiError(post("/transactionRows").contentType(MediaType.APPLICATION_JSON).content(CREATE_JSON), 403, "RESOURCE_ACCESS_DENIED");
@@ -225,7 +225,7 @@ class TransactionRowControllerTests {
     @Test
     void postTransactionRow_resourceMissing_returnsNotFound() throws Exception {
         CreateTransactionRowDTO request = new CreateTransactionRowDTO(
-                9, 1, "DEBIT", "Payment", null, LocalDate.parse("2026-01-15"), 50);
+                9, "DEBIT", "Payment", null, LocalDate.parse("2026-01-15"), 50);
         doThrow(new ResourceNotFoundException("TRANSACTION_HEAD", 9, "Missing")).when(transactionRowService).createTransactionRow(request);
 
         assertApiError(post("/transactionRows").contentType(MediaType.APPLICATION_JSON).content(CREATE_JSON), 404, "RESOURCE_NOT_FOUND");
@@ -315,7 +315,7 @@ class TransactionRowControllerTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"transactionHeadId", "transactionRowNo", "typeOfTransactionCode", "name", "paymentDate", "amount"})
+    @ValueSource(strings = {"transactionHeadId", "typeOfTransactionCode", "name", "paymentDate", "amount"})
     void postTransactionRow_nullField_returnsValidationError(String field) throws Exception {
         assertValidationError(post("/transactionRows"), createPayload().putNull(field), field,
                 field.equals("name") || field.equals("typeOfTransactionCode") ? "NOT_BLANK" : "NOT_NULL");
@@ -408,7 +408,7 @@ class TransactionRowControllerTests {
     private ObjectNode updatePayload() {
         ObjectNode payload = (ObjectNode) JSON.readTree(CREATE_JSON);
         payload.remove("transactionHeadId");
-        return payload.put("rowVersion", "2026-01-01T00:00:00");
+        return payload.put("transactionRowNo", 1).put("rowVersion", "2026-01-01T00:00:00");
     }
 
     @Test

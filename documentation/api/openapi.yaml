@@ -616,7 +616,7 @@ paths:
     post:
       tags: [Transaction Rows]
       summary: Create a transaction row
-      description: Requires access to the requested parent head. The database assigns the ID and version; the request contains only creation fields.
+      description: Requires access to the requested parent head. The database assigns the ID, row number, and version; the request contains only creation fields.
       requestBody:
         required: true
         content:
@@ -1115,12 +1115,9 @@ components:
 
     CreateTransactionRowDTO:
       type: object
-      required: [transactionHeadId, transactionRowNo, typeOfTransactionCode, name, paymentDate, amount]
+      required: [transactionHeadId, typeOfTransactionCode, name, paymentDate, amount]
       properties:
         transactionHeadId:
-          type: integer
-          format: int32
-        transactionRowNo:
           type: integer
           format: int32
         typeOfTransactionCode:

@@ -412,8 +412,8 @@ All row operations require access to the parent transaction head. Existing rows 
 ### `POST /transactionRows`
 
 - Auth: Yes
-- Request body: `CreateTransactionRowDTO`: `transactionHeadId`, `transactionRowNo`, `typeOfTransactionCode`, `name`, optional `description`, `paymentDate`, and `amount`.
-- The database assigns the ID and version. No ID, version, or display-name fields are required in the request.
+- Request body: `CreateTransactionRowDTO`: `transactionHeadId`, `typeOfTransactionCode`, `name`, optional `description`, `paymentDate`, and `amount`.
+- The database assigns the ID, row number, and version. No ID, version, or display-name fields are required in the request.
 - `200` response: `"Transaction row created."`
 - Errors: `400 BAD_REQUEST`, `400 VALIDATION_FAILED`, `401 TOKEN_INVALID`, `401 TOKEN_EXPIRED`, `401 AUTHENTICATION_FAILED`, `403 ACCOUNT_NOT_ACTIVATED`, `403 RESOURCE_ACCESS_DENIED`, `404 RESOURCE_NOT_FOUND`
 
@@ -463,7 +463,7 @@ Endpoints that can return `400 VALIDATION_FAILED`:
 | `PUT /customers/{customerId}` | `name -> NOT_BLANK`; `rowVersion -> NOT_NULL` |
 | `POST /transactionHeads` | `lenderId -> NOT_NULL`; `borrowerId -> NOT_NULL`; `transactionName -> NOT_BLANK`; `startDate -> NOT_NULL` |
 | `PUT /transactionHeads/{transactionHeadId}` | `transactionName -> NOT_BLANK`; `startDate -> NOT_NULL`; `rowVersion -> NOT_NULL` |
-| `POST /transactionRows` | `transactionHeadId -> NOT_NULL`; `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL, POSITIVE_OR_ZERO` |
+| `POST /transactionRows` | `transactionHeadId -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL, POSITIVE_OR_ZERO` |
 | `PUT /transactionRows/{transactionRowId}` | `transactionRowNo -> NOT_NULL`; `typeOfTransactionCode -> NOT_BLANK`; `name -> NOT_BLANK`; `paymentDate -> NOT_NULL`; `amount -> NOT_NULL, POSITIVE_OR_ZERO`; `rowVersion -> NOT_NULL` |
 
 Endpoints that currently do not emit `VALIDATION_FAILED`:
