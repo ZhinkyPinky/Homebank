@@ -183,7 +183,7 @@ public class AuthService {
      * @param activationToken The activation token to include in the activation link.
      */
     private void sendActivationEmail(String email, String activationToken) {
-        String activationLink = applicationURL + ApiPaths.AUTH + ApiPaths.ACTIVATE + "?token=" + activationToken;
+        String activationLink = applicationURL + ApiPaths.ACTIVATE + "?token=" + activationToken;
         emailService.sendEmail(email, "Activate your account", "Please click the following link to activate your account: " + activationLink);
     }
 
