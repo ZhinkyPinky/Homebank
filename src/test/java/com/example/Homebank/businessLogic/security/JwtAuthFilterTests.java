@@ -6,6 +6,8 @@ import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -62,20 +64,23 @@ class JwtAuthFilterTests {
         verify(filterChain, never()).doFilter(request, response);
     }
 
-    @Test
-    void doFilterInternal_returnsTokenInvalidWhenJwtCannotBeParsed() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"", "/api", "/bank"})
+    void doFilter_returnsTokenInvalidWhenJwtCannotBeParsed(String contextPath) throws Exception {
         MockHttpServletRequest request = bearerRequest("invalid-token");
+        request.setRequestURI(contextPath + "/customers");
+        request.setContextPath(contextPath);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         when(jwtUtil.extractEmail("invalid-token"))
                 .thenThrow(new JwtException("Invalid token"));
 
-        jwtAuthFilter.doFilterInternal(request, response, filterChain);
+        jwtAuthFilter.doFilter(request, response, filterChain);
 
         assertEquals(401, response.getStatus());
         assertTrue(response.getContentAsString().contains("\"code\":\"TOKEN_INVALID\""));
         assertTrue(response.getContentAsString().contains("\"tokenType\":\"ACCESS\""));
-        assertTrue(response.getContentAsString().contains("\"path\":\"/customers\""));
+        assertTrue(response.getContentAsString().contains("\"path\":\"" + contextPath + "/customers\""));
         verify(filterChain, never()).doFilter(request, response);
     }
 
@@ -134,8 +139,9 @@ class JwtAuthFilterTests {
         verify(filterChain).doFilter(request, response);
     }
 
-    @Test
-    void doFilter_skipsTokenValidationForAllPublicEndpoints() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"", "/api", "/bank"})
+    void doFilter_skipsTokenValidationForAllPublicEndpoints(String contextPath) throws Exception {
         MockHttpServletRequest[] requests = new MockHttpServletRequest[]{
                 new MockHttpServletRequest("POST", "/auth/login"),
                 new MockHttpServletRequest("POST", "/auth/refresh"),
@@ -147,6 +153,8 @@ class JwtAuthFilterTests {
         };
 
         for (MockHttpServletRequest request : requests) {
+            request.setRequestURI(contextPath + request.getRequestURI());
+            request.setContextPath(contextPath);
             request.addHeader("Authorization", "Bearer invalid-or-expired-token");
             MockHttpServletResponse response = new MockHttpServletResponse();
 

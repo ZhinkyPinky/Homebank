@@ -5,6 +5,8 @@ import com.example.Homebank.dataAccess.entities.UserStatus;
 import com.example.Homebank.businessLogic.services.UserService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -40,19 +42,21 @@ class UserStatusFilterTests {
         SecurityContextHolder.clearContext();
     }
 
-    @Test
-    void doFilterInternal_blocksPendingUserOnProtectedEndpoint() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"", "/api", "/bank"})
+    void doFilterInternal_blocksPendingUserOnProtectedEndpoint(String contextPath) throws Exception {
         setAuthentication("pending@example.com");
         when(userService.loadUserByUsername("pending@example.com")).thenReturn(userWithStatus(UserStatus.ACTIVATION_PENDING));
 
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/customers");
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", contextPath + "/customers");
+        request.setContextPath(contextPath);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         userStatusFilter.doFilterInternal(request, response, filterChain);
 
         assertEquals(403, response.getStatus());
         assertTrue(response.getContentAsString().contains("\"code\":\"ACCOUNT_NOT_ACTIVATED\""));
-        assertTrue(response.getContentAsString().contains("\"path\":\"/customers\""));
+        assertTrue(response.getContentAsString().contains("\"path\":\"" + contextPath + "/customers\""));
         verify(filterChain, never()).doFilter(request, response);
     }
 
@@ -72,18 +76,23 @@ class UserStatusFilterTests {
         verify(filterChain, never()).doFilter(request, response);
     }
 
-    @Test
-    void doFilterInternal_allowsPendingUserOnWhitelistedEndpoint() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"", "/api", "/bank"})
+    void doFilterInternal_allowsPendingUserOnWhitelistedEndpoint(String contextPath) throws Exception {
         setAuthentication("pending@example.com");
         when(userService.loadUserByUsername("pending@example.com")).thenReturn(userWithStatus(UserStatus.ACTIVATION_PENDING));
 
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/auth/resend-activation");
-        MockHttpServletResponse response = new MockHttpServletResponse();
+        for (String endpoint : new String[]{"/auth/activate", "/auth/resend-activation", "/auth/logout"}) {
+            MockHttpServletRequest request = new MockHttpServletRequest(
+                    endpoint.equals("/auth/activate") ? "GET" : "POST", contextPath + endpoint);
+            request.setContextPath(contextPath);
+            MockHttpServletResponse response = new MockHttpServletResponse();
 
-        userStatusFilter.doFilterInternal(request, response, filterChain);
+            userStatusFilter.doFilter(request, response, filterChain);
 
-        verify(filterChain).doFilter(request, response);
-        assertEquals(200, response.getStatus());
+            verify(filterChain).doFilter(request, response);
+            assertEquals(200, response.getStatus());
+        }
     }
 
     @Test

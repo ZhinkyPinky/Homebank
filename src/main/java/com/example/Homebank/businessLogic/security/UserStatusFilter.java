@@ -55,6 +55,7 @@ public class UserStatusFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String requestPath = request.getRequestURI();
+        String applicationPath = requestPath.substring(request.getContextPath().length());
 
         if (authentication != null && authentication.isAuthenticated() && authentication.getPrincipal() instanceof String email) {
             UserEntity userEntity;
@@ -72,7 +73,7 @@ public class UserStatusFilter extends OncePerRequestFilter {
             }
 
             if (userEntity.getStatus() == UserStatus.ACTIVATION_PENDING
-                    && !ALLOWED_PENDING_ACTIVATION_ENDPOINTS.contains(requestPath)) {
+                    && !ALLOWED_PENDING_ACTIVATION_ENDPOINTS.contains(applicationPath)) {
                 writeErrorResponse(
                         response,
                         requestPath,

@@ -54,7 +54,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return SKIP_TOKEN_VALIDATION_ENDPOINTS.contains(request.getRequestURI());
+        String applicationPath = request.getRequestURI().substring(request.getContextPath().length());
+        return SKIP_TOKEN_VALIDATION_ENDPOINTS.contains(applicationPath);
     }
 
     /**
