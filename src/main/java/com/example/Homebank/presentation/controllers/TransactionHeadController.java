@@ -11,7 +11,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.format.annotation.DateTimeFormat;
+
 import java.time.LocalDateTime;
+
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -63,17 +65,18 @@ public class TransactionHeadController {
         return ResponseEntity.ok("Transaction head updated");
     }
 
-
     /**
      * Handles requests to set a transaction head as deleted.
      *
      * @param transactionHeadId The ID of the transaction head to set as deleted.
-     * @param rowVersion The version returned when reading the transaction head.
+     * @param rowVersion        The version returned when reading the transaction head.
      * @return Response indicating whether the transaction head was successfully set as deleted.
      */
     @DeleteMapping(ApiPaths.TRANSACTION_HEAD)
-    public ResponseEntity<Void> deleteTransactionHead(@PathVariable int transactionHeadId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime rowVersion) {
+    public ResponseEntity<Void> deleteTransactionHead(
+            @PathVariable int transactionHeadId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime rowVersion
+    ) {
         logger.info("Request to delete transaction head with ID: {} received.", transactionHeadId);
 
         transactionHeadService.deleteTransactionHead(transactionHeadId, rowVersion);

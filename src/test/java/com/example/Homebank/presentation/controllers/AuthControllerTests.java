@@ -1,6 +1,7 @@
 package com.example.Homebank.presentation.controllers;
 
 import com.example.Homebank.businessLogic.services.AuthService;
+import com.example.Homebank.exceptions.authentication.AccountNotActivatedException;
 import com.example.Homebank.presentation.dto.auth.AccessAndRefreshTokenDTO;
 import com.example.Homebank.presentation.dto.auth.AuthenticationDTO;
 import com.example.Homebank.presentation.dto.auth.RefreshTokenDTO;
@@ -57,7 +58,7 @@ class AuthControllerTests {
     }
 
     @Test
-    void login_validCredentials_returnsAccessTokenAndSecureRefreshCookie() throws Exception {
+    void login_activeAccount_returnsAccessTokenAndSecureRefreshCookie() throws Exception {
         AuthenticationDTO request = new AuthenticationDTO("user@example.com", "secret");
         when(authService.authenticate(request)).thenReturn(new AccessAndRefreshTokenDTO(
                 "access-token",
@@ -87,6 +88,29 @@ class AuthControllerTests {
                 .andReturn();
 
         assertRefreshCookie(result, "refresh-token", "Max-Age=604800");
+        verify(authService).authenticate(request);
+    }
+
+    @Test
+    void login_pendingAccount_returnsAccessTokenAndDeletesExistingRefreshCookie() throws Exception {
+        AuthenticationDTO request = new AuthenticationDTO("pending@example.com", "secret");
+        when(authService.authenticate(request)).thenReturn(new AccessAndRefreshTokenDTO(
+                "pending-access-token", null, null, "Login successful", "ACTIVATION_PENDING"
+        ));
+
+        MvcResult result = mockMvc.perform(post("/auth/login")
+                        .cookie(new Cookie(REFRESH_TOKEN_COOKIE, "old-refresh-token"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"pending@example.com","password":"secret"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("pending-access-token"))
+                .andExpect(jsonPath("$.accountStatus").value("ACTIVATION_PENDING"))
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
+                .andReturn();
+
+        assertRefreshCookie(result, "", "Max-Age=0");
         verify(authService).authenticate(request);
     }
 
@@ -186,6 +210,21 @@ class AuthControllerTests {
                 .andReturn();
 
         assertRefreshCookie(result, "new-refresh-token", "Max-Age=604800");
+        verify(authService).refreshTokens(request);
+    }
+
+    @Test
+    void refresh_pendingAccount_returnsForbiddenWithoutIssuingTokens() throws Exception {
+        RefreshTokenDTO request = new RefreshTokenDTO("previous-refresh-token");
+        when(authService.refreshTokens(request)).thenThrow(new AccountNotActivatedException());
+
+        mockMvc.perform(post("/auth/refresh")
+                        .cookie(new Cookie(REFRESH_TOKEN_COOKIE, "previous-refresh-token")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCOUNT_NOT_ACTIVATED"))
+                .andExpect(jsonPath("$.accessToken").doesNotExist())
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+
         verify(authService).refreshTokens(request);
     }
 

@@ -1,6 +1,7 @@
 package com.example.Homebank.presentation.controllers;
 
 import com.example.Homebank.businessLogic.services.AuthService;
+import com.example.Homebank.dataAccess.entities.UserStatus;
 import com.example.Homebank.presentation.ApiPaths;
 import com.example.Homebank.presentation.dto.auth.*;
 import jakarta.servlet.http.Cookie;
@@ -32,21 +33,15 @@ public class AuthController {
      * Handles requests to sign in a user.
      *
      * @param authenticationRequest Request body containing email and password.
-     * @return a response containing the access token and a refresh token in a secure, HTTP-only cookie.
+     * @return a response containing the access token and account status. Sets a secure, HTTP-only
+     *         refresh-token cookie for active accounts and deletes it for accounts pending activation.
      */
     @PostMapping(ApiPaths.SIGN_IN)
     public ResponseEntity<AccessTokenDTO> signIn(@Valid @RequestBody AuthenticationDTO authenticationRequest) {
         logger.info("Sign in request received for user: {}", authenticationRequest.email());
         AccessAndRefreshTokenDTO tokenInformation = authService.authenticate(authenticationRequest);
 
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", tokenInformation.refreshToken())
-                .httpOnly(true)
-                .secure(true)
-                .path(ApiPaths.AUTH_BASE)
-                .maxAge(tokenInformation.refreshTokenDuration())
-                .sameSite("Strict")
-                .build();
-
+        ResponseCookie refreshTokenCookie = UserStatus.ACTIVE.name().equals(tokenInformation.accountStatus()) ? createRefreshTokenCookie(tokenInformation) : deleteRefreshTokenCookie();
         AccessTokenDTO accessTokenDTO = new AccessTokenDTO(
                 tokenInformation.accessToken(),
                 tokenInformation.message(),
@@ -79,21 +74,6 @@ public class AuthController {
     }
 
     /**
-     * Creates a ResponseCookie that deletes the refresh token cookie.
-     *
-     * @return a ResponseCookie that deletes the refresh token cookie.
-     */
-    private ResponseCookie deleteRefreshTokenCookie() {
-        return ResponseCookie.from("refreshToken", "")
-                .httpOnly(true)
-                .secure(true)
-                .path(ApiPaths.AUTH_BASE)
-                .maxAge(0)
-                .sameSite("Strict")
-                .build();
-    }
-
-    /**
      * Handles requests to register a new user.
      *
      * @param registrationDTO Request body containing username, password and e-mail.
@@ -119,14 +99,7 @@ public class AuthController {
 
         AccessAndRefreshTokenDTO accessAndRefreshTokenDTO = authService.refreshTokens(refreshTokenDTO);
 
-        ResponseCookie outgoingRefreshTokenCookie = ResponseCookie.from("refreshToken", accessAndRefreshTokenDTO.refreshToken())
-                .httpOnly(true)
-                .secure(true)
-                .path(ApiPaths.AUTH_BASE)
-                .maxAge(accessAndRefreshTokenDTO.refreshTokenDuration())
-                .sameSite("Strict")
-                .build();
-
+        ResponseCookie outgoingRefreshTokenCookie = UserStatus.ACTIVE.name().equals(accessAndRefreshTokenDTO.accountStatus()) ? createRefreshTokenCookie(accessAndRefreshTokenDTO) : deleteRefreshTokenCookie();
         AccessTokenDTO accessTokenDTO = new AccessTokenDTO(
                 accessAndRefreshTokenDTO.accessToken(),
                 accessAndRefreshTokenDTO.message(),
@@ -166,4 +139,29 @@ public class AuthController {
         return ResponseEntity.ok("Activation email resent successfully. Please check your e-mail.");
     }
 
+
+    private ResponseCookie createRefreshTokenCookie(AccessAndRefreshTokenDTO tokenInformation) {
+        return ResponseCookie.from("refreshToken", tokenInformation.refreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .path(ApiPaths.AUTH_BASE)
+                .maxAge(tokenInformation.refreshTokenDuration())
+                .sameSite("Strict")
+                .build();
+    }
+
+    /**
+     * Creates a ResponseCookie that deletes the refresh token cookie.
+     *
+     * @return a ResponseCookie that deletes the refresh token cookie.
+     */
+    private ResponseCookie deleteRefreshTokenCookie() {
+        return ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path(ApiPaths.AUTH_BASE)
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+    }
 }

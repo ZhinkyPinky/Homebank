@@ -23,6 +23,12 @@ paths:
     post:
       tags: [Auth]
       summary: Login
+      description: |
+        Returns an access token for valid credentials. Active accounts also receive a refresh-token cookie.
+        Accounts pending activation receive accountStatus ACTIVATION_PENDING and an access token usable
+        for resending the activation email, subject to activation restrictions. Their stored refresh token
+        is cleared and the browser refresh-token cookie is deleted. Sign in again after activation to
+        obtain a refresh token. Refresh tokens are never returned in the JSON response.
       security: []
       requestBody:
         required: true
@@ -35,7 +41,10 @@ paths:
           description: Login successful
           headers:
             Set-Cookie:
-              description: Secure, HTTP-only refresh-token cookie.
+              description: |
+                Sets a secure, HTTP-only refresh-token cookie for ACTIVE accounts.
+                For ACTIVATION_PENDING accounts, deletes the cookie with an empty value and Max-Age=0,
+                retaining Path=/api/auth, Secure, HttpOnly, and SameSite=Strict.
               schema:
                 type: string
                 example: refreshToken=<opaque-refresh-token>; Path=/api/auth; Max-Age=604800; Secure; HttpOnly; SameSite=Strict
@@ -43,6 +52,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccessTokenDTO'
+              examples:
+                active:
+                  value:
+                    accessToken: <jwt-access-token>
+                    message: Login successful
+                    accountStatus: ACTIVE
+                pendingActivation:
+                  value:
+                    accessToken: <jwt-access-token>
+                    message: Login successful
+                    accountStatus: ACTIVATION_PENDING
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':

@@ -100,7 +100,10 @@ These errors are applied by filters/security and are therefore not always repeat
 }
 ```
 
-- Sets `refreshToken=<opaque-refresh-token>; Path=/api/auth; Max-Age=<seconds>; Secure; HttpOnly; SameSite=Strict`.
+- For `ACTIVE` accounts, sets `refreshToken=<opaque-refresh-token>; Path=/api/auth; Max-Age=<seconds>; Secure; HttpOnly; SameSite=Strict`.
+- Accounts pending activation also receive `200` with an access token and `accountStatus: "ACTIVATION_PENDING"`. They can use this token to resend the activation email, subject to the activation restrictions above.
+- Pending-account login clears any stored refresh token and deletes the browser cookie with `refreshToken=; Path=/api/auth; Max-Age=0; Secure; HttpOnly; SameSite=Strict`. No refresh token is issued.
+- After activation, sign in again to obtain a refresh token. Refresh tokens are never included in the login JSON response.
 
 - Errors: `400 VALIDATION_FAILED`, `401 BAD_CREDENTIALS`, `403 ACCOUNT_DISABLED`
 

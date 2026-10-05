@@ -6,9 +6,12 @@ import com.example.Homebank.businessLogic.services.email.EmailService;
 import com.example.Homebank.dataAccess.entities.UserEntity;
 import com.example.Homebank.dataAccess.entities.UserStatus;
 import com.example.Homebank.dataAccess.repositories.UserRepository;
+import com.example.Homebank.exceptions.authentication.RefreshTokenExpiredException;
+import com.example.Homebank.exceptions.authentication.AccountNotActivatedException;
 import com.example.Homebank.presentation.dto.auth.AccessAndRefreshTokenDTO;
 import com.example.Homebank.presentation.dto.auth.AuthenticationDTO;
 import com.example.Homebank.presentation.dto.auth.RegistrationDTO;
+import com.example.Homebank.presentation.dto.auth.RefreshTokenDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,12 +25,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -102,7 +108,7 @@ class AuthServiceTests {
     }
 
     @Test
-    void authenticate_normalizesEmailBeforeAuthentication() {
+    void authenticate_activeAccount_normalizesEmailAndPersistsHashedRefreshToken() {
         AuthenticationDTO dto = new AuthenticationDTO("  USER@Example.COM  ", "secret");
         UserEntity user = new UserEntity();
         user.setEmail("user@example.com");
@@ -114,7 +120,9 @@ class AuthServiceTests {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
         when(accessJwtUtil.generateToken("user@example.com")).thenReturn("access-token");
 
+        LocalDateTime beforeAuthentication = LocalDateTime.now();
         AccessAndRefreshTokenDTO result = authService.authenticate(dto);
+        LocalDateTime afterAuthentication = LocalDateTime.now();
 
         ArgumentCaptor<UsernamePasswordAuthenticationToken> tokenCaptor =
                 ArgumentCaptor.forClass(UsernamePasswordAuthenticationToken.class);
@@ -124,6 +132,73 @@ class AuthServiceTests {
         assertEquals("secret", captured.getCredentials());
         assertNotNull(result);
         assertEquals("access-token", result.accessToken());
+        assertEquals("ACTIVE", result.accountStatus());
+        assertNotNull(result.refreshToken());
+        assertTrue(!result.refreshToken().isBlank());
+        assertEquals(Duration.ofDays(7), result.refreshTokenDuration());
+        assertEquals(TokenHasher.hash(result.refreshToken()), user.getRefreshToken());
+        assertTrue(!user.getNextRefreshTokenExpirationDate().isBefore(beforeAuthentication.plusDays(7)));
+        assertTrue(!user.getNextRefreshTokenExpirationDate().isAfter(afterAuthentication.plusDays(7)));
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void authenticate_pendingAccount_returnsAccessTokenAndRevokesStoredRefreshToken() {
+        UserEntity user = new UserEntity();
+        user.setEmail("pending@example.com");
+        user.setStatus(UserStatus.ACTIVATION_PENDING);
+        user.setEnabled(true);
+        user.setRefreshToken(TokenHasher.hash("old-refresh-token"));
+        user.setNextRefreshTokenExpirationDate(LocalDateTime.now().plusDays(7));
+
+        Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(user);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
+        when(accessJwtUtil.generateToken(user.getEmail())).thenReturn("pending-access-token");
+
+        AccessAndRefreshTokenDTO result = authService.authenticate(new AuthenticationDTO(user.getEmail(), "secret"));
+
+        assertEquals("pending-access-token", result.accessToken());
+        assertEquals("ACTIVATION_PENDING", result.accountStatus());
+        assertNull(result.refreshToken());
+        assertNull(result.refreshTokenDuration());
+        assertNull(user.getRefreshToken());
+        assertEquals(LocalDateTime.of(1970, 1, 1, 0, 0), user.getNextRefreshTokenExpirationDate());
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void refreshTokens_pendingAccount_rejectsPreviouslyIssuedToken() {
+        String refreshToken = "previous-refresh-token";
+        UserEntity user = new UserEntity();
+        user.setStatus(UserStatus.ACTIVATION_PENDING);
+        user.setRefreshToken(TokenHasher.hash(refreshToken));
+        user.setNextRefreshTokenExpirationDate(LocalDateTime.now().plusDays(7));
+        when(userRepository.findByRefreshToken(user.getRefreshToken())).thenReturn(Optional.of(user));
+
+        assertThrows(AccountNotActivatedException.class,
+                () -> authService.refreshTokens(new RefreshTokenDTO(refreshToken)));
+
+        verify(userRepository, never()).save(any());
+        verify(accessJwtUtil, never()).generateToken(any());
+    }
+
+    @Test
+    void refreshTokens_expiredToken_clearsTokenWithDatabaseCompatibleExpiration() {
+        String refreshToken = "expired-refresh-token";
+        UserEntity user = new UserEntity();
+        user.setStatus(UserStatus.ACTIVE);
+        user.setRefreshToken(TokenHasher.hash(refreshToken));
+        user.setNextRefreshTokenExpirationDate(LocalDateTime.now().minusDays(1));
+        when(userRepository.findByRefreshToken(user.getRefreshToken())).thenReturn(Optional.of(user));
+
+        assertThrows(RefreshTokenExpiredException.class,
+                () -> authService.refreshTokens(new RefreshTokenDTO(refreshToken)));
+
+        assertNull(user.getRefreshToken());
+        assertEquals(LocalDateTime.of(1970, 1, 1, 0, 0), user.getNextRefreshTokenExpirationDate());
+        verify(userRepository).save(user);
+        verify(accessJwtUtil, never()).generateToken(any());
     }
 
     @Test
@@ -137,7 +212,7 @@ class AuthServiceTests {
         authService.signOut(refreshToken);
 
         assertNull(user.getRefreshToken());
-        assertEquals(LocalDateTime.MIN, user.getNextRefreshTokenExpirationDate());
+        assertEquals(LocalDateTime.of(1970, 1, 1, 0, 0), user.getNextRefreshTokenExpirationDate());
         verify(userRepository).save(user);
     }
 

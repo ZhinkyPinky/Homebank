@@ -43,6 +43,9 @@ import java.util.Optional;
 public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
+    // Past date compatible with SQL Server.
+    private static final LocalDateTime REVOKED_REFRESH_TOKEN_EXPIRATION = LocalDateTime.of(1970, 1, 1, 0, 0);
+
     private final AuthenticationManager authenticationManager;
 
     private final PasswordEncoder passwordEncoder;
@@ -57,6 +60,7 @@ public class AuthService {
     @Value("${auth.refresh-token.duration-days:7}")
     private String refreshTokenDurationDays;
 
+
     @Value("${application.url}")
     private String applicationURL;
 
@@ -64,11 +68,13 @@ public class AuthService {
     private long activationTokenDurationHours;
 
     /**
-     * Authenticate a user based on username and password. Generates access and refresh tokens if authentication is
-     * successful. The refresh token is saved encrypted in the DB.
+     * Authenticates a user by email and password and issues an access token on success.
+     * Active accounts also receive a refresh token, whose hash and expiration are saved in the database.
+     * For accounts pending activation, clears any stored refresh token and sets its expiration to a past date.
      *
-     * @param authenticationDTO Username and password.
-     * @return Access and refresh tokens.
+     * @param authenticationDTO Email and password.
+     * @return Access token, account status, and login message, with a refresh token and its duration
+     *         only for active accounts; both refresh-token fields are null for accounts pending activation.
      */
     @Transactional
     public AccessAndRefreshTokenDTO authenticate(AuthenticationDTO authenticationDTO) {
@@ -89,16 +95,25 @@ public class AuthService {
 
         //TODO: authentication manager should already pick up on this?
         if (!userEntity.isEnabled()) {
-            logger.error("User {} attempted to authenticate but account is not activated.", email);
+            logger.error("User {} attempted to authenticate but account is not enabled.", email);
             throw new DisabledException("Account is disabled");
         }
 
         String accessToken = accessJwtUtil.generateToken(userEntity.getUsername());
-        String refreshToken = OpaqueTokenGenerator.generateToken();
-        Duration refreshTokenDuration = Duration.ofDays(Long.parseLong(refreshTokenDurationDays));
-        String hashedRefreshToken = TokenHasher.hash(refreshToken);
-        LocalDateTime refreshTokenExpirationDate = LocalDateTime.now().plus(refreshTokenDuration);
-        //LocalDateTime.now().plusDays(Long.parseLong(refreshTokenDurationDays));
+
+        String refreshToken = null;
+        Duration refreshTokenDuration = null;
+        String hashedRefreshToken = null;
+        LocalDateTime refreshTokenExpirationDate = REVOKED_REFRESH_TOKEN_EXPIRATION;
+
+        if (userEntity.getStatus() != UserStatus.ACTIVE) {
+            logger.info("User {} attempted to authenticate but account is not active.", email);
+        } else {
+            refreshToken = OpaqueTokenGenerator.generateToken();
+            hashedRefreshToken = TokenHasher.hash(refreshToken);
+            refreshTokenDuration = Duration.ofDays(Long.parseLong(refreshTokenDurationDays));
+            refreshTokenExpirationDate = LocalDateTime.now().plus(refreshTokenDuration);
+        }
 
         userEntity.setRefreshToken(hashedRefreshToken);
         userEntity.setNextRefreshTokenExpirationDate(refreshTokenExpirationDate);
@@ -214,11 +229,12 @@ public class AuthService {
 
     /**
      * Generates new access and refresh tokens for a user provided that the refresh token is valid.
+     * Commits expired-token cleanup before propagating {@link RefreshTokenExpiredException}.
      *
      * @param refreshTokenDTO Refresh token.
      * @return New access and refresh token.
      */
-    @Transactional
+    @Transactional(noRollbackFor = RefreshTokenExpiredException.class)
     public AccessAndRefreshTokenDTO refreshTokens(RefreshTokenDTO refreshTokenDTO) {
         String refreshToken = refreshTokenDTO.refreshToken();
         if (refreshToken == null) {
@@ -238,7 +254,7 @@ public class AuthService {
             logger.error("Refresh token has expired for user: {}", userEntity.getEmail());
 
             userEntity.setRefreshToken(null);
-            userEntity.setNextRefreshTokenExpirationDate(LocalDateTime.MIN);
+            userEntity.setNextRefreshTokenExpirationDate(REVOKED_REFRESH_TOKEN_EXPIRATION);
             userRepository.save(userEntity);
 
             throw new RefreshTokenExpiredException();
@@ -258,7 +274,6 @@ public class AuthService {
         String hashedNewRefreshToken = TokenHasher.hash(newRefreshToken);
         Duration newRefreshTokenDuration = Duration.ofDays(Long.parseLong(refreshTokenDurationDays));
         LocalDateTime newRefreshTokenExpirationDate = LocalDateTime.now().plus(newRefreshTokenDuration);
-        //LocalDateTime newRefreshTokenExpirationDate = LocalDateTime.now().plusDays(Long.parseLong(refreshTokenDurationDays));
 
         userEntity.setRefreshToken(hashedNewRefreshToken);
         userEntity.setNextRefreshTokenExpirationDate(newRefreshTokenExpirationDate);
@@ -286,7 +301,7 @@ public class AuthService {
         String hashedRefreshToken = TokenHasher.hash(refreshToken);
         userRepository.findByRefreshToken(hashedRefreshToken).ifPresent(user -> {
             user.setRefreshToken(null);
-            user.setNextRefreshTokenExpirationDate(LocalDateTime.MIN);
+            user.setNextRefreshTokenExpirationDate(REVOKED_REFRESH_TOKEN_EXPIRATION);
             userRepository.save(user);
             logger.info("User signed out successfully.");
         });

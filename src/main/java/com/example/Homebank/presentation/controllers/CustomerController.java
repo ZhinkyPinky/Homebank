@@ -66,7 +66,7 @@ public class CustomerController {
      */
     @DeleteMapping(ApiPaths.CUSTOMER)
     public ResponseEntity<Void> deleteCustomer(@PathVariable int customerId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime rowVersion) {
+                                               @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime rowVersion) {
         logger.info("Request to delete customer with ID: {} received.", customerId);
 
         customerService.deleteCustomer(customerId, rowVersion);
@@ -139,7 +139,9 @@ public class CustomerController {
      */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD)
     public ResponseEntity<CustomerAndTransactionHeadDTO> getCustomerAndTransactionHead(
-            @PathVariable final int customerId, @PathVariable final int transactionHeadId) {
+            @PathVariable final int customerId,
+            @PathVariable final int transactionHeadId
+    ) {
         logger.info("Request to get customer with ID: {} and transaction head with ID: {} received.", customerId, transactionHeadId);
 
         CustomerAndTransactionHeadDTO body = customerService.getCustomerAndTransactionHead(customerId, transactionHeadId);
@@ -155,7 +157,9 @@ public class CustomerController {
      */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD_AND_ROWS)
     public ResponseEntity<CustomerWithTransactionHeadAndRowsDTO> getCustomerAndTransactionHeadAndRows(
-            @PathVariable final int customerId, @PathVariable final int transactionHeadId) {
+            @PathVariable final int customerId,
+            @PathVariable final int transactionHeadId
+    ) {
         logger.info("Request to get customer, transaction head, and rows for customerId: {} and transactionHeadId: {} received.", customerId, transactionHeadId);
 
         CustomerWithTransactionHeadAndRowsDTO body = customerService.getCustomerTransactionHeadAndRows(customerId, transactionHeadId);
@@ -171,8 +175,11 @@ public class CustomerController {
      * @return The customer, transaction head and transaction row.
      */
     @GetMapping(ApiPaths.CUSTOMER_WITH_TRANSACTION_HEAD_AND_ROW)
-    public ResponseEntity<?> getCustomerAndTransactionHeadAndTransactionRow(@PathVariable final int customerId,
-                                                                            @PathVariable final int transactionHeadId, @PathVariable final int transactionRowId) {
+    public ResponseEntity<?> getCustomerAndTransactionHeadAndTransactionRow(
+            @PathVariable final int customerId,
+            @PathVariable final int transactionHeadId,
+            @PathVariable final int transactionRowId
+    ) {
         logger.info("Request to get customer, transaction head, and row for customerId: {}, transactionHeadId: {}, and transactionRowId: {} received.", customerId, transactionHeadId, transactionRowId);
 
         CustomerWithTransactionHeadAndRowDTO body = customerService.getCustomerAndTransactionHeadAndTransactionRow(customerId, transactionHeadId, transactionRowId);
