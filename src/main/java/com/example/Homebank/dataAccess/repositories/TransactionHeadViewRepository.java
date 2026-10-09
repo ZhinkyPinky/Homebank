@@ -19,6 +19,9 @@ public interface TransactionHeadViewRepository extends JpaRepository<Transaction
     @Query(nativeQuery = true, value = "SELECT * FROM bank.vTransactionHead WHERE Lender_Id = :customerId OR Borrower_Id = :customerId")
     List<TransactionHeadView> findAllByLenderIdOrBorrowerId(int customerId);
 
+    @Query(nativeQuery = true, value = "SELECT * FROM bank.vTransactionHead WHERE Lender_Id = :customerId OR Borrower_Id = :customerId ORDER BY CASE WHEN EndDate IS NULL THEN 0 ELSE 1 END, EndDate DESC, StartDate DESC")
+    List<TransactionHeadView> findAllByLenderIdOrBorrowerIdOrderByEndDateDescStartDateDesc(int customerId);
+
     @Procedure(name = "SaveTransactionHead")
     Map<String, Object> saveTransactionHead(
             @Param("p_Id") int id,

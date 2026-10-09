@@ -93,18 +93,32 @@ class CustomerControllerGetTests {
     }
 
     @Test
-    void getCustomerAndTransactionHeads_returnsComposite() throws Exception {
+    void getCustomerAndTransactionHeads_orderedHeads_preservesServiceOrder() throws Exception {
         CustomerAndTransactionHeadsDTO dto = new CustomerAndTransactionHeadsDTO(
                 customerDto(3),
-                List.of(transactionHeadDto(30), transactionHeadDto(31))
+                List.of(transactionHeadDto(31), transactionHeadDto(30))
         );
         when(customerService.getCustomerAndTransactionHeads(3)).thenReturn(dto);
 
         mockMvc.perform(get("/customers/3/transactionHeads"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.customer.id").value(3))
-                .andExpect(jsonPath("$.transactionHeads[0].id").value(30))
-                .andExpect(jsonPath("$.transactionHeads[1].id").value(31));
+                .andExpect(jsonPath("$.transactionHeads[0].id").value(31))
+                .andExpect(jsonPath("$.transactionHeads[1].id").value(30));
+
+        verify(customerService).getCustomerAndTransactionHeads(3);
+    }
+
+    @Test
+    void getCustomerAndTransactionHeads_noHeads_returnsEmptyArray() throws Exception {
+        when(customerService.getCustomerAndTransactionHeads(3))
+                .thenReturn(new CustomerAndTransactionHeadsDTO(customerDto(3), List.of()));
+
+        mockMvc.perform(get("/customers/3/transactionHeads"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.customer.id").value(3))
+                .andExpect(jsonPath("$.transactionHeads").isArray())
+                .andExpect(jsonPath("$.transactionHeads").isEmpty());
 
         verify(customerService).getCustomerAndTransactionHeads(3);
     }

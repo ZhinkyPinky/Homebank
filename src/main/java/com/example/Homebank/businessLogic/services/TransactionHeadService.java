@@ -99,7 +99,7 @@ public class TransactionHeadService {
      * Loads transaction heads for a customer whose access has already been authorized by the caller.
      */
     List<TransactionHeadDTO> getTransactionHeadsForAccessibleCustomer(int customerId) {
-        List<TransactionHeadDTO> transactionHeads = transactionHeadViewRepository.findAllByLenderIdOrBorrowerId(customerId).stream().map(TransactionHeadDTO::fromView).toList();
+        List<TransactionHeadDTO> transactionHeads = transactionHeadViewRepository.findAllByLenderIdOrBorrowerIdOrderByEndDateDescStartDateDesc(customerId).stream().map(TransactionHeadDTO::fromView).toList();
 
         logger.debug("Retrieved {} transaction heads for customer ID: {}", transactionHeads.size(), customerId);
         return transactionHeads;
@@ -200,7 +200,7 @@ public class TransactionHeadService {
      * Requires access to both participating customers.
      *
      * @param transactionHeadId ID of the transaction head to set as deleted.
-     * @param rowVersion The client version used by the delete procedure.
+     * @param rowVersion        The client version used by the delete procedure.
      */
     @Transactional
     public void deleteTransactionHead(int transactionHeadId, LocalDateTime rowVersion) {

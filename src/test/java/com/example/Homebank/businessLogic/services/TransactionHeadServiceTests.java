@@ -101,18 +101,36 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void getTransactionHeadsByCustomerId_accessibleCustomer_returnsMappedDtos() {
-        when(transactionHeadViewRepository.findAllByLenderIdOrBorrowerId(3)).thenReturn(List.of(
-                transactionHeadView(30, 3, 7),
-                transactionHeadView(31, 8, 3)
-        ));
+    void getTransactionHeadsByCustomerId_orderedRepositoryResults_preservesOrderAndDates() {
+        TransactionHeadView newerOpen = transactionHeadView(31, 3, 7);
+        newerOpen.setStartDate(LocalDate.parse("2026-03-01"));
+        TransactionHeadView olderOpen = transactionHeadView(30, 8, 3);
+        TransactionHeadView newerClosed = transactionHeadView(33, 3, 7);
+        newerClosed.setEndDate(LocalDate.parse("2026-06-01"));
+        TransactionHeadView olderClosed = transactionHeadView(32, 8, 3);
+        olderClosed.setEndDate(LocalDate.parse("2026-05-01"));
+        List<TransactionHeadView> orderedHeads = List.of(newerOpen, olderOpen, newerClosed, olderClosed);
+        when(transactionHeadViewRepository.findAllByLenderIdOrBorrowerIdOrderByEndDateDescStartDateDesc(3))
+                .thenReturn(orderedHeads);
 
         List<TransactionHeadDTO> result = transactionHeadService.getTransactionHeadsByCustomerId(3);
 
-        assertEquals(2, result.size());
-        assertEquals(30, result.get(0).id());
-        assertEquals(31, result.get(1).id());
+        assertEquals(orderedHeads.stream().map(TransactionHeadDTO::fromView).toList(), result);
+        var order = inOrder(customerAccessPolicy, transactionHeadViewRepository);
+        order.verify(customerAccessPolicy).requireReadAccess(3);
+        order.verify(transactionHeadViewRepository).findAllByLenderIdOrBorrowerIdOrderByEndDateDescStartDateDesc(3);
+        verifyNoMoreInteractions(transactionHeadViewRepository);
+    }
+
+    @Test
+    void getTransactionHeadsByCustomerId_noTransactionHeads_returnsEmptyList() {
+        when(transactionHeadViewRepository.findAllByLenderIdOrBorrowerIdOrderByEndDateDescStartDateDesc(3))
+                .thenReturn(List.of());
+
+        assertEquals(List.of(), transactionHeadService.getTransactionHeadsByCustomerId(3));
+
         verify(customerAccessPolicy).requireReadAccess(3);
+        verify(transactionHeadViewRepository).findAllByLenderIdOrBorrowerIdOrderByEndDateDescStartDateDesc(3);
     }
 
     @Test
@@ -125,7 +143,7 @@ class TransactionHeadServiceTests {
                 () -> transactionHeadService.getTransactionHeadsByCustomerId(3)
         );
 
-        verify(transactionHeadViewRepository, never()).findAllByLenderIdOrBorrowerId(3);
+        verifyNoInteractions(transactionHeadViewRepository);
     }
 
     @Test
@@ -190,7 +208,7 @@ class TransactionHeadServiceTests {
 
     @Test
     void getTransactionHeadsForAccessibleCustomer_authorizedCustomer_skipsCustomerAccessCheck() {
-        when(transactionHeadViewRepository.findAllByLenderIdOrBorrowerId(3)).thenReturn(List.of(
+        when(transactionHeadViewRepository.findAllByLenderIdOrBorrowerIdOrderByEndDateDescStartDateDesc(3)).thenReturn(List.of(
                 transactionHeadView(30, 3, 7)
         ));
 

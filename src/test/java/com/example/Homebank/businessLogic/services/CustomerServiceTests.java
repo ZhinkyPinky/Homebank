@@ -210,9 +210,10 @@ class CustomerServiceTests {
     }
 
     @Test
-    void getCustomerAndTransactionHeads_usesAlreadyAuthorizedCustomerLookup() {
+    void getCustomerAndTransactionHeads_orderedHeads_preservesOrderAndUsesAuthorizedLookup() {
         int customerId = 12;
-        List<TransactionHeadDTO> transactionHeads = List.of(transactionHead(30, customerId, 20));
+        List<TransactionHeadDTO> transactionHeads = List.of(
+                transactionHead(31, customerId, 20), transactionHead(30, customerId, 20));
 
         when(customerViewRepository.findById(customerId)).thenReturn(Optional.of(customerView(customerId, "Customer")));
         when(transactionHeadService.getTransactionHeadsForAccessibleCustomer(customerId)).thenReturn(transactionHeads);
