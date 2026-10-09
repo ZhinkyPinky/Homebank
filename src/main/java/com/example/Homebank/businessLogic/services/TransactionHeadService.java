@@ -46,7 +46,7 @@ public class TransactionHeadService {
         logger.info("Fetching transaction head with ID: {}", transactionHeadId);
 
         TransactionHeadDTO transactionHead = loadTransactionHead(transactionHeadId);
-        transactionHeadAccessPolicy.requireAccess(transactionHead);
+        transactionHeadAccessPolicy.requireReadAccess(transactionHead);
 
         logger.debug("Retrieved transaction head: {}", transactionHead);
         return transactionHead;
@@ -133,8 +133,7 @@ public class TransactionHeadService {
     public void createTransactionHead(CreateTransactionHeadDTO transactionHead) {
         logger.info("Creating transaction head: {}", transactionHead);
 
-        customerAccessPolicy.requireReadAccess(transactionHead.lenderId());
-        customerAccessPolicy.requireReadAccess(transactionHead.borrowerId());
+        transactionHeadAccessPolicy.requireWriteAccess(transactionHead.lenderId(), transactionHead.borrowerId());
 
         // The save procedure inserts when p_Id is -1 (or null).
         Map<String, Object> result = transactionHeadViewRepository.saveTransactionHead(
@@ -154,6 +153,7 @@ public class TransactionHeadService {
 
     /**
      * Updates an accessible transaction head, preserving its original lender and borrower.
+     * Requires access to both participating customers.
      *
      * @param transactionHeadId ID of the transaction head to update.
      * @param transactionHead   Transaction head data to update.
@@ -167,7 +167,7 @@ public class TransactionHeadService {
             return new ResourceNotFoundException("TRANSACTION_HEAD", transactionHeadId, "Transaction head could not be found.");
         });
 
-        transactionHeadAccessPolicy.requireAccess(TransactionHeadDTO.fromView(existingTransactionHead));
+        transactionHeadAccessPolicy.requireWriteAccess(TransactionHeadDTO.fromView(existingTransactionHead));
 
         LocalDateTime providedRowVersion = transactionHead.rowVersion();
         LocalDateTime currentRowVersion = existingTransactionHead.getRowVersion();
@@ -197,6 +197,7 @@ public class TransactionHeadService {
 
     /**
      * Sets the transaction head as deleted in the DB.
+     * Requires access to both participating customers.
      *
      * @param transactionHeadId ID of the transaction head to set as deleted.
      * @param rowVersion The client version used by the delete procedure.
@@ -205,8 +206,8 @@ public class TransactionHeadService {
     public void deleteTransactionHead(int transactionHeadId, LocalDateTime rowVersion) {
         logger.info("Deleting transaction head with ID: {}", transactionHeadId);
 
-        //Checks for existence and whether the user has access to the transaction head.
-        TransactionHeadDTO existingTransactionHead = getTransactionHead(transactionHeadId);
+        TransactionHeadDTO existingTransactionHead = loadTransactionHead(transactionHeadId);
+        transactionHeadAccessPolicy.requireWriteAccess(existingTransactionHead);
 
         try {
             transactionHeadViewRepository.deleteTransactionHead(

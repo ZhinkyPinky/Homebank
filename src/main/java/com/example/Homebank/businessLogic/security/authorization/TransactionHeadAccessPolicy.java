@@ -27,23 +27,17 @@ public class TransactionHeadAccessPolicy {
      * @throws ResourceNotFoundException if the transaction head does not exist.
      * @throws ResourceAccessDeniedException if neither participating customer is accessible.
      */
-    public void requireAccess(int transactionHeadId) {
-        TransactionHeadView transactionHead = transactionHeadViewRepository.findById(transactionHeadId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "TRANSACTION_HEAD", transactionHeadId, "Transaction head could not be found."
-                ));
-
-        requireAccess(TransactionHeadDTO.fromView(transactionHead));
+    public void requireReadAccess(int transactionHeadId) {
+        requireReadAccess(loadTransactionHead(transactionHeadId));
     }
 
     /**
-     * Requires read access to either the lender or borrower customer. This permits both reading
-     * and editing the transaction head; its lender and borrower remain fixed after creation.
+     * Requires read access to either the lender or borrower customer.
      *
      * @param transactionHead Transaction head being accessed.
      * @throws ResourceAccessDeniedException if neither participating customer is accessible.
      */
-    public void requireAccess(TransactionHeadDTO transactionHead) {
+    public void requireReadAccess(TransactionHeadDTO transactionHead) {
         int lenderId = transactionHead.lenderId();
         int borrowerId = transactionHead.borrowerId();
 
@@ -56,6 +50,41 @@ public class TransactionHeadAccessPolicy {
                     Map.of("lenderId", lenderId, "borrowerId", borrowerId)
             );
         }
+    }
+
+    /**
+     * Loads a head and requires access to both stored participants before mutation.
+     *
+     * @throws ResourceNotFoundException if the transaction head does not exist.
+     * @throws ResourceAccessDeniedException if either participating customer is inaccessible.
+     */
+    public void requireWriteAccess(int transactionHeadId) {
+        requireWriteAccess(loadTransactionHead(transactionHeadId));
+    }
+
+    private TransactionHeadDTO loadTransactionHead(int transactionHeadId) {
+        TransactionHeadView transactionHead = transactionHeadViewRepository.findById(transactionHeadId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "TRANSACTION_HEAD", transactionHeadId, "Transaction head could not be found."
+                ));
+        return TransactionHeadDTO.fromView(transactionHead);
+    }
+
+    /**
+     * Requires access to both stored participants before mutating a transaction head.
+     */
+    public void requireWriteAccess(TransactionHeadDTO transactionHead) {
+        requireWriteAccess(transactionHead.lenderId(), transactionHead.borrowerId());
+    }
+
+    /**
+     * Requires access to both participants, including when creating a transaction head.
+     *
+     * @throws ResourceAccessDeniedException if either customer is inaccessible.
+     */
+    public void requireWriteAccess(int lenderId, int borrowerId) {
+        customerAccessPolicy.requireReadAccess(lenderId);
+        customerAccessPolicy.requireReadAccess(borrowerId);
     }
 
     /**

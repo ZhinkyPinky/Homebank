@@ -7,6 +7,8 @@ import com.example.Homebank.exceptions.notfound.ResourceNotFoundException;
 import com.example.Homebank.presentation.dto.transactionhead.TransactionHeadDTO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -19,8 +21,11 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -38,16 +43,16 @@ class TransactionHeadAccessPolicyTests {
     private TransactionHeadAccessPolicy transactionHeadAccessPolicy;
 
     @Test
-    void requireAccess_allowsAccessThroughParticipatingCustomer() {
+    void requireReadAccess_accessibleParticipant_allowsAccess() {
         TransactionHeadDTO transactionHead = transactionHead(10, 1, 2);
         when(customerAccessPolicy.canReadAny(List.of(1, 2))).thenReturn(true);
 
-        assertDoesNotThrow(() -> transactionHeadAccessPolicy.requireAccess(transactionHead));
+        assertDoesNotThrow(() -> transactionHeadAccessPolicy.requireReadAccess(transactionHead));
         verifyNoInteractions(transactionHeadViewRepository);
     }
 
     @Test
-    void requireAccess_byId_allowsAccessThroughStoredParticipants() {
+    void requireReadAccess_headIdWithAccessibleParticipant_allowsAccess() {
         TransactionHeadView head = new TransactionHeadView();
         head.setId(10);
         head.setLenderId(111);
@@ -55,7 +60,7 @@ class TransactionHeadAccessPolicyTests {
         when(transactionHeadViewRepository.findById(10)).thenReturn(Optional.of(head));
         when(customerAccessPolicy.canReadAny(List.of(111, 222))).thenReturn(true);
 
-        assertDoesNotThrow(() -> transactionHeadAccessPolicy.requireAccess(10));
+        assertDoesNotThrow(() -> transactionHeadAccessPolicy.requireReadAccess(10));
 
         verify(transactionHeadViewRepository).findById(10);
         verifyNoMoreInteractions(transactionHeadViewRepository);
@@ -63,7 +68,7 @@ class TransactionHeadAccessPolicyTests {
     }
 
     @Test
-    void requireAccess_byId_rejectsInaccessibleHeadWithStoredResourceDetails() {
+    void requireReadAccess_headIdWithInaccessibleParticipants_throwsAccessDeniedWithStoredResourceDetails() {
         TransactionHeadView head = new TransactionHeadView();
         head.setId(10);
         head.setLenderId(111);
@@ -73,7 +78,7 @@ class TransactionHeadAccessPolicyTests {
 
         ResourceAccessDeniedException exception = assertThrows(
                 ResourceAccessDeniedException.class,
-                () -> transactionHeadAccessPolicy.requireAccess(10)
+                () -> transactionHeadAccessPolicy.requireReadAccess(10)
         );
 
         assertEquals("TRANSACTION_HEAD", exception.getResourceType());
@@ -84,12 +89,12 @@ class TransactionHeadAccessPolicyTests {
     }
 
     @Test
-    void requireAccess_byId_missingHeadReturnsNotFoundWithoutCheckingCustomers() {
+    void requireReadAccess_missingHeadId_throwsResourceNotFoundWithoutCheckingCustomers() {
         when(transactionHeadViewRepository.findById(10)).thenReturn(Optional.empty());
 
         ResourceNotFoundException exception = assertThrows(
                 ResourceNotFoundException.class,
-                () -> transactionHeadAccessPolicy.requireAccess(10)
+                () -> transactionHeadAccessPolicy.requireReadAccess(10)
         );
 
         assertEquals("TRANSACTION_HEAD", exception.getResourceType());
@@ -98,13 +103,13 @@ class TransactionHeadAccessPolicyTests {
     }
 
     @Test
-    void requireAccess_rejectsInaccessibleHeadWithResourceDetails() {
+    void requireReadAccess_inaccessibleParticipants_throwsAccessDeniedWithResourceDetails() {
         TransactionHeadDTO transactionHead = transactionHead(10, 1, 2);
         when(customerAccessPolicy.canReadAny(List.of(1, 2))).thenReturn(false);
 
         ResourceAccessDeniedException exception = assertThrows(
                 ResourceAccessDeniedException.class,
-                () -> transactionHeadAccessPolicy.requireAccess(transactionHead)
+                () -> transactionHeadAccessPolicy.requireReadAccess(transactionHead)
         );
 
         assertEquals("TRANSACTION_HEAD", exception.getResourceType());
@@ -114,7 +119,86 @@ class TransactionHeadAccessPolicyTests {
     }
 
     @Test
-    void requireLinkedToCustomer_allowsLenderOrBorrower() {
+    void requireWriteAccess_existingHeadId_checksBothStoredParticipants() {
+        TransactionHeadView head = new TransactionHeadView();
+        head.setId(10);
+        head.setLenderId(1);
+        head.setBorrowerId(2);
+        when(transactionHeadViewRepository.findById(10)).thenReturn(Optional.of(head));
+
+        assertDoesNotThrow(() -> transactionHeadAccessPolicy.requireWriteAccess(10));
+
+        verify(customerAccessPolicy).requireReadAccess(1);
+        verify(customerAccessPolicy).requireReadAccess(2);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 2})
+    void requireWriteAccess_headIdWithEitherParentInaccessible_throwsAccessDenied(int inaccessibleCustomerId) {
+        TransactionHeadView head = new TransactionHeadView();
+        head.setId(10);
+        head.setLenderId(1);
+        head.setBorrowerId(2);
+        when(transactionHeadViewRepository.findById(10)).thenReturn(Optional.of(head));
+        ResourceAccessDeniedException denied = new ResourceAccessDeniedException(
+                "CUSTOMER", inaccessibleCustomerId, "read", "Denied");
+        if (inaccessibleCustomerId == 2) {
+            doNothing().when(customerAccessPolicy).requireReadAccess(1);
+        }
+        doThrow(denied).when(customerAccessPolicy).requireReadAccess(inaccessibleCustomerId);
+
+        assertSame(denied, assertThrows(ResourceAccessDeniedException.class,
+                () -> transactionHeadAccessPolicy.requireWriteAccess(10)));
+    }
+
+    @Test
+    void requireWriteAccess_missingHeadId_throwsResourceNotFoundWithoutCheckingCustomers() {
+        when(transactionHeadViewRepository.findById(10)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> transactionHeadAccessPolicy.requireWriteAccess(10));
+
+        assertEquals("TRANSACTION_HEAD", exception.getResourceType());
+        assertEquals(10, exception.getResourceId());
+        verifyNoInteractions(customerAccessPolicy);
+    }
+
+    @Test
+    void requireWriteAccess_existingHeadDto_checksBothStoredParticipants() {
+        assertDoesNotThrow(() -> transactionHeadAccessPolicy.requireWriteAccess(transactionHead(10, 1, 2)));
+
+        verify(customerAccessPolicy).requireReadAccess(1);
+        verify(customerAccessPolicy).requireReadAccess(2);
+        verifyNoInteractions(transactionHeadViewRepository);
+    }
+
+    @Test
+    void requireWriteAccess_participantIds_checksBothCustomers() {
+        assertDoesNotThrow(() -> transactionHeadAccessPolicy.requireWriteAccess(1, 2));
+
+        verify(customerAccessPolicy).requireReadAccess(1);
+        verify(customerAccessPolicy).requireReadAccess(2);
+        verifyNoInteractions(transactionHeadViewRepository);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 2})
+    void requireWriteAccess_eitherParentInaccessible_throwsAccessDenied(int inaccessibleCustomerId) {
+        ResourceAccessDeniedException denied = new ResourceAccessDeniedException(
+                "CUSTOMER", inaccessibleCustomerId, "read", "Denied");
+        if (inaccessibleCustomerId == 2) {
+            doNothing().when(customerAccessPolicy).requireReadAccess(1);
+        }
+        doThrow(denied).when(customerAccessPolicy).requireReadAccess(inaccessibleCustomerId);
+
+        assertSame(denied, assertThrows(ResourceAccessDeniedException.class,
+                () -> transactionHeadAccessPolicy.requireWriteAccess(transactionHead(10, 1, 2))));
+        assertSame(denied, assertThrows(ResourceAccessDeniedException.class,
+                () -> transactionHeadAccessPolicy.requireWriteAccess(1, 2)));
+    }
+
+    @Test
+    void requireLinkedToCustomer_customerIsLenderOrBorrower_allowsAccess() {
         TransactionHeadDTO transactionHead = transactionHead(10, 1, 2);
 
         assertDoesNotThrow(() -> transactionHeadAccessPolicy.requireLinkedToCustomer(1, transactionHead));
@@ -122,7 +206,7 @@ class TransactionHeadAccessPolicyTests {
     }
 
     @Test
-    void requireLinkedToCustomer_rejectsUnrelatedCustomerWithResourceDetails() {
+    void requireLinkedToCustomer_unrelatedCustomer_throwsAccessDeniedWithResourceDetails() {
         TransactionHeadDTO transactionHead = transactionHead(10, 1, 2);
 
         ResourceAccessDeniedException exception = assertThrows(

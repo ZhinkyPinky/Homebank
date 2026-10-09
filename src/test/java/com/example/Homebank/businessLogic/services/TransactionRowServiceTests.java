@@ -52,7 +52,7 @@ class TransactionRowServiceTests {
 
         assertEquals(700, result.id());
         assertEquals(70, result.transactionHeadId());
-        verify(transactionHeadAccessPolicy).requireAccess(70);
+        verify(transactionHeadAccessPolicy).requireReadAccess(70);
     }
 
     @Test
@@ -83,7 +83,7 @@ class TransactionRowServiceTests {
         assertEquals(100, result.get(0).id());
         assertEquals(101, result.get(1).id());
         var order = inOrder(transactionHeadAccessPolicy, transactionRowViewRepository);
-        order.verify(transactionHeadAccessPolicy).requireAccess(10);
+        order.verify(transactionHeadAccessPolicy).requireReadAccess(10);
         order.verify(transactionRowViewRepository).findAllByTransactionHeadId(10);
     }
 
@@ -107,7 +107,7 @@ class TransactionRowServiceTests {
 
         transactionRowService.updateTransactionRow(80, updateRequest(dto));
 
-        verify(transactionHeadAccessPolicy).requireAccess(8);
+        verify(transactionHeadAccessPolicy).requireWriteAccess(8);
 
         verify(transactionRowViewRepository).saveTransactionRow(
                 dto.id(),
@@ -138,7 +138,7 @@ class TransactionRowServiceTests {
                 () -> transactionRowService.deleteTransactionRow(dto.id(), dto.rowVersion()));
 
         assertSame(boom, exception);
-        verify(transactionHeadAccessPolicy).requireAccess(9);
+        verify(transactionHeadAccessPolicy).requireWriteAccess(9);
         verify(transactionRowViewRepository).deleteTransactionRow(
                 dto.id(),
                 dto.transactionHeadId(),
@@ -151,12 +151,12 @@ class TransactionRowServiceTests {
     void getTransactionRowById_deniedParent_preventsRead() {
         when(transactionRowViewRepository.findById(90)).thenReturn(Optional.of(transactionRowView(90, 9)));
         ResourceAccessDeniedException denied = new ResourceAccessDeniedException("TRANSACTION_HEAD", 9, "read", "Denied");
-        doThrow(denied).when(transactionHeadAccessPolicy).requireAccess(9);
+        doThrow(denied).when(transactionHeadAccessPolicy).requireReadAccess(9);
 
         assertSame(denied, assertThrows(ResourceAccessDeniedException.class,
                 () -> transactionRowService.getTransactionRowById(90)));
 
-        verify(transactionHeadAccessPolicy).requireAccess(9);
+        verify(transactionHeadAccessPolicy).requireReadAccess(9);
         verifyNoMoreInteractions(transactionHeadAccessPolicy);
         verify(transactionRowViewRepository).findById(90);
         verifyNoMoreInteractions(transactionRowViewRepository);
@@ -165,13 +165,13 @@ class TransactionRowServiceTests {
     @Test
     void updateTransactionRow_deniedParent_preventsWrite() {
         when(transactionRowViewRepository.findById(90)).thenReturn(Optional.of(transactionRowView(90, 9)));
-        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("TRANSACTION_HEAD", 9, "read", "Denied");
-        doThrow(denied).when(transactionHeadAccessPolicy).requireAccess(9);
+        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("CUSTOMER", 2, "read", "Denied");
+        doThrow(denied).when(transactionHeadAccessPolicy).requireWriteAccess(9);
 
         assertSame(denied, assertThrows(ResourceAccessDeniedException.class,
                 () -> transactionRowService.updateTransactionRow(90, updateRequest(transactionRowDto(90, 9)))));
 
-        verify(transactionHeadAccessPolicy).requireAccess(9);
+        verify(transactionHeadAccessPolicy).requireWriteAccess(9);
         verifyNoMoreInteractions(transactionHeadAccessPolicy);
         verify(transactionRowViewRepository).findById(90);
         verifyNoMoreInteractions(transactionRowViewRepository);
@@ -180,13 +180,13 @@ class TransactionRowServiceTests {
     @Test
     void deleteTransactionRow_deniedParent_preventsWrite() {
         when(transactionRowViewRepository.findById(90)).thenReturn(Optional.of(transactionRowView(90, 9)));
-        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("TRANSACTION_HEAD", 9, "read", "Denied");
-        doThrow(denied).when(transactionHeadAccessPolicy).requireAccess(9);
+        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("CUSTOMER", 2, "read", "Denied");
+        doThrow(denied).when(transactionHeadAccessPolicy).requireWriteAccess(9);
 
         assertSame(denied, assertThrows(ResourceAccessDeniedException.class,
                 () -> transactionRowService.deleteTransactionRow(90, null)));
 
-        verify(transactionHeadAccessPolicy).requireAccess(9);
+        verify(transactionHeadAccessPolicy).requireWriteAccess(9);
         verifyNoMoreInteractions(transactionHeadAccessPolicy);
         verify(transactionRowViewRepository).findById(90);
         verifyNoMoreInteractions(transactionRowViewRepository);
@@ -194,25 +194,25 @@ class TransactionRowServiceTests {
 
     @Test
     void createTransactionRow_deniedParent_preventsInsert() {
-        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("TRANSACTION_HEAD", 9, "read", "Denied");
-        doThrow(denied).when(transactionHeadAccessPolicy).requireAccess(9);
+        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("CUSTOMER", 2, "read", "Denied");
+        doThrow(denied).when(transactionHeadAccessPolicy).requireWriteAccess(9);
 
         assertSame(denied, assertThrows(ResourceAccessDeniedException.class,
                 () -> transactionRowService.createTransactionRow(createRequest())));
 
-        verify(transactionHeadAccessPolicy).requireAccess(9);
+        verify(transactionHeadAccessPolicy).requireWriteAccess(9);
         verifyNoInteractions(transactionRowViewRepository);
     }
 
     @Test
     void getAllByTransactionHeadId_deniedParent_preventsList() {
         ResourceAccessDeniedException denied = new ResourceAccessDeniedException("TRANSACTION_HEAD", 9, "read", "Denied");
-        doThrow(denied).when(transactionHeadAccessPolicy).requireAccess(9);
+        doThrow(denied).when(transactionHeadAccessPolicy).requireReadAccess(9);
 
         assertSame(denied, assertThrows(ResourceAccessDeniedException.class,
                 () -> transactionRowService.getAllByTransactionHeadId(9)));
 
-        verify(transactionHeadAccessPolicy).requireAccess(9);
+        verify(transactionHeadAccessPolicy).requireReadAccess(9);
         verifyNoInteractions(transactionRowViewRepository);
     }
 
@@ -237,7 +237,7 @@ class TransactionRowServiceTests {
         assertThrows(ObjectOptimisticLockingFailureException.class,
                 () -> transactionRowService.updateTransactionRow(90, updateRequest(transactionRowDto(90, 9))));
 
-        verify(transactionHeadAccessPolicy).requireAccess(9);
+        verify(transactionHeadAccessPolicy).requireWriteAccess(9);
         verify(transactionRowViewRepository).findById(90);
         verifyNoMoreInteractions(transactionRowViewRepository);
     }
@@ -249,7 +249,7 @@ class TransactionRowServiceTests {
         transactionRowService.createTransactionRow(dto);
 
         var order = inOrder(transactionHeadAccessPolicy, transactionRowViewRepository);
-        order.verify(transactionHeadAccessPolicy).requireAccess(9);
+        order.verify(transactionHeadAccessPolicy).requireWriteAccess(9);
         order.verify(transactionRowViewRepository).saveTransactionRow(-1, 9, -1,
                 dto.typeOfTransactionCode(), dto.name(), dto.description(), dto.paymentDate(), dto.amount(), null);
         verifyNoMoreInteractions(transactionRowViewRepository);
@@ -264,7 +264,7 @@ class TransactionRowServiceTests {
 
         var order = inOrder(transactionRowViewRepository, transactionHeadAccessPolicy);
         order.verify(transactionRowViewRepository).findById(90);
-        order.verify(transactionHeadAccessPolicy).requireAccess(9);
+        order.verify(transactionHeadAccessPolicy).requireWriteAccess(9);
         order.verify(transactionRowViewRepository).deleteTransactionRow(90, 9, stored.getTransactionRowNo(), stored.getRowVersion());
     }
 
@@ -277,7 +277,7 @@ class TransactionRowServiceTests {
                 () -> transactionRowService.deleteTransactionRow(90,
                         stored.getRowVersion().minusDays(1)));
 
-        verify(transactionHeadAccessPolicy).requireAccess(9);
+        verify(transactionHeadAccessPolicy).requireWriteAccess(9);
         verify(transactionRowViewRepository).findById(90);
         verifyNoMoreInteractions(transactionRowViewRepository);
     }
@@ -300,24 +300,24 @@ class TransactionRowServiceTests {
     @Test
     void createTransactionRow_missingParent_preventsInsert() {
         ResourceNotFoundException missing = new ResourceNotFoundException("TRANSACTION_HEAD", 9, "Missing");
-        doThrow(missing).when(transactionHeadAccessPolicy).requireAccess(9);
+        doThrow(missing).when(transactionHeadAccessPolicy).requireWriteAccess(9);
 
         assertSame(missing, assertThrows(ResourceNotFoundException.class,
                 () -> transactionRowService.createTransactionRow(createRequest())));
 
-        verify(transactionHeadAccessPolicy).requireAccess(9);
+        verify(transactionHeadAccessPolicy).requireWriteAccess(9);
         verifyNoInteractions(transactionRowViewRepository);
     }
 
     @Test
     void getAllByTransactionHeadId_missingParent_preventsList() {
         ResourceNotFoundException missing = new ResourceNotFoundException("TRANSACTION_HEAD", 9, "Missing");
-        doThrow(missing).when(transactionHeadAccessPolicy).requireAccess(9);
+        doThrow(missing).when(transactionHeadAccessPolicy).requireReadAccess(9);
 
         assertSame(missing, assertThrows(ResourceNotFoundException.class,
                 () -> transactionRowService.getAllByTransactionHeadId(9)));
 
-        verify(transactionHeadAccessPolicy).requireAccess(9);
+        verify(transactionHeadAccessPolicy).requireReadAccess(9);
         verifyNoInteractions(transactionRowViewRepository);
     }
 
@@ -325,12 +325,12 @@ class TransactionRowServiceTests {
     void getTransactionRowById_missingParent_preventsRead() {
         when(transactionRowViewRepository.findById(90)).thenReturn(Optional.of(transactionRowView(90, 9)));
         ResourceNotFoundException missing = new ResourceNotFoundException("TRANSACTION_HEAD", 9, "Missing");
-        doThrow(missing).when(transactionHeadAccessPolicy).requireAccess(9);
+        doThrow(missing).when(transactionHeadAccessPolicy).requireReadAccess(9);
 
         assertSame(missing, assertThrows(ResourceNotFoundException.class,
                 () -> transactionRowService.getTransactionRowById(90)));
 
-        verify(transactionHeadAccessPolicy).requireAccess(9);
+        verify(transactionHeadAccessPolicy).requireReadAccess(9);
         verifyNoMoreInteractions(transactionHeadAccessPolicy);
         verify(transactionRowViewRepository).findById(90);
         verifyNoMoreInteractions(transactionRowViewRepository);
@@ -340,12 +340,12 @@ class TransactionRowServiceTests {
     void updateTransactionRow_missingParent_preventsWrite() {
         when(transactionRowViewRepository.findById(90)).thenReturn(Optional.of(transactionRowView(90, 9)));
         ResourceNotFoundException missing = new ResourceNotFoundException("TRANSACTION_HEAD", 9, "Missing");
-        doThrow(missing).when(transactionHeadAccessPolicy).requireAccess(9);
+        doThrow(missing).when(transactionHeadAccessPolicy).requireWriteAccess(9);
 
         assertSame(missing, assertThrows(ResourceNotFoundException.class,
                 () -> transactionRowService.updateTransactionRow(90, updateRequest(transactionRowDto(90, 9)))));
 
-        verify(transactionHeadAccessPolicy).requireAccess(9);
+        verify(transactionHeadAccessPolicy).requireWriteAccess(9);
         verifyNoMoreInteractions(transactionHeadAccessPolicy);
         verify(transactionRowViewRepository).findById(90);
         verifyNoMoreInteractions(transactionRowViewRepository);
@@ -355,12 +355,12 @@ class TransactionRowServiceTests {
     void deleteTransactionRow_missingParent_preventsWrite() {
         when(transactionRowViewRepository.findById(90)).thenReturn(Optional.of(transactionRowView(90, 9)));
         ResourceNotFoundException missing = new ResourceNotFoundException("TRANSACTION_HEAD", 9, "Missing");
-        doThrow(missing).when(transactionHeadAccessPolicy).requireAccess(9);
+        doThrow(missing).when(transactionHeadAccessPolicy).requireWriteAccess(9);
 
         assertSame(missing, assertThrows(ResourceNotFoundException.class,
                 () -> transactionRowService.deleteTransactionRow(90, null)));
 
-        verify(transactionHeadAccessPolicy).requireAccess(9);
+        verify(transactionHeadAccessPolicy).requireWriteAccess(9);
         verifyNoMoreInteractions(transactionHeadAccessPolicy);
         verify(transactionRowViewRepository).findById(90);
         verifyNoMoreInteractions(transactionRowViewRepository);

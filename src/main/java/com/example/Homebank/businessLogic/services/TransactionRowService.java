@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,7 +39,7 @@ public class TransactionRowService {
     public List<TransactionRowDTO> getAllByTransactionHeadId(int transactionHeadId) {
         logger.info("Fetching all transaction rows for transaction head ID: {}", transactionHeadId);
 
-        transactionHeadAccessPolicy.requireAccess(transactionHeadId);
+        transactionHeadAccessPolicy.requireReadAccess(transactionHeadId);
 
         List<TransactionRowDTO> transactionRows = transactionRowViewRepository.findAllByTransactionHeadId(transactionHeadId).stream().map(TransactionRowDTO::fromEntity).toList();
 
@@ -57,20 +56,21 @@ public class TransactionRowService {
     public TransactionRowDTO getTransactionRowById(int transactionRowId) {
         logger.info("Fetching transaction row with ID: {}", transactionRowId);
 
-        TransactionRowView transactionRowView = loadAccessibleRow(transactionRowId);
+        TransactionRowView transactionRowView = loadRow(transactionRowId);
+        transactionHeadAccessPolicy.requireReadAccess(transactionRowView.getTransactionHeadId());
 
         logger.debug("Retrieved transaction row: {}", transactionRowView);
         return TransactionRowDTO.fromEntity(transactionRowView);
     }
 
     /**
-     * Creates a row under an accessible head, with a database-assigned ID, row number, and version.
+     * Creates a row under a head with write access, with a database-assigned ID, row number, and version.
      *
      * @param transactionRow The data for the new transaction row.
      */
     @Transactional
     public void createTransactionRow(CreateTransactionRowDTO transactionRow) {
-        transactionHeadAccessPolicy.requireAccess(transactionRow.transactionHeadId());
+        transactionHeadAccessPolicy.requireWriteAccess(transactionRow.transactionHeadId());
 
         Map<String, Object> result = transactionRowViewRepository.saveTransactionRow(
                 -1,
@@ -88,7 +88,7 @@ public class TransactionRowService {
     }
 
     /**
-     * Sets the transaction row as deleted in the DB.
+     * Sets the transaction row as deleted in the DB. Requires write access to its stored parent head.
      *
      * @param transactionRowId The id of the transaction row to be set as deleted.
      */
@@ -96,7 +96,8 @@ public class TransactionRowService {
     public void deleteTransactionRow(int transactionRowId, LocalDateTime rowVersion) {
         logger.info("Deleting transaction row with ID: {}", transactionRowId);
 
-        TransactionRowView transactionRowView = loadAccessibleRow(transactionRowId);
+        TransactionRowView transactionRowView = loadRow(transactionRowId);
+        transactionHeadAccessPolicy.requireWriteAccess(transactionRowView.getTransactionHeadId());
 
         requireMatchingVersion(transactionRowView, rowVersion);
 
@@ -117,14 +118,15 @@ public class TransactionRowService {
     }
 
     /**
-     * Updates the specified transaction row with the provided data.
+     * Updates the specified transaction row with the provided data. Requires write access to its stored parent head.
      *
      * @param transactionRowId The id of the transaction row to be updated.
      * @param transactionRow   The data to update the transaction row with.
      */
     @Transactional
     public void updateTransactionRow(int transactionRowId, UpdateTransactionRowDTO transactionRow) {
-        TransactionRowView transactionRowView = loadAccessibleRow(transactionRowId);
+        TransactionRowView transactionRowView = loadRow(transactionRowId);
+        transactionHeadAccessPolicy.requireWriteAccess(transactionRowView.getTransactionHeadId());
 
         LocalDateTime providedRowVersion = transactionRow.rowVersion();
         requireMatchingVersion(transactionRowView, providedRowVersion);
@@ -161,19 +163,16 @@ public class TransactionRowService {
     }
 
     /**
-     * Loads the specified transaction row and checks if the current user has access to it.
+     * Loads the specified transaction row. Callers must authorize access to its stored parent head.
      *
      * @param transactionRowId The id of the transaction row to load.
      * @return The loaded transaction row.
      * @throws ResourceNotFoundException if the transaction row does not exist.
-     * @throws AccessDeniedException     if the current user does not have access to the transaction row.
      */
-    private TransactionRowView loadAccessibleRow(int transactionRowId) {
-        TransactionRowView row = transactionRowViewRepository.findById(transactionRowId)
+    private TransactionRowView loadRow(int transactionRowId) {
+        return transactionRowViewRepository.findById(transactionRowId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "TRANSACTION_ROW", transactionRowId, "The transaction row could not be found."
                 ));
-        transactionHeadAccessPolicy.requireAccess(row.getTransactionHeadId());
-        return row;
     }
 }

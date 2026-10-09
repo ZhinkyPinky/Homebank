@@ -48,7 +48,7 @@ class TransactionHeadServiceTests {
     private TransactionHeadService transactionHeadService;
 
     @Test
-    void getTransactionHead_returnsMappedDtoWhenFound() {
+    void getTransactionHead_existingHead_returnsMappedDto() {
         TransactionHeadView view = transactionHeadView(10, 1, 2);
         when(transactionHeadViewRepository.findById(10)).thenReturn(Optional.of(view));
 
@@ -57,11 +57,11 @@ class TransactionHeadServiceTests {
         assertEquals(10, result.id());
         assertEquals(1, result.lenderId());
         assertEquals(2, result.borrowerId());
-        verify(transactionHeadAccessPolicy).requireAccess(result);
+        verify(transactionHeadAccessPolicy).requireReadAccess(result);
     }
 
     @Test
-    void getTransactionHead_throwsAccessDeniedWhenNeitherCustomerIsAccessible() {
+    void getTransactionHead_neitherCustomerAccessible_throwsAccessDenied() {
         TransactionHeadView view = transactionHeadView(10, 1, 2);
         when(transactionHeadViewRepository.findById(10)).thenReturn(Optional.of(view));
         ResourceAccessDeniedException denied = new ResourceAccessDeniedException(
@@ -71,7 +71,7 @@ class TransactionHeadServiceTests {
                 "You do not have permission to access this transaction head.",
                 Map.of("lenderId", 1, "borrowerId", 2)
         );
-        doThrow(denied).when(transactionHeadAccessPolicy).requireAccess(
+        doThrow(denied).when(transactionHeadAccessPolicy).requireReadAccess(
                 any(TransactionHeadDTO.class)
         );
 
@@ -87,7 +87,7 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void getTransactionHead_throwsResourceNotFoundWhenMissing() {
+    void getTransactionHead_missingHead_throwsResourceNotFound() {
         when(transactionHeadViewRepository.findById(55)).thenReturn(Optional.empty());
 
         ResourceNotFoundException exception = assertThrows(
@@ -101,7 +101,7 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void getTransactionHeadsByCustomerId_returnsMappedDtos() {
+    void getTransactionHeadsByCustomerId_accessibleCustomer_returnsMappedDtos() {
         when(transactionHeadViewRepository.findAllByLenderIdOrBorrowerId(3)).thenReturn(List.of(
                 transactionHeadView(30, 3, 7),
                 transactionHeadView(31, 8, 3)
@@ -116,7 +116,7 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void getTransactionHeadsByCustomerId_throwsAccessDeniedWhenCustomerIsNotAccessible() {
+    void getTransactionHeadsByCustomerId_inaccessibleCustomer_throwsAccessDenied() {
         doThrow(new ResourceAccessDeniedException("CUSTOMER", 3, "read", "Denied"))
                 .when(customerAccessPolicy).requireReadAccess(3);
 
@@ -129,7 +129,7 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void getTransactionHeadForCustomer_returnsHeadWhenCustomerIsAccessibleAndLinked() {
+    void getTransactionHeadForCustomer_accessibleLinkedCustomer_returnsHead() {
         when(transactionHeadViewRepository.findById(30)).thenReturn(Optional.of(transactionHeadView(30, 3, 8)));
 
         TransactionHeadDTO result = transactionHeadService.getTransactionHeadForCustomer(3, 30);
@@ -141,7 +141,7 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void getTransactionHeadForCustomer_throwsAccessDeniedWhenHeadIsNotLinkedToCustomer() {
+    void getTransactionHeadForCustomer_unlinkedCustomer_throwsAccessDenied() {
         when(transactionHeadViewRepository.findById(30)).thenReturn(Optional.of(transactionHeadView(30, 1, 2)));
         ResourceAccessDeniedException denied = new ResourceAccessDeniedException(
                 "TRANSACTION_HEAD",
@@ -166,7 +166,7 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void getTransactionHeadForCustomer_throwsAccessDeniedBeforeLoadingHeadWhenCustomerIsNotAccessible() {
+    void getTransactionHeadForCustomer_inaccessibleCustomer_throwsAccessDeniedBeforeLoadingHead() {
         doThrow(new ResourceAccessDeniedException("CUSTOMER", 3, "read", "Denied"))
                 .when(customerAccessPolicy).requireReadAccess(3);
 
@@ -179,7 +179,7 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void getTransactionHeadForAccessibleCustomer_skipsCustomerAccessCheckButValidatesLink() {
+    void getTransactionHeadForAccessibleCustomer_authorizedCustomer_validatesLinkWithoutCheckingCustomerAccess() {
         when(transactionHeadViewRepository.findById(30)).thenReturn(Optional.of(transactionHeadView(30, 3, 8)));
 
         TransactionHeadDTO result = transactionHeadService.getTransactionHeadForAccessibleCustomer(3, 30);
@@ -189,7 +189,7 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void getTransactionHeadsForAccessibleCustomer_skipsCustomerAccessCheck() {
+    void getTransactionHeadsForAccessibleCustomer_authorizedCustomer_skipsCustomerAccessCheck() {
         when(transactionHeadViewRepository.findAllByLenderIdOrBorrowerId(3)).thenReturn(List.of(
                 transactionHeadView(30, 3, 7)
         ));
@@ -201,7 +201,7 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void createTransactionHead_passesCreationSentinelAndNoVersion() {
+    void createTransactionHead_writeAccessGranted_passesCreationSentinelAndNoVersion() {
         CreateTransactionHeadDTO dto = new CreateTransactionHeadDTO(1, 2, "Loan", "desc", LocalDate.parse("2026-01-01"), null, null);
         Map<String, Object> expected = Map.of("p_OUT_Id", 12);
 
@@ -219,8 +219,7 @@ class TransactionHeadServiceTests {
 
         transactionHeadService.createTransactionHead(dto);
 
-        verify(customerAccessPolicy).requireReadAccess(1);
-        verify(customerAccessPolicy).requireReadAccess(2);
+        verify(transactionHeadAccessPolicy).requireWriteAccess(1, 2);
         verify(transactionHeadViewRepository).saveTransactionHead(
                 -1,
                 dto.lenderId(),
@@ -235,44 +234,33 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void createTransactionHead_inaccessibleLenderDoesNotWrite() {
-        CreateTransactionHeadDTO dto = new CreateTransactionHeadDTO(1, 2, "Loan", null, LocalDate.parse("2026-01-01"), null, null);
-        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("CUSTOMER", 1, "read", "Denied");
-        doThrow(denied).when(customerAccessPolicy).requireReadAccess(1);
-
-        assertSame(denied, assertThrows(ResourceAccessDeniedException.class, () -> transactionHeadService.createTransactionHead(dto)));
-        verifyNoInteractions(transactionHeadViewRepository);
-    }
-
-    @Test
-    void createTransactionHead_inaccessibleBorrowerDoesNotWrite() {
+    void createTransactionHead_deniedWriteAccess_doesNotWrite() {
         CreateTransactionHeadDTO dto = new CreateTransactionHeadDTO(1, 2, "Loan", null, LocalDate.parse("2026-01-01"), null, null);
         ResourceAccessDeniedException denied = new ResourceAccessDeniedException("CUSTOMER", 2, "read", "Denied");
-        doNothing().when(customerAccessPolicy).requireReadAccess(1);
-        doThrow(denied).when(customerAccessPolicy).requireReadAccess(2);
+        doThrow(denied).when(transactionHeadAccessPolicy).requireWriteAccess(1, 2);
 
         assertSame(denied, assertThrows(ResourceAccessDeniedException.class, () -> transactionHeadService.createTransactionHead(dto)));
         verifyNoInteractions(transactionHeadViewRepository);
     }
 
     @Test
-    void updateTransactionHead_preservesParticipantsAndPassesExpectedVersion() {
+    void updateTransactionHead_matchingVersion_preservesParticipantsAndPassesExpectedVersion() {
         TransactionHeadView existing = transactionHeadView(12, 111, 222);
         UpdateTransactionHeadDTO dto = new UpdateTransactionHeadDTO("Updated", "new desc", LocalDate.parse("2026-02-01"), null, null, existing.getRowVersion());
         when(transactionHeadViewRepository.findById(12)).thenReturn(Optional.of(existing));
 
         transactionHeadService.updateTransactionHead(12, dto);
 
-        verify(transactionHeadAccessPolicy).requireAccess(TransactionHeadDTO.fromView(existing));
+        verify(transactionHeadAccessPolicy).requireWriteAccess(TransactionHeadDTO.fromView(existing));
         verify(transactionHeadViewRepository).saveTransactionHead(12, 111, 222, dto.transactionName(), dto.description(), dto.startDate(), null, null, existing.getRowVersion());
     }
 
     @Test
-    void updateTransactionHead_deniedAccessDoesNotWrite() {
+    void updateTransactionHead_deniedWriteAccess_doesNotWrite() {
         TransactionHeadView existing = transactionHeadView(12, 111, 222);
         when(transactionHeadViewRepository.findById(12)).thenReturn(Optional.of(existing));
-        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("TRANSACTION_HEAD", 12, "read", "Denied");
-        doThrow(denied).when(transactionHeadAccessPolicy).requireAccess(TransactionHeadDTO.fromView(existing));
+        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("CUSTOMER", 222, "read", "Denied");
+        doThrow(denied).when(transactionHeadAccessPolicy).requireWriteAccess(TransactionHeadDTO.fromView(existing));
         UpdateTransactionHeadDTO dto = new UpdateTransactionHeadDTO("Updated", null, LocalDate.parse("2026-01-01"), null, null, existing.getRowVersion());
 
         assertSame(denied, assertThrows(ResourceAccessDeniedException.class, () -> transactionHeadService.updateTransactionHead(12, dto)));
@@ -281,7 +269,7 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void updateTransactionHead_staleVersionDoesNotWrite() {
+    void updateTransactionHead_staleVersion_doesNotWrite() {
         when(transactionHeadViewRepository.findById(12)).thenReturn(Optional.of(transactionHeadView(12, 1, 2)));
         UpdateTransactionHeadDTO dto = new UpdateTransactionHeadDTO("Updated", null, LocalDate.parse("2026-01-01"), null, null, LocalDateTime.parse("2025-01-01T00:00:00"));
 
@@ -291,7 +279,7 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void deleteTransactionHead_authorizesStoredParticipantsAndUsesClientVersion() {
+    void deleteTransactionHead_writeAccessGranted_authorizesStoredParticipantsAndUsesClientVersion() {
         TransactionHeadView existing = transactionHeadView(22, 111, 222);
         existing.setRowVersion(LocalDateTime.parse("2026-02-01T00:00:00"));
         LocalDateTime rowVersion = LocalDateTime.parse("2026-01-01T00:00:00");
@@ -299,16 +287,16 @@ class TransactionHeadServiceTests {
 
         transactionHeadService.deleteTransactionHead(22, rowVersion);
 
-        verify(transactionHeadAccessPolicy).requireAccess(TransactionHeadDTO.fromView(existing));
+        verify(transactionHeadAccessPolicy).requireWriteAccess(TransactionHeadDTO.fromView(existing));
         verify(transactionHeadViewRepository).deleteTransactionHead(22, rowVersion);
     }
 
     @Test
-    void deleteTransactionHead_deniedStoredHeadDoesNotWrite() {
+    void deleteTransactionHead_deniedWriteAccess_doesNotWrite() {
         TransactionHeadView existing = transactionHeadView(22, 111, 222);
         when(transactionHeadViewRepository.findById(22)).thenReturn(Optional.of(existing));
-        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("TRANSACTION_HEAD", 22, "read", "Denied");
-        doThrow(denied).when(transactionHeadAccessPolicy).requireAccess(TransactionHeadDTO.fromView(existing));
+        ResourceAccessDeniedException denied = new ResourceAccessDeniedException("CUSTOMER", 222, "read", "Denied");
+        doThrow(denied).when(transactionHeadAccessPolicy).requireWriteAccess(TransactionHeadDTO.fromView(existing));
 
         assertSame(denied, assertThrows(ResourceAccessDeniedException.class,
                 () -> transactionHeadService.deleteTransactionHead(22, LocalDateTime.parse("2026-01-01T00:00:00"))));
@@ -317,7 +305,7 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void deleteTransactionHead_missingHeadDoesNotWrite() {
+    void deleteTransactionHead_missingHead_doesNotWrite() {
         LocalDateTime rowVersion = LocalDateTime.parse("2026-01-01T00:00:00");
 
         when(transactionHeadViewRepository.findById(22)).thenReturn(Optional.empty());
@@ -329,7 +317,7 @@ class TransactionHeadServiceTests {
     }
 
     @Test
-    void deleteTransactionHead_rethrowsRepositoryException() {
+    void deleteTransactionHead_repositoryFailure_rethrowsException() {
         LocalDateTime rowVersion = LocalDateTime.parse("2026-01-01T00:00:00");
         RuntimeException boom = new RuntimeException("delete failed");
 
